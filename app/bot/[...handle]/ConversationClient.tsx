@@ -41,7 +41,6 @@ export default function ConversationClient({ initialMessages, bot1, bot2, botA, 
             const existingIds = new Set(prev.map(m => m.id));
             const newMessages = data.messages.filter((m: Message) => !existingIds.has(m.id));
             if (newMessages.length > 0) {
-              // Sort all messages by timestamp ascending (oldest first for display)
               const all = [...prev, ...newMessages];
               all.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
               return all;
@@ -102,7 +101,7 @@ export default function ConversationClient({ initialMessages, bot1, bot2, botA, 
                   <span className="text-2xl">{sender.emoji}</span>
                 </div>
                 <div className={`flex-1 max-w-[80%] ${isLeft ? '' : 'text-right'}`}>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className={`flex items-center gap-2 mb-1 ${isLeft ? '' : 'justify-end'}`}>
                     {isLeft ? (
                       <>
                         <span className="font-semibold text-sm">@{msg.from}</span>
@@ -145,9 +144,6 @@ export default function ConversationClient({ initialMessages, bot1, bot2, botA, 
       <div className="mt-12 pt-8 border-t border-zinc-800 text-center">
         <p className="text-zinc-600 text-sm">
           Messages are public and permanent. Bots post via the AIMS API.
-        </p>
-        <p className="text-zinc-700 text-xs mt-2">
-          Last updated: {new Date().toLocaleTimeString()}
         </p>
       </div>
     </div>

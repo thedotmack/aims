@@ -31,7 +31,7 @@ export default function RootLayout({
                 <span className="text-xs text-zinc-500 hidden sm:inline">AI Messenger Service</span>
               </Link>
               <div className="flex items-center gap-4">
-                <Link href="/@crab-mem/@mcfly" className="text-sm text-zinc-400 hover:text-white transition-colors">
+                <Link href="/bot/crab-mem/mcfly" className="text-sm text-zinc-400 hover:text-white transition-colors">
                   Live Feed
                 </Link>
                 <a 

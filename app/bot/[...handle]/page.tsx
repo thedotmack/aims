@@ -1,31 +1,18 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getBot, getMessages, getAllBots, type Message, type Bot } from '@/lib/store';
+import { getBot, getMessages, getAllBots } from '@/lib/store';
 import ConversationClient from './ConversationClient';
 
 interface PageProps {
-  params: Promise<{ path: string[] }>;
-}
-
-function parsePath(path: string[]): { bot1?: string; bot2?: string } {
-  // Handle /@bot1 and /@bot1/@bot2 patterns
-  const segments = path.map(p => p.replace(/^@/, ''));
-  
-  if (segments.length === 1) {
-    return { bot1: segments[0] };
-  } else if (segments.length === 2) {
-    return { bot1: segments[0], bot2: segments[1] };
-  }
-  
-  return {};
+  params: Promise<{ handle: string[] }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { path } = await params;
-  const { bot1, bot2 } = parsePath(path);
+  const { handle } = await params;
   
-  if (bot1 && bot2) {
+  if (handle.length === 2) {
+    const [bot1, bot2] = handle;
     const b1 = getBot(bot1);
     const b2 = getBot(bot2);
     if (b1 && b2) {
@@ -38,31 +25,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         },
       };
     }
-  } else if (bot1) {
-    const bot = getBot(bot1);
+  } else if (handle.length === 1) {
+    const bot = getBot(handle[0]);
     if (bot) {
       return {
-        title: `@${bot1} | AIMS`,
+        title: `@${handle[0]} | AIMS`,
         description: bot.description,
         openGraph: {
-          title: `@${bot1} | AIMS`,
+          title: `@${handle[0]} | AIMS`,
           description: bot.description,
         },
       };
     }
   }
   
-  return {
-    title: 'AIMS',
-  };
+  return { title: 'AIMS' };
 }
 
-export default async function DynamicPage({ params }: PageProps) {
-  const { path } = await params;
-  const { bot1, bot2 } = parsePath(path);
+export default async function BotPage({ params }: PageProps) {
+  const { handle } = await params;
 
-  // Conversation view: /@bot1/@bot2
-  if (bot1 && bot2) {
+  // Conversation view: /bot/bot1/bot2
+  if (handle.length === 2) {
+    const [bot1, bot2] = handle;
     const botA = getBot(bot1);
     const botB = getBot(bot2);
 
@@ -80,12 +65,12 @@ export default async function DynamicPage({ params }: PageProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Link href={`/@${bot1}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <Link href={`/bot/${bot1}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                     <span className="text-2xl">{botA.emoji}</span>
                     <span className="font-bold">@{bot1}</span>
                   </Link>
                   <span className="text-zinc-500">↔</span>
-                  <Link href={`/@${bot2}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <Link href={`/bot/${bot2}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                     <span className="text-2xl">{botB.emoji}</span>
                     <span className="font-bold">@{bot2}</span>
                   </Link>
@@ -111,16 +96,17 @@ export default async function DynamicPage({ params }: PageProps) {
     );
   }
 
-  // Bot profile view: /@bot
-  if (bot1) {
-    const bot = getBot(bot1);
+  // Bot profile view: /bot/botId
+  if (handle.length === 1) {
+    const botId = handle[0];
+    const bot = getBot(botId);
 
     if (!bot) {
       notFound();
     }
 
-    const allBots = getAllBots().filter(b => b.id !== bot1);
-    const recentMessages = getMessages(bot1, undefined, 20);
+    const allBots = getAllBots().filter(b => b.id !== botId);
+    const recentMessages = getMessages(botId, undefined, 20);
 
     return (
       <div className="min-h-screen bg-black text-white">
@@ -131,7 +117,7 @@ export default async function DynamicPage({ params }: PageProps) {
               <span className="text-6xl">{bot.emoji}</span>
               <div>
                 <h1 className="text-3xl font-bold mb-1">@{bot.id}</h1>
-                <p className="text-zinc-400 mb-2">{bot.name} • {bot.owner}'s bot</p>
+                <p className="text-zinc-400 mb-2">{bot.name} • {bot.owner}&apos;s bot</p>
                 <p className="text-zinc-300 max-w-xl">{bot.description}</p>
               </div>
             </div>
@@ -145,7 +131,7 @@ export default async function DynamicPage({ params }: PageProps) {
             {allBots.map(otherBot => (
               <Link
                 key={otherBot.id}
-                href={`/@${bot1}/@${otherBot.id}`}
+                href={`/bot/${botId}/${otherBot.id}`}
                 className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl p-4 flex items-center justify-between transition-colors"
               >
                 <div className="flex items-center gap-4">
