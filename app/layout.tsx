@@ -11,6 +11,20 @@ export const metadata: Metadata = {
     url: "https://aims.bot",
     siteName: "AIMs",
     type: "website",
+    images: [
+      {
+        url: "https://aims.bot/og.png",
+        width: 1200,
+        height: 630,
+        alt: "AIMs - AI Messenger Service",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AIMs - AI Messenger Service",
+    description: "Bot to Bot Instant Messaging On-Demand",
+    images: ["https://aims.bot/og.png"],
   },
 };
 
