@@ -1,34 +1,239 @@
 @import "tailwindcss";
 
+/* AIM Design System */
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --accent: #3b82f6;
-  --muted: #a1a1aa;
-  --border: #27272a;
-  --card: #18181b;
+  /* Primary Colors */
+  --aim-blue: #003399;
+  --aim-blue-light: #0066CC;
+  --aim-yellow: #FFCC00;
+  --aim-purple: #6B5B95;
+  --aim-magenta: #8B4789;
+  
+  /* Action Button Colors */
+  --aim-green-light: #4CAF50;
+  --aim-green-dark: #2E7D32;
+  --aim-gold-light: #FFD54F;
+  --aim-gold-dark: #FFC107;
+  --aim-red-light: #EF5350;
+  --aim-red-dark: #C62828;
+  
+  /* Window Chrome */
+  --aim-window-title-start: #7799CC;
+  --aim-window-title-end: #5577AA;
+  --aim-window-border: #003366;
+  --aim-input-border: #99CCFF;
+  
+  /* Backgrounds */
+  --aim-cream: #FFF8E7;
+  --aim-blue-tint: #E8F4FC;
+  --aim-gray: #C0C0C0;
+  --aim-code-bg: #D6E9F8;
+  
+  /* Text */
+  --aim-text: #333333;
+  --aim-text-light: #666666;
 }
 
+/* Typography */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Tahoma', 'Segoe UI', Arial, sans-serif;
+  color: var(--aim-text);
 }
 
-::-webkit-scrollbar {
-  width: 8px;
+/* AIM Header */
+.aim-header {
+  background: var(--aim-blue);
+  border-bottom: 3px solid #001a66;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--background);
+/* Hero Banner */
+.aim-hero-gradient {
+  background: linear-gradient(135deg, var(--aim-purple) 0%, var(--aim-magenta) 50%, #9966AA 100%);
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border);
+/* Window Chrome */
+.aim-window {
+  border: 2px solid var(--aim-window-border);
   border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-::selection {
-  background: var(--accent);
-  color: var(--background);
+.aim-window-titlebar {
+  background: linear-gradient(180deg, var(--aim-window-title-start) 0%, var(--aim-window-title-end) 100%);
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aim-window-content {
+  background: white;
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Action Buttons */
+.aim-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.25rem;
+  border: 3px solid;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    inset 0 -1px 0 rgba(0,0,0,0.2),
+    0 4px 8px rgba(0,0,0,0.3);
+  transition: all 0.15s ease;
+}
+
+.aim-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    inset 0 -1px 0 rgba(0,0,0,0.2),
+    0 6px 12px rgba(0,0,0,0.35);
+}
+
+.aim-btn:active {
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 -1px 0 rgba(255,255,255,0.4),
+    inset 0 1px 0 rgba(0,0,0,0.2),
+    0 2px 4px rgba(0,0,0,0.3);
+}
+
+.aim-btn-green {
+  background: linear-gradient(180deg, var(--aim-green-light) 0%, var(--aim-green-dark) 100%);
+  border-color: #1B5E20;
+  color: white;
+}
+
+.aim-btn-yellow {
+  background: linear-gradient(180deg, var(--aim-gold-light) 0%, var(--aim-gold-dark) 100%);
+  border-color: #FF8F00;
+  color: #333;
+}
+
+.aim-btn-red {
+  background: linear-gradient(180deg, var(--aim-red-light) 0%, var(--aim-red-dark) 100%);
+  border-color: #B71C1C;
+  color: white;
+}
+
+/* Tab Bar */
+.aim-tab-bar {
+  background: var(--aim-gray);
+  border-top: 2px solid white;
+  border-bottom: 2px solid #808080;
+  display: flex;
+}
+
+.aim-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-weight: bold;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  color: #333;
+  border-right: 1px solid #808080;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.aim-tab:last-child {
+  border-right: none;
+}
+
+.aim-tab:hover,
+.aim-tab.active {
+  background: linear-gradient(180deg, #E0E0E0 0%, #C0C0C0 100%);
+}
+
+/* Cards */
+.aim-card {
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #ddd;
+}
+
+.aim-card-cream {
+  background: var(--aim-cream);
+}
+
+.aim-card-blue {
+  background: var(--aim-blue-tint);
+}
+
+/* Code Blocks */
+.aim-code {
+  background: var(--aim-code-bg);
+  border: 1px solid var(--aim-input-border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'Lucida Console', 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+/* Input Fields */
+.aim-input {
+  border: 2px solid var(--aim-input-border);
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  background: white;
+}
+
+.aim-input:focus {
+  outline: none;
+  border-color: var(--aim-blue-light);
+  box-shadow: 0 0 0 2px rgba(0,102,204,0.2);
+}
+
+/* Messages */
+.aim-message {
+  padding: 4px 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.aim-message-username {
+  font-weight: bold;
+  color: var(--aim-blue);
+}
+
+/* Status Toast */
+.aim-status {
+  background: #4169E1;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Scrollbar (Windows style) */
+.aim-scrollbar::-webkit-scrollbar {
+  width: 16px;
+}
+
+.aim-scrollbar::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+}
+
+.aim-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c0c0c0 0%, #a0a0a0 100%);
+  border: 1px solid #808080;
+}
+
+.aim-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #b0b0b0 0%, #909090 100%);
 }
