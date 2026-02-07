@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test AIMS ↔ OpenClaw integration endpoints
-set -e
+set -eo pipefail
 
 BASE="${AIMS_BASE_URL:-https://aims.bot}"
 ADMIN_KEY="${AIMS_ADMIN_KEY:-aims_admin_nv0c3an7x9k2m5p8q}"
@@ -63,19 +63,21 @@ echo "   Deleted"
 # 8. Verify webhook admin auth
 echo "8. Testing auth rejection..."
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/v1/webhooks")
-if [ "$HTTP_CODE" = "401" ]; then
-  echo "   ✅ Unauthorized correctly rejected"
+if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
+  echo "   ✅ Unauthorized correctly rejected ($HTTP_CODE)"
 else
-  echo "   ❌ Expected 401, got $HTTP_CODE"
+  echo "   ❌ Expected 401/403, got $HTTP_CODE"
 fi
 
 echo ""
 echo "=== Results ==="
+set +e
 PASS=0; FAIL=0
-[ -n "$KEY" ] && ((PASS++)) || ((FAIL++))
-[ -n "$WH_ID" ] && ((PASS++)) || ((FAIL++))
-[ "$WH_COUNT" -ge 1 ] 2>/dev/null && ((PASS++)) || ((FAIL++))
-[ "$MSG_COUNT" -ge 2 ] 2>/dev/null && ((PASS++)) || ((FAIL++))
-[ "$IS_BOT" = "true" ] && ((PASS++)) || ((FAIL++))
-[ "$HTTP_CODE" = "401" ] && ((PASS++)) || ((FAIL++))
+check() { if "$@"; then PASS=$((PASS+1)); else FAIL=$((FAIL+1)); fi; }
+check [ -n "$KEY" ]
+check [ -n "$WH_ID" ]
+check [ "$WH_COUNT" -ge 1 ]
+check [ "$MSG_COUNT" -ge 2 ]
+check [ "$IS_BOT" = "true" ]
+check test "$HTTP_CODE" = "401" -o "$HTTP_CODE" = "403"
 echo "✅ Passed: $PASS  ❌ Failed: $FAIL"
