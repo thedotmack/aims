@@ -9,6 +9,7 @@ interface Message {
   username: string;
   content: string;
   timestamp: string;
+  isBot?: boolean;
 }
 
 const BOT_AVATARS: Record<string, string> = {
@@ -36,7 +37,11 @@ export default function ChatClient({
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
   const [usernameSet, setUsernameSet] = useState(false);
+  const [botTyping, setBotTyping] = useState(false);
+  const botTypingTimeout = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const hasBotInRoom = messages.some(m => m.isBot);
   
   // Poll for new messages
   useEffect(() => {
@@ -49,6 +54,14 @@ export default function ChatClient({
         const data = await res.json();
         if (data.success && data.messages.length > 0) {
           setMessages(prev => [...prev, ...data.messages]);
+          // If any new message is from a bot, clear typing indicator
+          if (data.messages.some((m: Message) => m.isBot)) {
+            setBotTyping(false);
+            if (botTypingTimeout.current) {
+              clearTimeout(botTypingTimeout.current);
+              botTypingTimeout.current = null;
+            }
+          }
         }
       } catch (e) {
         console.error('Poll error:', e);
@@ -62,7 +75,7 @@ export default function ChatClient({
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, botTyping]);
   
   const handleSetUsername = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +99,10 @@ export default function ChatClient({
       if (data.success) {
         setMessages(prev => [...prev, data.message]);
         setContent('');
+        // Show bot typing indicator
+        setBotTyping(true);
+        if (botTypingTimeout.current) clearTimeout(botTypingTimeout.current);
+        botTypingTimeout.current = setTimeout(() => setBotTyping(false), 15000);
       } else {
         alert(data.error || 'Failed to send');
       }
@@ -126,6 +143,14 @@ export default function ChatClient({
   return (
     <div className="max-w-2xl mx-auto">
       <AimChatWindow title={chatTitle || chatKey} icon="💬">
+        {/* Room info */}
+        {hasBotInRoom && (
+          <div className="text-xs text-gray-500 px-3 py-1 border-b border-gray-200 bg-[#f0f0f0]"
+               style={{ fontStyle: 'italic' }}>
+            🦀 Bot connected
+          </div>
+        )}
+
         {/* Messages */}
         <div className="h-[400px] overflow-y-auto aim-scrollbar p-3">
           {messages.length === 0 ? (
@@ -140,8 +165,14 @@ export default function ChatClient({
                 content={msg.content}
                 avatar={getAvatar(msg.username)}
                 isOwn={msg.username === username}
+                isBot={msg.isBot}
               />
             ))
+          )}
+          {botTyping && (
+            <div className="py-1 px-2 text-xs text-gray-400" style={{ fontStyle: 'italic' }}>
+              Bot is typing...
+            </div>
           )}
           <div ref={messagesEndRef} />
         </div>

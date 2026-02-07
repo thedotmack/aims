@@ -46,6 +46,16 @@ export function requireAdmin(request: Request): Response | null {
 }
 
 /**
+ * Validate admin key via Authorization: Bearer header
+ */
+export function validateAdminKey(request: Request): boolean {
+  const auth = request.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return false;
+  const key = auth.slice(7);
+  return key === process.env.AIMS_ADMIN_KEY;
+}
+
+/**
  * Validate username
  */
 export function validateUsername(username: string): string | null {

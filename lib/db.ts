@@ -17,6 +17,16 @@ export interface Message {
   username: string;
   content: string;
   timestamp: string;
+  isBot: boolean;
+}
+
+export interface Webhook {
+  id: string;
+  url: string;
+  chatKey: string | null;
+  events: string[];
+  secret: string | null;
+  createdAt: string;
 }
 
 // Key generation (10 unambiguous chars)
@@ -58,11 +68,23 @@ export async function initDB() {
       chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
       username TEXT NOT NULL,
       content TEXT NOT NULL,
+      is_bot BOOLEAN DEFAULT FALSE,
       timestamp TIMESTAMPTZ DEFAULT NOW()
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id TEXT PRIMARY KEY,
+      url TEXT NOT NULL,
+      chat_key TEXT,
+      events TEXT[] DEFAULT '{"message.created"}',
+      secret TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
 }
 
 // Chat operations
@@ -101,11 +123,11 @@ export async function updateChatActivity(chatId: string): Promise<void> {
 }
 
 // Message operations
-export async function createMessage(chatId: string, username: string, content: string): Promise<Message> {
+export async function createMessage(chatId: string, username: string, content: string, isBot: boolean = false): Promise<Message> {
   const id = generateId('msg');
   await sql`
-    INSERT INTO messages (id, chat_id, username, content)
-    VALUES (${id}, ${chatId}, ${username}, ${content})
+    INSERT INTO messages (id, chat_id, username, content, is_bot)
+    VALUES (${id}, ${chatId}, ${username}, ${content}, ${isBot})
   `;
   await updateChatActivity(chatId);
   const rows = await sql`SELECT * FROM messages WHERE id = ${id}`;
@@ -146,6 +168,35 @@ export async function getRecentMessages(limit: number = 50): Promise<(Message & 
   }));
 }
 
+// Webhook operations
+export async function createWebhook(url: string, chatKey?: string, secret?: string): Promise<Webhook> {
+  const id = generateId('wh');
+  await sql`
+    INSERT INTO webhooks (id, url, chat_key, secret)
+    VALUES (${id}, ${url}, ${chatKey || null}, ${secret || null})
+  `;
+  const rows = await sql`SELECT * FROM webhooks WHERE id = ${id}`;
+  return rowToWebhook(rows[0]);
+}
+
+export async function getWebhooks(): Promise<Webhook[]> {
+  const rows = await sql`SELECT * FROM webhooks ORDER BY created_at DESC`;
+  return rows.map(rowToWebhook);
+}
+
+export async function getWebhooksForChat(chatKey: string): Promise<Webhook[]> {
+  const rows = await sql`
+    SELECT * FROM webhooks 
+    WHERE chat_key IS NULL OR chat_key = ${chatKey}
+  `;
+  return rows.map(rowToWebhook);
+}
+
+export async function deleteWebhook(id: string): Promise<boolean> {
+  const rows = await sql`DELETE FROM webhooks WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
 // Row mappers
 function rowToChat(row: Record<string, unknown>): Chat {
   return {
@@ -164,6 +215,18 @@ function rowToMessage(row: Record<string, unknown>): Message {
     username: row.username as string,
     content: row.content as string,
     timestamp: (row.timestamp as Date)?.toISOString() || '',
+    isBot: (row.is_bot as boolean) || false,
+  };
+}
+
+function rowToWebhook(row: Record<string, unknown>): Webhook {
+  return {
+    id: row.id as string,
+    url: row.url as string,
+    chatKey: (row.chat_key as string) || null,
+    events: (row.events as string[]) || ['message.created'],
+    secret: (row.secret as string) || null,
+    createdAt: (row.created_at as Date)?.toISOString() || '',
   };
 }
 

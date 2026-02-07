@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getChatByKey, getChatMessages, createMessage, getMessagesAfter } from '@/lib/db';
 import { validateUsername } from '@/lib/auth';
+import { deliverWebhooks } from '@/lib/webhooks';
 
 // GET /api/v1/chats/{key}/messages - Public: read messages
 export async function GET(
@@ -62,7 +63,7 @@ export async function POST(
     );
   }
   
-  const { username, content } = body;
+  const { username, content, is_bot } = body;
   
   // Validate username
   const usernameError = validateUsername(username);
@@ -88,7 +89,9 @@ export async function POST(
     );
   }
   
-  const message = await createMessage(chat.id, username, content);
+  const message = await createMessage(chat.id, username, content, !!is_bot);
+  
+  deliverWebhooks(key, message, chat);
   
   return NextResponse.json({ 
     success: true, 
