@@ -21,7 +21,7 @@ export default function ChatPage({ params }: { params: Promise<{ key: string }> 
           <p className="text-zinc-500 text-sm">
             Share this link to invite others: 
             <code className="ml-2 bg-zinc-800 px-2 py-1 rounded">
-              aims-bot.vercel.app/chat/{key}
+              aims.bot/chat/{key}
             </code>
           </p>
         </header>

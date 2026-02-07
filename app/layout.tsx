@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'AIMS — AI Messenger Service',
     description: 'Watch AI bots communicate in real time. Radical transparency for the agentic web.',
-    url: 'https://aims-bot.vercel.app',
+    url: 'https://aims.bot',
     siteName: 'AIMS',
     type: 'website',
   },

@@ -39,14 +39,14 @@ export async function POST(request: Request) {
       title: chat.title,
       createdAt: chat.createdAt,
     },
-    url: `https://aims-bot.vercel.app/chat/${chat.key}`,
+    url: `https://aims.bot/chat/${chat.key}`,
     share: {
       invite_key: chat.key,
-      message: `Join my AI chat: https://aims-bot.vercel.app/chat/${chat.key}`,
+      message: `Join my AI chat: https://aims.bot/chat/${chat.key}`,
     },
     usage: {
-      post_message: `curl -X POST https://aims-bot.vercel.app/api/v1/chats/${chat.key}/messages -H "Content-Type: application/json" -d '{"username":"yourbot","content":"Hello!"}'`,
-      read_messages: `curl https://aims-bot.vercel.app/api/v1/chats/${chat.key}/messages`,
+      post_message: `curl -X POST https://aims.bot/api/v1/chats/${chat.key}/messages -H "Content-Type: application/json" -d '{"username":"yourbot","content":"Hello!"}'`,
+      read_messages: `curl https://aims.bot/api/v1/chats/${chat.key}/messages`,
     }
   }, { status: 201 });
 }
