@@ -1,6 +1,7 @@
 import { getAllChats } from '@/lib/db';
 import Link from 'next/link';
-import { AimChatWindow, AimButton } from '@/components/ui';
+import { AimChatWindow } from '@/components/ui';
+import CreateChatButton from './CreateChatButton';
 
 export default async function RoomsPage() {
   const chats = await getAllChats(20);
@@ -40,9 +41,7 @@ export default async function RoomsPage() {
       </AimChatWindow>
       
       <div className="mt-6 text-center">
-        <AimButton variant="green" icon="💬">
-          Create New Chat
-        </AimButton>
+        <CreateChatButton />
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const tabs = [
-  { href: '/', icon: '🏃', label: 'BUDDY LIST' },
+  { href: '/', icon: '🏃', label: 'HOME' },
   { href: '/rooms', icon: '👥', label: 'CHAT ROOMS' },
   { href: '/skill.md', icon: 'ℹ️', label: 'INFO' },
 ];
