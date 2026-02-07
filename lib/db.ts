@@ -44,6 +44,14 @@ export function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export function generateInviteCode(): string {
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += SAFE_CHARS[Math.floor(Math.random() * SAFE_CHARS.length)];
+  }
+  return code;
+}
+
 // Initialize database
 export async function initDB() {
   // Drop old tables if they exist (clean slate)
@@ -96,12 +104,27 @@ export async function initDB() {
       is_online BOOLEAN DEFAULT FALSE,
       access_token TEXT NOT NULL,
       password TEXT NOT NULL,
+      ip_address TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       last_seen TIMESTAMPTZ DEFAULT NOW()
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_bots_username ON bots(username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_bots_matrix_id ON bots(matrix_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS invites (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      created_by TEXT NOT NULL,
+      used_by TEXT,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '30 days'
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_invites_code ON invites(code)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_invites_created_by ON invites(created_by)`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS dms (
@@ -425,6 +448,91 @@ export async function getDMByRoomId(roomId: string): Promise<DM | null> {
 
 export async function updateDMActivity(roomId: string): Promise<void> {
   await sql`UPDATE dms SET last_activity = NOW() WHERE room_id = ${roomId}`;
+}
+
+// Invite types and operations
+export interface Invite {
+  id: string;
+  code: string;
+  createdBy: string;
+  usedBy: string | null;
+  usedAt: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
+function rowToInvite(row: Record<string, unknown>): Invite {
+  return {
+    id: row.id as string,
+    code: row.code as string,
+    createdBy: row.created_by as string,
+    usedBy: (row.used_by as string) || null,
+    usedAt: row.used_at ? (row.used_at as Date).toISOString() : null,
+    createdAt: (row.created_at as Date)?.toISOString() || '',
+    expiresAt: (row.expires_at as Date)?.toISOString() || '',
+  };
+}
+
+export async function createInvite(code: string, createdBy: string): Promise<Invite> {
+  const id = generateId('inv');
+  await sql`
+    INSERT INTO invites (id, code, created_by)
+    VALUES (${id}, ${code}, ${createdBy})
+  `;
+  const rows = await sql`SELECT * FROM invites WHERE id = ${id}`;
+  return rowToInvite(rows[0]);
+}
+
+export async function getInviteByCode(code: string): Promise<Invite | null> {
+  const rows = await sql`SELECT * FROM invites WHERE code = ${code}`;
+  return rows[0] ? rowToInvite(rows[0]) : null;
+}
+
+export async function useInvite(code: string, usedBy: string): Promise<void> {
+  await sql`
+    UPDATE invites SET used_by = ${usedBy}, used_at = NOW()
+    WHERE code = ${code}
+  `;
+}
+
+export async function getInvitesForBot(username: string): Promise<Invite[]> {
+  const rows = await sql`
+    SELECT * FROM invites WHERE created_by = ${username} ORDER BY created_at DESC
+  `;
+  return rows.map(rowToInvite);
+}
+
+export async function getInviteCount(username: string): Promise<number> {
+  const rows = await sql`
+    SELECT COUNT(*) as count FROM invites
+    WHERE created_by = ${username} AND used_by IS NULL AND expires_at > NOW()
+  `;
+  return Number(rows[0].count);
+}
+
+export async function getRecentRegistrationsByIp(ip: string): Promise<number> {
+  const rows = await sql`
+    SELECT COUNT(*) as count FROM bots
+    WHERE ip_address = ${ip} AND created_at > NOW() - INTERVAL '24 hours'
+  `;
+  return Number(rows[0].count);
+}
+
+export async function createBotWithInvites(
+  username: string,
+  matrixId: string,
+  displayName: string,
+  accessToken: string,
+  password: string,
+  ipAddress: string | null
+): Promise<Bot> {
+  const id = generateId('bot');
+  await sql`
+    INSERT INTO bots (id, username, matrix_id, display_name, access_token, password, ip_address)
+    VALUES (${id}, ${username}, ${matrixId}, ${displayName}, ${accessToken}, ${password}, ${ipAddress})
+  `;
+  const rows = await sql`SELECT * FROM bots WHERE id = ${id}`;
+  return rowToBot(rows[0]);
 }
 
 export { sql };

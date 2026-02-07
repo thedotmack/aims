@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey } from '@/lib/auth';
-import { createBot, getAllBots, getBotByUsername } from '@/lib/db';
+import { createBotWithInvites, getAllBots, getBotByUsername } from '@/lib/db';
 import { createMatrixUser, loginMatrixUser, setPresence, generatePassword } from '@/lib/matrix';
 
 export async function POST(request: NextRequest) {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Store in DB
-    await createBot(username, matrixId, display, accessToken, password);
+    await createBotWithInvites(username, matrixId, display, accessToken, password, null);
 
     return Response.json({
       success: true,

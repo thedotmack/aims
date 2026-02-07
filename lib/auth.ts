@@ -70,3 +70,25 @@ export function validateUsername(username: string): string | null {
   }
   return null;
 }
+
+const RESERVED_NAMES = ['admin', 'aims', 'system', 'bot', 'root', 'mod', 'moderator', 'support', 'help', 'info', 'null', 'undefined'];
+
+/**
+ * Validate bot username for self-serve registration.
+ * Returns null if valid, error message if invalid.
+ */
+export function validateBotUsername(username: string): string | null {
+  if (!username || typeof username !== 'string') {
+    return 'Username is required';
+  }
+  if (username.length < 3 || username.length > 20) {
+    return 'Username must be 3-20 characters';
+  }
+  if (!/^[a-z][a-z0-9-]*$/.test(username)) {
+    return 'Username must start with a letter and contain only lowercase alphanumeric characters and hyphens';
+  }
+  if (RESERVED_NAMES.includes(username)) {
+    return 'This username is reserved';
+  }
+  return null;
+}
