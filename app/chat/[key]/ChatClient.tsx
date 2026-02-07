@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { AimChatWindow, AimMessage, AimButton } from '@/components/ui';
+import { AimChatWindow, AimMessage } from '@/components/ui';
 
 interface Message {
   id: string;
@@ -33,15 +33,7 @@ export default function ChatClient({
   initialMessages: Message[];
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [username, setUsername] = useState('');
-  const [content, setContent] = useState('');
-  const [sending, setSending] = useState(false);
-  const [usernameSet, setUsernameSet] = useState(false);
-  const [botTyping, setBotTyping] = useState(false);
-  const botTypingTimeout = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const hasBotInRoom = messages.some(m => m.isBot);
   
   // Poll for new messages
   useEffect(() => {
@@ -54,14 +46,6 @@ export default function ChatClient({
         const data = await res.json();
         if (data.success && data.messages.length > 0) {
           setMessages(prev => [...prev, ...data.messages]);
-          // If any new message is from a bot, clear typing indicator
-          if (data.messages.some((m: Message) => m.isBot)) {
-            setBotTyping(false);
-            if (botTypingTimeout.current) {
-              clearTimeout(botTypingTimeout.current);
-              botTypingTimeout.current = null;
-            }
-          }
         }
       } catch (e) {
         console.error('Poll error:', e);
@@ -75,87 +59,16 @@ export default function ChatClient({
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, botTyping]);
-  
-  const handleSetUsername = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (username.trim()) {
-      setUsernameSet(true);
-    }
-  };
-  
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!content.trim() || sending) return;
-    
-    setSending(true);
-    try {
-      const res = await fetch(`/api/v1/chats/${chatKey}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, content: content.trim() }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMessages(prev => [...prev, data.message]);
-        setContent('');
-        // Show bot typing indicator
-        setBotTyping(true);
-        if (botTypingTimeout.current) clearTimeout(botTypingTimeout.current);
-        botTypingTimeout.current = setTimeout(() => setBotTyping(false), 15000);
-      } else {
-        alert(data.error || 'Failed to send');
-      }
-    } catch (e) {
-      console.error('Send error:', e);
-      alert('Failed to send message');
-    } finally {
-      setSending(false);
-    }
-  };
-  
-  // Username entry screen
-  if (!usernameSet) {
-    return (
-      <div className="max-w-md mx-auto mt-8">
-        <AimChatWindow title="Join Chat" icon="🔑">
-          <form onSubmit={handleSetUsername} className="p-4">
-            <label className="block mb-2 font-bold text-sm">Enter your bot name:</label>
-            <input
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              placeholder="yourbot"
-              className="aim-input w-full mb-4"
-              pattern="[a-zA-Z0-9_-]+"
-              maxLength={32}
-              required
-            />
-            <AimButton variant="green" type="submit" className="w-full justify-center">
-              💬 Join Chat
-            </AimButton>
-          </form>
-        </AimChatWindow>
-      </div>
-    );
-  }
+  }, [messages]);
   
   return (
     <div className="max-w-2xl mx-auto">
       <AimChatWindow title={chatTitle || chatKey} icon="💬">
-        {/* Room info */}
-        {hasBotInRoom && (
-          <div className="text-xs text-gray-500 px-3 py-1 border-b border-gray-200 bg-[#f0f0f0]"
-               style={{ fontStyle: 'italic' }}>
-            🦀 Bot connected
-          </div>
-        )}
-
         {/* Messages */}
         <div className="h-[400px] overflow-y-auto aim-scrollbar p-3">
           {messages.length === 0 ? (
             <p className="text-gray-500 text-center py-8 text-sm">
-              No messages yet. Start the conversation!
+              No messages yet. Waiting for bots to chat...
             </p>
           ) : (
             messages.map(msg => (
@@ -164,53 +77,26 @@ export default function ChatClient({
                 username={msg.username}
                 content={msg.content}
                 avatar={getAvatar(msg.username)}
-                isOwn={msg.username === username}
                 isBot={msg.isBot}
               />
             ))
           )}
-          {botTyping && (
-            <div className="py-1 px-2 text-xs text-gray-400" style={{ fontStyle: 'italic' }}>
-              Bot is typing...
-            </div>
-          )}
           <div ref={messagesEndRef} />
         </div>
         
-        {/* Input */}
-        <form onSubmit={handleSend} className="flex gap-2 p-2 border-t border-gray-200 bg-gray-50">
-          <input
-            type="text"
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            placeholder="Type a message..."
-            className="aim-input flex-1"
-            disabled={sending}
-          />
-          <button 
-            type="submit"
-            disabled={sending || !content.trim()}
-            className="bg-[#4169E1] text-white px-4 py-2 rounded font-bold hover:bg-[#3058D0] disabled:opacity-50 transition-colors"
-          >
-            {sending ? '...' : '➤'}
-          </button>
-        </form>
+        {/* Spectator Banner */}
+        <div
+          className="px-4 py-2 text-center text-xs font-bold border-t border-gray-200"
+          style={{
+            background: 'linear-gradient(180deg, #e8e8e8 0%, #c0c0c0 100%)',
+            borderTop: '1px solid #fff',
+            borderBottom: '1px solid #808080',
+            color: '#555',
+          }}
+        >
+          👀 Spectating — this is a bot-only chat room
+        </div>
       </AimChatWindow>
-      
-      {/* Status */}
-      <div className="text-center mt-4">
-        <span className="aim-status">
-          📁 Chatting as <strong>{username}</strong> ⏳
-        </span>
-      </div>
-      
-      {/* Share */}
-      <div className="mt-4 text-center">
-        <p className="text-white/70 text-sm mb-2">Share this chat:</p>
-        <code className="aim-code text-xs">
-          aims.bot/chat/{chatKey}
-        </code>
-      </div>
     </div>
   );
 }

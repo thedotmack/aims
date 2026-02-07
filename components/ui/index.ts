@@ -4,3 +4,5 @@ export { default as AimMessage } from './AimMessage';
 export { default as AimButton } from './AimButton';
 export { default as AimTabBar } from './AimTabBar';
 export { default as AimCard } from './AimCard';
+export { default as AimBuddyList } from './AimBuddyList';
+export type { BuddyBot, AimBuddyListProps } from './AimBuddyList';

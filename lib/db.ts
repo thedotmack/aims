@@ -48,7 +48,6 @@ export function generateId(prefix: string): string {
 export async function initDB() {
   // Drop old tables if they exist (clean slate)
   await sql`DROP TABLE IF EXISTS messages CASCADE`;
-  await sql`DROP TABLE IF EXISTS bots CASCADE`;
   
   await sql`
     CREATE TABLE IF NOT EXISTS chats (
@@ -85,6 +84,38 @@ export async function initDB() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS bots (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      matrix_id TEXT UNIQUE NOT NULL,
+      display_name TEXT DEFAULT '',
+      avatar_url TEXT DEFAULT '',
+      status_message TEXT DEFAULT '',
+      is_online BOOLEAN DEFAULT FALSE,
+      access_token TEXT NOT NULL,
+      password TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      last_seen TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_bots_username ON bots(username)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_bots_matrix_id ON bots(matrix_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS dms (
+      id TEXT PRIMARY KEY,
+      room_id TEXT UNIQUE NOT NULL,
+      bot1_username TEXT NOT NULL,
+      bot2_username TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      last_activity TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_dms_room ON dms(room_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_dms_bot1 ON dms(bot1_username)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_dms_bot2 ON dms(bot2_username)`;
 }
 
 // Chat operations
@@ -228,6 +259,172 @@ function rowToWebhook(row: Record<string, unknown>): Webhook {
     secret: (row.secret as string) || null,
     createdAt: (row.created_at as Date)?.toISOString() || '',
   };
+}
+
+// Bot types and operations
+export interface Bot {
+  id: string;
+  username: string;
+  matrixId: string;
+  displayName: string;
+  avatarUrl: string;
+  statusMessage: string;
+  isOnline: boolean;
+  accessToken: string;
+  password: string;
+  createdAt: string;
+  lastSeen: string;
+}
+
+export interface BotPublic {
+  username: string;
+  matrixId: string;
+  displayName: string;
+  avatarUrl: string;
+  statusMessage: string;
+  isOnline: boolean;
+  lastSeen: string;
+}
+
+function rowToBot(row: Record<string, unknown>): Bot {
+  return {
+    id: row.id as string,
+    username: row.username as string,
+    matrixId: row.matrix_id as string,
+    displayName: (row.display_name as string) || '',
+    avatarUrl: (row.avatar_url as string) || '',
+    statusMessage: (row.status_message as string) || '',
+    isOnline: (row.is_online as boolean) || false,
+    accessToken: row.access_token as string,
+    password: row.password as string,
+    createdAt: (row.created_at as Date)?.toISOString() || '',
+    lastSeen: (row.last_seen as Date)?.toISOString() || '',
+  };
+}
+
+function botToPublic(bot: Bot): BotPublic {
+  return {
+    username: bot.username,
+    matrixId: bot.matrixId,
+    displayName: bot.displayName,
+    avatarUrl: bot.avatarUrl,
+    statusMessage: bot.statusMessage,
+    isOnline: bot.isOnline,
+    lastSeen: bot.lastSeen,
+  };
+}
+
+export async function createBot(
+  username: string,
+  matrixId: string,
+  displayName: string,
+  accessToken: string,
+  password: string
+): Promise<Bot> {
+  const id = generateId('bot');
+  await sql`
+    INSERT INTO bots (id, username, matrix_id, display_name, access_token, password)
+    VALUES (${id}, ${username}, ${matrixId}, ${displayName}, ${accessToken}, ${password})
+  `;
+  const rows = await sql`SELECT * FROM bots WHERE id = ${id}`;
+  return rowToBot(rows[0]);
+}
+
+export async function getBotByUsername(username: string): Promise<Bot | null> {
+  const rows = await sql`SELECT * FROM bots WHERE username = ${username}`;
+  return rows[0] ? rowToBot(rows[0]) : null;
+}
+
+export async function getAllBots(): Promise<BotPublic[]> {
+  const rows = await sql`SELECT * FROM bots ORDER BY created_at DESC`;
+  return rows.map(rowToBot).map(botToPublic);
+}
+
+export async function updateBotStatus(
+  username: string,
+  isOnline: boolean,
+  statusMessage?: string
+): Promise<void> {
+  if (statusMessage !== undefined) {
+    await sql`
+      UPDATE bots SET is_online = ${isOnline}, status_message = ${statusMessage}, last_seen = NOW()
+      WHERE username = ${username}
+    `;
+  } else {
+    await sql`
+      UPDATE bots SET is_online = ${isOnline}, last_seen = NOW()
+      WHERE username = ${username}
+    `;
+  }
+}
+
+export async function updateBotLastSeen(username: string): Promise<void> {
+  await sql`UPDATE bots SET last_seen = NOW() WHERE username = ${username}`;
+}
+
+// DM types and operations
+export interface DM {
+  id: string;
+  roomId: string;
+  bot1Username: string;
+  bot2Username: string;
+  createdAt: string;
+  lastActivity: string;
+}
+
+function rowToDM(row: Record<string, unknown>): DM {
+  return {
+    id: row.id as string,
+    roomId: row.room_id as string,
+    bot1Username: row.bot1_username as string,
+    bot2Username: row.bot2_username as string,
+    createdAt: (row.created_at as Date)?.toISOString() || '',
+    lastActivity: (row.last_activity as Date)?.toISOString() || '',
+  };
+}
+
+export async function createDM(roomId: string, bot1Username: string, bot2Username: string): Promise<DM> {
+  const id = generateId('dm');
+  await sql`
+    INSERT INTO dms (id, room_id, bot1_username, bot2_username)
+    VALUES (${id}, ${roomId}, ${bot1Username}, ${bot2Username})
+  `;
+  const rows = await sql`SELECT * FROM dms WHERE id = ${id}`;
+  return rowToDM(rows[0]);
+}
+
+export async function getDMByParticipants(username1: string, username2: string): Promise<DM | null> {
+  const rows = await sql`
+    SELECT * FROM dms 
+    WHERE (bot1_username = ${username1} AND bot2_username = ${username2})
+       OR (bot1_username = ${username2} AND bot2_username = ${username1})
+  `;
+  return rows[0] ? rowToDM(rows[0]) : null;
+}
+
+export async function getDMsForBot(username: string): Promise<DM[]> {
+  const rows = await sql`
+    SELECT * FROM dms 
+    WHERE bot1_username = ${username} OR bot2_username = ${username}
+    ORDER BY last_activity DESC
+  `;
+  return rows.map(rowToDM);
+}
+
+export async function getAllDMs(limit: number = 50): Promise<DM[]> {
+  const rows = await sql`
+    SELECT * FROM dms ORDER BY last_activity DESC LIMIT ${limit}
+  `;
+  return rows.map(rowToDM);
+}
+
+export async function getDMByRoomId(roomId: string): Promise<DM | null> {
+  const rows = await sql`SELECT * FROM dms WHERE room_id = ${roomId}`;
+  return rows[0] ? rowToDM(rows[0]) : null;
+}
+
+export async function updateDMActivity(roomId: string): Promise<void> {
+  await sql`UPDATE dms SET last_activity = NOW() WHERE room_id = ${roomId}`;
 }
 
 export { sql };

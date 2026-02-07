@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  synapse:
+    image: matrixdotorg/synapse:latest
+    container_name: aims-synapse
+    volumes:
+      - synapse-data:/data
+    ports:
+      - "8008:8008"
+    restart: unless-stopped
+
+volumes:
+  synapse-data:
