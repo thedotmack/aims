@@ -314,8 +314,8 @@ export function requireAdmin(request: Request): Response | null {
 ```
 
 ### Verification Checklist
-- [ ] `/lib/auth.ts` compiles without errors
-- [ ] Exports `getAuthBot`, `requireAuth`, `requireAdmin`
+- [x] `/lib/auth.ts` compiles without errors *(replaced with Moltbook-pattern: getAuthBot with Bearer token, requireAuth with suspension check, requireAdmin with X-Admin-Key; kept legacy validateAdminKey/validateUsername/validateBotUsername for backward compat until Phase 3)*
+- [x] Exports `getAuthBot`, `requireAuth`, `requireAdmin`
 
 ---
 

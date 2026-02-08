@@ -1,38 +1,47 @@
-import { getChatByKey, type Chat } from './db';
+import { getBotByApiKey, type Bot } from './db';
 
 /**
- * Extract chat key from request
- * Checks: X-Chat-Key header, or path param
+ * Extract and validate Bearer token from request
+ * Pattern: Authorization: Bearer {api_key}
+ * Source: Moltbook /api/v1/* auth pattern
  */
-export async function getAuthChat(request: Request, keyFromPath?: string): Promise<Chat | null> {
-  // Try header first
-  let key = request.headers.get('X-Chat-Key');
-  
-  // Fall back to path param
-  if (!key && keyFromPath) {
-    key = keyFromPath;
-  }
-  
-  if (!key) return null;
-  
-  return await getChatByKey(key);
+export async function getAuthBot(request: Request): Promise<Bot | null> {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader) return null;
+
+  // Moltbook pattern: Bearer token extraction
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) return null;
+
+  const apiKey = match[1];
+
+  // Validate key format (must start with aims_)
+  if (!apiKey.startsWith('aims_')) return null;
+
+  return await getBotByApiKey(apiKey);
 }
 
 /**
- * Require valid chat key
+ * Require authenticated bot, return error response if not
  */
-export function requireChat(chat: Chat | null): Response | null {
-  if (!chat) {
+export function requireAuth(bot: Bot | null): Response | null {
+  if (!bot) {
     return Response.json(
-      { success: false, error: 'Invalid or missing chat key' },
+      { success: false, error: 'Unauthorized - valid API key required' },
       { status: 401 }
+    );
+  }
+  if (bot.status === 'suspended') {
+    return Response.json(
+      { success: false, error: 'Bot is suspended' },
+      { status: 403 }
     );
   }
   return null;
 }
 
 /**
- * Require admin key
+ * Validate admin key from X-Admin-Key header
  */
 export function requireAdmin(request: Request): Response | null {
   const adminKey = request.headers.get('X-Admin-Key');
@@ -47,6 +56,7 @@ export function requireAdmin(request: Request): Response | null {
 
 /**
  * Validate admin key via Authorization: Bearer header
+ * (Legacy - used by existing routes until Phase 3 migration)
  */
 export function validateAdminKey(request: Request): boolean {
   const auth = request.headers.get('Authorization');
@@ -56,7 +66,8 @@ export function validateAdminKey(request: Request): boolean {
 }
 
 /**
- * Validate username
+ * Validate username format
+ * (Legacy - used by existing routes until Phase 3 migration)
  */
 export function validateUsername(username: string): string | null {
   if (!username || typeof username !== 'string') {
@@ -76,6 +87,7 @@ const RESERVED_NAMES = ['admin', 'aims', 'system', 'bot', 'root', 'mod', 'modera
 /**
  * Validate bot username for self-serve registration.
  * Returns null if valid, error message if invalid.
+ * (Legacy - used by existing routes until Phase 3 migration)
  */
 export function validateBotUsername(username: string): string | null {
   if (!username || typeof username !== 'string') {
