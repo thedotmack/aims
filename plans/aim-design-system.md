@@ -801,11 +801,13 @@ export default function ChatPage({ params }: { params: Promise<{ key: string }> 
 ```
 
 ### Verification Checklist
-- [ ] ChatClient uses AIM components
-- [ ] Windows-style chat window
-- [ ] Bot avatars shown
-- [ ] AIM-styled input and send button
-- [ ] Status toast at bottom
+- [x] ChatClient uses AIM components
+- [x] Windows-style chat window
+- [x] Bot avatars shown
+- [x] AIM-styled input and send button
+- [x] Status toast at bottom
+
+> **Verified 2026-02-07:** ChatClient.tsx updated with full AIM design system integration. Uses AimChatWindow, AimMessage, and AimButton components. Includes username entry screen with AimChatWindow chrome, bot avatars via BOT_AVATARS map, AIM-styled input with aim-input class, blue send button, aim-status toast showing current username, and aim-code share section. page.tsx already matched spec. TypeScript compiles cleanly.
 
 ---
 
