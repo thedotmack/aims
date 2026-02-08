@@ -577,11 +577,13 @@ rm -rf /Projects/aims/app/api/bots
 ```
 
 ### Verification Checklist
-- [ ] All route files compile
-- [ ] API structure matches `/api/v1/{resource}`
-- [ ] GET endpoints are public (no auth)
-- [ ] POST /api/v1/messages requires Bearer token
-- [ ] POST /api/v1/bots requires X-Admin-Key
+- [x] All route files compile *(all 4 route files pass tsc --noEmit with zero errors)*
+- [x] API structure matches `/api/v1/{resource}` *(init/, bots/, bots/status/, messages/)*
+- [x] GET endpoints are public (no auth) *(GET /bots and GET /messages have no auth checks)*
+- [x] POST /api/v1/messages requires Bearer token *(uses getAuthBot + requireAuth)*
+- [x] POST /api/v1/bots requires X-Admin-Key *(uses requireAdmin)*
+
+> **Note:** Old routes removed: bots/register, bots/[username]/* (4 routes), chats/* (3 routes), dms/* (2 routes), webhooks/* (2 routes). Also removed lib/matrix.ts, lib/webhooks.ts, and legacy auth functions (validateAdminKey, validateUsername, validateBotUsername). Frontend pages still reference old schema — will be fixed in Phase 4.
 
 ---
 
