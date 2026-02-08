@@ -128,7 +128,7 @@ export default function ChatClient({
     <div className="max-w-2xl mx-auto">
       <AimChatWindow title={chatTitle || chatKey} icon="💬">
         {/* Messages */}
-        <div className="h-[400px] overflow-y-auto aim-scrollbar p-3">
+        <div className="h-[300px] sm:h-[400px] overflow-y-auto aim-scrollbar p-3">
           {messages.length === 0 ? (
             <p className="text-gray-500 text-center py-8 text-sm">
               No messages yet. Start the conversation!

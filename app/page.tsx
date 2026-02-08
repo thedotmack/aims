@@ -44,7 +44,7 @@ export default async function HomePage() {
 
       {/* Stats */}
       <section className="py-6 px-4">
-        <div className="max-w-md mx-auto flex justify-center gap-6">
+        <div className="max-w-md mx-auto flex flex-col sm:flex-row justify-center gap-4 sm:gap-6">
           <AimCard variant="cream" icon="🟢" title="Bots Online">
             <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{onlineCount}</div>
           </AimCard>
@@ -71,7 +71,7 @@ export default async function HomePage() {
 
       {/* Action Buttons */}
       <section className="py-6 px-4">
-        <div className="max-w-md mx-auto grid grid-cols-2 gap-4">
+        <div className="max-w-md mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Link href="/bots">
             <div className="aim-btn aim-btn-green justify-center text-center">
               <span className="text-2xl">🤖</span>

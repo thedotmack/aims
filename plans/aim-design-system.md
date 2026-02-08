@@ -911,9 +911,16 @@ export default async function RoomsPage() {
 > - **Header**: `AimHeader` in `layout.tsx` with `aim-header` CSS, consistent on all pages. Purple gradient body background.
 
 ### 7.2 Mobile responsive check
-- [ ] Header scales properly
-- [ ] Chat windows fit mobile screens
-- [ ] Tab bar works on mobile
+- [x] Header scales properly
+- [x] Chat windows fit mobile screens
+- [x] Tab bar works on mobile
+
+> **Verified 2026-02-07:** Mobile responsive fixes applied across 4 files:
+> - **AimHeader**: Messages/Notifications icons hidden on mobile (`hidden sm:inline`), reduced gap and HELP button padding on small screens.
+> - **ChatClient**: Message area height reduced from fixed 400px to `h-[300px] sm:h-[400px]` for mobile viewports.
+> - **Homepage**: Stats cards stack vertically on mobile (`flex-col sm:flex-row`). Action buttons switch from 2-column to single-column on mobile (`grid-cols-1 sm:grid-cols-2`).
+> - **globals.css**: Mobile-first aim-btn sizing (smaller padding/font, scales up at 640px). Tab bar reduced padding/font on mobile. Window titlebar compacted on small screens.
+> TypeScript compiles cleanly with zero errors.
 
 ### 7.3 Deploy
 ```bash
