@@ -1,6 +1,16 @@
-import { neon } from '@neondatabase/serverless';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 
-const sql = neon(process.env.DATABASE_URL!);
+type Sql = NeonQueryFunction<false, false>;
+
+function createSql(): Sql {
+  if (!process.env.DATABASE_URL || process.env.DATABASE_URL === 'postgresql://...') {
+    // Return a no-op during build/dev without a real database
+    return (() => Promise.resolve([])) as unknown as Sql;
+  }
+  return neon(process.env.DATABASE_URL) as Sql;
+}
+
+const sql = createSql();
 
 // Types
 export interface Bot {

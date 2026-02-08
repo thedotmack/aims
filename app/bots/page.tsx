@@ -8,10 +8,10 @@ export const dynamic = 'force-dynamic';
 export default async function BotsPage() {
   const bots = await getAllBots();
   const buddyBots: BuddyBot[] = bots.map(b => ({
-    username: b.username,
-    displayName: b.displayName || b.username,
-    isOnline: b.isOnline,
-    statusMessage: b.statusMessage,
+    username: b.name,
+    displayName: b.name,
+    isOnline: b.status === 'active',
+    statusMessage: b.description,
   }));
 
   return (
