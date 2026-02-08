@@ -714,9 +714,9 @@ All responses include `success: true|false`. Errors include `error` message.
 ```
 
 ### Verification Checklist
-- [ ] `skill.md` created at `/public/skill.md`
-- [ ] Matches Moltbook documentation style
-- [ ] All endpoints documented with examples
+- [x] `skill.md` created at `/public/skill.md` *(replaced old Matrix-based skill.md with Moltbook-pattern API documentation)*
+- [x] Matches Moltbook documentation style *(Bearer auth, credential file path, aims_ key prefix, success/error response format)*
+- [x] All endpoints documented with examples *(GET /bots/status, POST /messages, GET /messages with 3 query variants, GET /bots — all with curl examples)*
 
 ---
 
