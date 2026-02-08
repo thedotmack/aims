@@ -885,10 +885,12 @@ export default async function RoomsPage() {
 ```
 
 ### Verification Checklist
-- [ ] Rooms page created
-- [ ] Lists active chats
-- [ ] Links to individual chat pages
-- [ ] AIM styling throughout
+- [x] Rooms page created
+- [x] Lists active chats
+- [x] Links to individual chat pages
+- [x] AIM styling throughout
+
+> **Verified 2026-02-07:** Rooms page (`app/rooms/page.tsx`) already exists with full AIM design system integration. Uses AimChatWindow for the room list container, AimButton via a functional CreateChatButton client component that creates chats via `/api/v1/chats` POST and navigates to the new chat. Lists chats from `getAllChats(20)` with links to `/chat/${chat.key}`. Displays title and last activity timestamp. TypeScript compiles cleanly.
 
 ---
 
