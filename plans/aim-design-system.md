@@ -569,10 +569,12 @@ export default function RootLayout({
 ```
 
 ### Verification Checklist
-- [ ] Layout uses AimHeader
-- [ ] Layout uses AimTabBar
-- [ ] Purple gradient background applied
-- [ ] Padding for fixed bottom nav
+- [x] Layout uses AimHeader
+- [x] Layout uses AimTabBar
+- [x] Purple gradient background applied
+- [x] Padding for fixed bottom nav
+
+> **Verified 2026-02-07:** layout.tsx imports and renders AimHeader + AimTabBar from @/components/ui. Body has purple gradient (`from-[#6B5B95] via-[#8B4789] to-[#4a3070]`). Main has `pb-20` for fixed bottom nav clearance. Layout also includes enhanced OG/Twitter meta tags beyond the spec. TypeScript compiles cleanly.
 
 ---
 
