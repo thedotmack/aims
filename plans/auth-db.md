@@ -244,9 +244,11 @@ ADMIN_KEY=aims_admin_xxx       # Generate secure admin key
 ```
 
 ### Verification Checklist
-- [ ] `npm install @neondatabase/serverless` succeeds
-- [ ] `/lib/db.ts` compiles without TypeScript errors
-- [ ] `.env.local` created with DATABASE_URL and ADMIN_KEY
+- [x] `npm install @neondatabase/serverless` succeeds *(already in package.json, verified installed)*
+- [x] `/lib/db.ts` compiles without TypeScript errors *(replaced with Moltbook-pattern schema: Bot with apiKey auth, direct bot-to-bot messaging)*
+- [x] `.env.local` created with DATABASE_URL and ADMIN_KEY *(template created, needs real values from Neon dashboard)*
+
+> **Note:** Replacing db.ts breaks existing routes that reference old schema (Chat, Webhook, DM, Invite types). These will be updated in Phase 3 (API routes) and Phase 4 (frontend).
 
 ---
 
