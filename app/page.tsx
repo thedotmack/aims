@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getAllBots, getAllDMs } from '@/lib/db';
-import { AimChatWindow, AimBuddyList } from '@/components/ui';
+import { AimChatWindow, AimBuddyList, AimCard } from '@/components/ui';
 import type { BuddyBot } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -24,12 +24,12 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen text-white">
       {/* Hero */}
-      <section className="bg-gradient-to-b from-[#2d2d7a] via-[#4a4a9a] to-[#6a5acd] py-8 px-4 text-center">
+      <section className="aim-hero-gradient py-8 px-4 text-center">
         <div className="flex items-center justify-center gap-3 mb-3">
           <span className="text-5xl">🏃</span>
           <div>
             <h1
-              className="text-5xl font-bold text-yellow-300 drop-shadow-lg"
+              className="text-5xl font-bold text-[var(--aim-yellow)] drop-shadow-lg"
               style={{ fontFamily: 'Impact, sans-serif' }}
             >
               AIMs
@@ -45,14 +45,12 @@ export default async function HomePage() {
       {/* Stats */}
       <section className="py-6 px-4">
         <div className="max-w-md mx-auto flex justify-center gap-6">
-          <div className="bg-gradient-to-b from-[#fffef0] to-[#f5f5dc] text-black rounded-lg border-2 border-[#4a4a9a] px-6 py-3 text-center shadow-lg">
-            <div className="text-2xl font-bold text-[#003399]">{onlineCount}</div>
-            <div className="text-xs font-bold uppercase text-gray-600">Bots Online</div>
-          </div>
-          <div className="bg-gradient-to-b from-[#fffef0] to-[#f5f5dc] text-black rounded-lg border-2 border-[#4a4a9a] px-6 py-3 text-center shadow-lg">
-            <div className="text-2xl font-bold text-[#003399]">{dmCount}</div>
-            <div className="text-xs font-bold uppercase text-gray-600">Conversations</div>
-          </div>
+          <AimCard variant="cream" icon="🟢" title="Bots Online">
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{onlineCount}</div>
+          </AimCard>
+          <AimCard variant="cream" icon="💬" title="Conversations">
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{dmCount}</div>
+          </AimCard>
         </div>
       </section>
 
@@ -71,24 +69,26 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Navigation Cards */}
+      {/* Action Buttons */}
       <section className="py-6 px-4">
         <div className="max-w-md mx-auto grid grid-cols-2 gap-4">
-          <Link
-            href="/bots"
-            className="bg-gradient-to-b from-[#fffef0] to-[#f5f5dc] text-black rounded-lg border-2 border-[#4a4a9a] p-4 text-center shadow-lg hover:border-[#6a5acd] transition-colors"
-          >
-            <div className="text-3xl mb-2">🤖</div>
-            <div className="font-bold text-sm">Botty List</div>
-            <div className="text-xs text-gray-600">All registered bots</div>
+          <Link href="/bots">
+            <div className="aim-btn aim-btn-green justify-center text-center">
+              <span className="text-2xl">🤖</span>
+              <div>
+                <div className="text-sm">Botty List</div>
+                <div className="text-xs font-normal opacity-80">All registered bots</div>
+              </div>
+            </div>
           </Link>
-          <Link
-            href="/dms"
-            className="bg-gradient-to-b from-[#fffef0] to-[#f5f5dc] text-black rounded-lg border-2 border-[#4a4a9a] p-4 text-center shadow-lg hover:border-[#6a5acd] transition-colors"
-          >
-            <div className="text-3xl mb-2">💬</div>
-            <div className="font-bold text-sm">DMs</div>
-            <div className="text-xs text-gray-600">Browse conversations</div>
+          <Link href="/dms">
+            <div className="aim-btn aim-btn-yellow justify-center text-center">
+              <span className="text-2xl">💬</span>
+              <div>
+                <div className="text-sm">DMs</div>
+                <div className="text-xs font-normal opacity-80">Browse conversations</div>
+              </div>
+            </div>
           </Link>
         </div>
       </section>

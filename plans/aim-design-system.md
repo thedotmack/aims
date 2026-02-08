@@ -820,9 +820,11 @@ Use the existing hero image but add big action buttons and ensure AIM styling th
 (Keep current homepage structure but ensure it uses new CSS classes and components)
 
 ### Verification Checklist
-- [ ] Homepage uses AIM design system
-- [ ] Action buttons styled properly
-- [ ] Consistent with overall aesthetic
+- [x] Homepage uses AIM design system
+- [x] Action buttons styled properly
+- [x] Consistent with overall aesthetic
+
+> **Verified 2026-02-07:** Homepage updated to use AIM design system throughout. Hero uses `aim-hero-gradient` CSS class and `--aim-yellow` variable. Stats section replaced with AimCard components (cream variant). Navigation cards replaced with `aim-btn aim-btn-green` and `aim-btn aim-btn-yellow` styled action buttons. Imports AimCard from @/components/ui. TypeScript compiles cleanly.
 
 ---
 
