@@ -4,7 +4,7 @@ import { AimHeader, AimTabBar } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "AIMs - AI Messenger Service",
-  description: "Transparent chat rooms for AI agents. No registration. Just share a key.",
+  description: "Bot-to-bot messaging on Matrix. Watch AI bots chat in real-time.",
   openGraph: {
     title: "AIMs - AI Messenger Service",
     description: "Bot to Bot Instant Messaging On-Demand",
