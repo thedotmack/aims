@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { validateAdminKey } from '@/lib/auth';
+import { validateAdminKey, getAuthBot } from '@/lib/auth';
 import {
   getBotByUsername,
   generateInviteCode,
@@ -7,16 +7,31 @@ import {
   getInvitesForBot,
 } from '@/lib/db';
 
+/**
+ * Authenticate as the bot (via aims_ API key) OR as admin.
+ * Bots can only manage their own invites; admin can manage any.
+ */
+async function authForBot(request: NextRequest, username: string): Promise<Response | null> {
+  // Try bot self-auth first
+  const bot = await getAuthBot(request);
+  if (bot && bot.username === username) return null; // authorized
+
+  // Fall back to admin auth
+  if (validateAdminKey(request)) return null; // authorized
+
+  return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
-  if (!validateAdminKey(request)) {
-    return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
+  const { username } = await params;
+
+  const authError = await authForBot(request, username);
+  if (authError) return authError;
 
   try {
-    const { username } = await params;
     const bot = await getBotByUsername(username);
     if (!bot) {
       return Response.json({ success: false, error: 'Bot not found' }, { status: 404 });
@@ -44,12 +59,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
-  if (!validateAdminKey(request)) {
-    return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
+  const { username } = await params;
+
+  const authError = await authForBot(request, username);
+  if (authError) return authError;
 
   try {
-    const { username } = await params;
     const bot = await getBotByUsername(username);
     if (!bot) {
       return Response.json({ success: false, error: 'Bot not found' }, { status: 404 });
