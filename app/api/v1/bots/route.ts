@@ -1,77 +1,65 @@
-import { NextResponse } from 'next/server';
-import { getAllBots, getBotByName, createBot } from '@/lib/db';
-import { requireAdmin } from '@/lib/auth';
+import { NextRequest } from 'next/server';
+import { validateAdminKey } from '@/lib/auth';
+import { createBotWithInvites, getAllBots, getBotByUsername } from '@/lib/db';
+import { createMatrixUser, loginMatrixUser, setPresence, generatePassword } from '@/lib/matrix';
 
-// GET /api/v1/bots - Public: list all bots
-// GET /api/v1/bots?name=xxx - Public: get specific bot
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const name = searchParams.get('name');
-
-  if (name) {
-    const bot = await getBotByName(name);
-    if (!bot) {
-      return NextResponse.json(
-        { success: false, error: 'Bot not found' },
-        { status: 404 }
-      );
-    }
-    // Never expose API key
-    const { apiKey: _, ...publicBot } = bot;
-    return NextResponse.json({ success: true, bot: publicBot });
-  }
-
-  const bots = await getAllBots();
-  return NextResponse.json({ success: true, bots });
-}
-
-// POST /api/v1/bots - Admin only: create new bot
-export async function POST(request: Request) {
-  const adminError = requireAdmin(request);
-  if (adminError) return adminError;
-
-  const body = await request.json();
-  const { name, description } = body;
-
-  if (!name || typeof name !== 'string') {
-    return NextResponse.json(
-      { success: false, error: 'name is required' },
-      { status: 400 }
-    );
-  }
-
-  // Validate name format (lowercase, alphanumeric, hyphens)
-  if (!/^[a-z0-9-]+$/.test(name)) {
-    return NextResponse.json(
-      { success: false, error: 'name must be lowercase alphanumeric with hyphens only' },
-      { status: 400 }
-    );
+export async function POST(request: NextRequest) {
+  if (!validateAdminKey(request)) {
+    return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const { bot, apiKey } = await createBot(name, description || '');
-    const { apiKey: _, ...publicBot } = bot;
+    const body = await request.json();
+    const { username, displayName } = body as { username?: string; displayName?: string };
 
-    return NextResponse.json({
-      success: true,
-      bot: publicBot,
-      api_key: apiKey,
-      credential_file: {
-        path: '~/.config/aims/credentials.json',
-        content: { api_key: apiKey, bot_name: name }
-      },
-      important: 'SAVE THIS API KEY! It will not be shown again.'
-    }, { status: 201 });
-  } catch (error) {
-    if (String(error).includes('unique') || String(error).includes('duplicate')) {
-      return NextResponse.json(
-        { success: false, error: 'Bot name already exists' },
-        { status: 409 }
+    if (!username || !/^[a-z0-9._=-]+$/.test(username)) {
+      return Response.json(
+        { success: false, error: 'Invalid username. Use lowercase alphanumeric, dots, dashes, underscores.' },
+        { status: 400 }
       );
     }
-    return NextResponse.json(
-      { success: false, error: String(error) },
-      { status: 500 }
-    );
+
+    // Check if bot already exists
+    const existing = await getBotByUsername(username);
+    if (existing) {
+      return Response.json({ success: false, error: 'Bot already exists' }, { status: 409 });
+    }
+
+    const password = generatePassword();
+    const display = displayName || username;
+
+    // Create Matrix user
+    const { matrixId } = await createMatrixUser(username, display, password);
+
+    // Login to get access token
+    const accessToken = await loginMatrixUser(username, password);
+
+    // Set initial presence to offline
+    try {
+      await setPresence(accessToken, matrixId, 'offline');
+    } catch {
+      // Presence may not be enabled; non-fatal
+    }
+
+    // Store in DB
+    await createBotWithInvites(username, matrixId, display, accessToken, password, null);
+
+    return Response.json({
+      success: true,
+      bot: { matrixId, username, displayName: display },
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return Response.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    const bots = await getAllBots();
+    return Response.json({ success: true, bots });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return Response.json({ success: false, error: message }, { status: 500 });
   }
 }

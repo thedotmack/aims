@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 const tabs = [
   { href: '/', icon: '🏠', label: 'HOME' },
   { href: '/bots', icon: '🤖', label: 'BOTTY LIST' },
-  { href: '/messages', icon: '💬', label: 'MESSAGES' },
+  { href: '/dms', icon: '💬', label: 'DMs' },
 ];
 
 export default function AimTabBar() {

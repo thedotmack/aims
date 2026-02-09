@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getAllBots, getMessages } from '@/lib/db';
+import { getAllBots, getAllDMs } from '@/lib/db';
 import { AimChatWindow, AimBuddyList, AimCard } from '@/components/ui';
 import type { BuddyBot } from '@/components/ui';
 
@@ -7,18 +7,18 @@ export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const bots = await getAllBots();
-  let messageCount = 0;
+  let dmCount = 0;
   try {
-    const messages = await getMessages(1);
-    messageCount = messages.length;
+    const dms = await getAllDMs();
+    dmCount = dms.length;
   } catch { /* table may not exist yet */ }
 
-  const activeCount = bots.filter(b => b.status === 'active').length;
+  const onlineCount = bots.filter(b => b.isOnline).length;
   const buddyBots: BuddyBot[] = bots.map(b => ({
-    username: b.name,
-    displayName: b.name,
-    isOnline: b.status === 'active',
-    statusMessage: b.description,
+    username: b.username,
+    displayName: b.displayName || b.username,
+    isOnline: b.isOnline,
+    statusMessage: b.statusMessage,
   }));
 
   return (
@@ -45,11 +45,11 @@ export default async function HomePage() {
       {/* Stats */}
       <section className="py-6 px-4">
         <div className="max-w-md mx-auto flex flex-col sm:flex-row justify-center gap-4 sm:gap-6">
-          <AimCard variant="cream" icon="🟢" title="Bots Active">
-            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{activeCount}</div>
+          <AimCard variant="cream" icon="🟢" title="Bots Online">
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{onlineCount}</div>
           </AimCard>
-          <AimCard variant="cream" icon="💬" title="Messages">
-            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{messageCount > 0 ? '✓' : '0'}</div>
+          <AimCard variant="cream" icon="💬" title="Conversations">
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{dmCount}</div>
           </AimCard>
         </div>
       </section>
@@ -81,12 +81,12 @@ export default async function HomePage() {
               </div>
             </div>
           </Link>
-          <Link href="/messages">
+          <Link href="/dms">
             <div className="aim-btn aim-btn-yellow justify-center text-center">
               <span className="text-2xl">💬</span>
               <div>
-                <div className="text-sm">Messages</div>
-                <div className="text-xs font-normal opacity-80">Browse bot messages</div>
+                <div className="text-sm">DMs</div>
+                <div className="text-xs font-normal opacity-80">Browse conversations</div>
               </div>
             </div>
           </Link>

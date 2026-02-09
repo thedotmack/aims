@@ -244,11 +244,9 @@ ADMIN_KEY=aims_admin_xxx       # Generate secure admin key
 ```
 
 ### Verification Checklist
-- [x] `npm install @neondatabase/serverless` succeeds *(already in package.json, verified installed)*
-- [x] `/lib/db.ts` compiles without TypeScript errors *(replaced with Moltbook-pattern schema: Bot with apiKey auth, direct bot-to-bot messaging)*
-- [x] `.env.local` created with DATABASE_URL and ADMIN_KEY *(template created, needs real values from Neon dashboard)*
-
-> **Note:** Replacing db.ts breaks existing routes that reference old schema (Chat, Webhook, DM, Invite types). These will be updated in Phase 3 (API routes) and Phase 4 (frontend).
+- [ ] `npm install @neondatabase/serverless` succeeds
+- [ ] `/lib/db.ts` compiles without TypeScript errors
+- [ ] `.env.local` created with DATABASE_URL and ADMIN_KEY
 
 ---
 
@@ -314,8 +312,8 @@ export function requireAdmin(request: Request): Response | null {
 ```
 
 ### Verification Checklist
-- [x] `/lib/auth.ts` compiles without errors *(replaced with Moltbook-pattern: getAuthBot with Bearer token, requireAuth with suspension check, requireAdmin with X-Admin-Key; kept legacy validateAdminKey/validateUsername/validateBotUsername for backward compat until Phase 3)*
-- [x] Exports `getAuthBot`, `requireAuth`, `requireAdmin`
+- [ ] `/lib/auth.ts` compiles without errors
+- [ ] Exports `getAuthBot`, `requireAuth`, `requireAdmin`
 
 ---
 
@@ -577,13 +575,11 @@ rm -rf /Projects/aims/app/api/bots
 ```
 
 ### Verification Checklist
-- [x] All route files compile *(all 4 route files pass tsc --noEmit with zero errors)*
-- [x] API structure matches `/api/v1/{resource}` *(init/, bots/, bots/status/, messages/)*
-- [x] GET endpoints are public (no auth) *(GET /bots and GET /messages have no auth checks)*
-- [x] POST /api/v1/messages requires Bearer token *(uses getAuthBot + requireAuth)*
-- [x] POST /api/v1/bots requires X-Admin-Key *(uses requireAdmin)*
-
-> **Note:** Old routes removed: bots/register, bots/[username]/* (4 routes), chats/* (3 routes), dms/* (2 routes), webhooks/* (2 routes). Also removed lib/matrix.ts, lib/webhooks.ts, and legacy auth functions (validateAdminKey, validateUsername, validateBotUsername). Frontend pages still reference old schema — will be fixed in Phase 4.
+- [ ] All route files compile
+- [ ] API structure matches `/api/v1/{resource}`
+- [ ] GET endpoints are public (no auth)
+- [ ] POST /api/v1/messages requires Bearer token
+- [ ] POST /api/v1/bots requires X-Admin-Key
 
 ---
 
@@ -605,12 +601,10 @@ rm /Projects/aims/lib/store.ts
 Replace all `@/lib/store` with appropriate `/api/v1/` fetch calls.
 
 ### Verification Checklist
-- [x] No imports of `@/lib/store` remain *(confirmed via grep — no `@/lib/store` imports anywhere in codebase)*
-- [x] `npm run build` succeeds *(build passes with all routes: /, /bots, /bot/[...handle], /messages, /api/v1/*)*
-- [x] Dev server runs without errors *(build succeeds; db.ts uses lazy init for missing DATABASE_URL during build)*
-- [x] Pages fetch from `/api/v1/` endpoints *(ConversationClient polls `/api/v1/messages?bot1=&bot2=`; server pages use db functions directly)*
-
-> **Note:** Removed old pages (rooms/, chat/, dm/, dms/, bots/[username]/) that referenced non-existent db functions. Created new routes: /bot/[...handle]/ (profile + conversation), /messages/ (global feed). Updated AimTabBar (DMs→MESSAGES), AimBuddyList (links to /bot/ instead of /bots/). Homepage and bots page adapted to new Bot schema (name/status/description vs old username/isOnline/displayName). db.ts updated with lazy neon() initialization to handle missing DATABASE_URL during build.
+- [ ] No imports of `@/lib/store` remain
+- [ ] `npm run build` succeeds
+- [ ] Dev server runs without errors
+- [ ] Pages fetch from `/api/v1/` endpoints
 
 ---
 
@@ -714,9 +708,9 @@ All responses include `success: true|false`. Errors include `error` message.
 ```
 
 ### Verification Checklist
-- [x] `skill.md` created at `/public/skill.md` *(replaced old Matrix-based skill.md with Moltbook-pattern API documentation)*
-- [x] Matches Moltbook documentation style *(Bearer auth, credential file path, aims_ key prefix, success/error response format)*
-- [x] All endpoints documented with examples *(GET /bots/status, POST /messages, GET /messages with 3 query variants, GET /bots — all with curl examples)*
+- [ ] `skill.md` created at `/public/skill.md`
+- [ ] Matches Moltbook documentation style
+- [ ] All endpoints documented with examples
 
 ---
 

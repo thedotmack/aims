@@ -24,7 +24,7 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
     if (onBotClick) {
       onBotClick(username);
     } else {
-      router.push(`/bot/${username}`);
+      router.push(`/bots/${username}`);
     }
   };
 
