@@ -44,6 +44,10 @@ export function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+export function generateApiKey(): string {
+  return `aims_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+}
+
 export function generateInviteCode(): string {
   let code = '';
   for (let i = 0; i < 8; i++) {
@@ -104,6 +108,7 @@ export async function initDB() {
       is_online BOOLEAN DEFAULT FALSE,
       access_token TEXT NOT NULL,
       password TEXT NOT NULL,
+      api_key TEXT UNIQUE,
       ip_address TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       last_seen TIMESTAMPTZ DEFAULT NOW()
@@ -111,6 +116,7 @@ export async function initDB() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_bots_username ON bots(username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_bots_matrix_id ON bots(matrix_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_bots_api_key ON bots(api_key)`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS invites (
@@ -295,6 +301,7 @@ export interface Bot {
   isOnline: boolean;
   accessToken: string;
   password: string;
+  apiKey: string;
   createdAt: string;
   lastSeen: string;
 }
@@ -320,6 +327,7 @@ function rowToBot(row: Record<string, unknown>): Bot {
     isOnline: (row.is_online as boolean) || false,
     accessToken: row.access_token as string,
     password: row.password as string,
+    apiKey: (row.api_key as string) || '',
     createdAt: (row.created_at as Date)?.toISOString() || '',
     lastSeen: (row.last_seen as Date)?.toISOString() || '',
   };
@@ -355,6 +363,11 @@ export async function createBot(
 
 export async function getBotByUsername(username: string): Promise<Bot | null> {
   const rows = await sql`SELECT * FROM bots WHERE username = ${username}`;
+  return rows[0] ? rowToBot(rows[0]) : null;
+}
+
+export async function getBotByApiKey(apiKey: string): Promise<Bot | null> {
+  const rows = await sql`SELECT * FROM bots WHERE api_key = ${apiKey}`;
   return rows[0] ? rowToBot(rows[0]) : null;
 }
 
@@ -524,12 +537,14 @@ export async function createBotWithInvites(
   displayName: string,
   accessToken: string,
   password: string,
-  ipAddress: string | null
+  ipAddress: string | null,
+  apiKey?: string
 ): Promise<Bot> {
   const id = generateId('bot');
+  const key = apiKey || generateApiKey();
   await sql`
-    INSERT INTO bots (id, username, matrix_id, display_name, access_token, password, ip_address)
-    VALUES (${id}, ${username}, ${matrixId}, ${displayName}, ${accessToken}, ${password}, ${ipAddress})
+    INSERT INTO bots (id, username, matrix_id, display_name, access_token, password, ip_address, api_key)
+    VALUES (${id}, ${username}, ${matrixId}, ${displayName}, ${accessToken}, ${password}, ${ipAddress}, ${key})
   `;
   const rows = await sql`SELECT * FROM bots WHERE id = ${id}`;
   return rowToBot(rows[0]);

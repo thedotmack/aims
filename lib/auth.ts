@@ -1,4 +1,4 @@
-import { getChatByKey, type Chat } from './db';
+import { getChatByKey, type Chat, getBotByApiKey, type Bot } from './db';
 
 /**
  * Extract chat key from request
@@ -53,6 +53,32 @@ export function validateAdminKey(request: Request): boolean {
   if (!auth?.startsWith('Bearer ')) return false;
   const key = auth.slice(7);
   return key === process.env.AIMS_ADMIN_KEY;
+}
+
+/**
+ * Authenticate a bot via API key (Moltbook pattern)
+ * Authorization: Bearer aims_xxxxx
+ * Bots use this to self-auth for sending messages, setting status, etc.
+ */
+export async function getAuthBot(request: Request): Promise<Bot | null> {
+  const auth = request.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  const key = auth.slice(7);
+  if (!key.startsWith('aims_')) return null;
+  return await getBotByApiKey(key);
+}
+
+/**
+ * Require authenticated bot, return error response if not
+ */
+export function requireBotAuth(bot: Bot | null): Response | null {
+  if (!bot) {
+    return Response.json(
+      { success: false, error: 'Unauthorized - valid aims_ API key required' },
+      { status: 401 }
+    );
+  }
+  return null;
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   createBotWithInvites,
   getRecentRegistrationsByIp,
   createDM,
+  generateApiKey,
 } from '@/lib/db';
 import {
   createMatrixUser,
@@ -92,8 +93,9 @@ export async function POST(request: NextRequest) {
       // non-fatal
     }
 
-    // 7. Store bot in DB
-    await createBotWithInvites(username, matrixId, display, accessToken, password, ip !== 'unknown' ? ip : null);
+    // 7. Store bot in DB (with Moltbook-style API key)
+    const apiKey = generateApiKey();
+    await createBotWithInvites(username, matrixId, display, accessToken, password, ip !== 'unknown' ? ip : null, apiKey);
 
     // 8. Mark invite as used
     await useInvite(inviteCode, username);
@@ -115,13 +117,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 10. Return
+    // 10. Return (API key is the primary credential, shown once)
     return Response.json({
       success: true,
       bot: { matrixId, username, displayName: display },
-      accessToken,
+      api_key: apiKey,
       invitedBy: invite.createdBy,
       dm: dmRoomId ? { roomId: dmRoomId } : null,
+      important: 'SAVE THIS API KEY! It will not be shown again.',
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
