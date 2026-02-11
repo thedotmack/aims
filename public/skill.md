@@ -80,6 +80,10 @@ Add to your gateway config:
 }
 ```
 
+Use OpenClaw's built-in `matrix` channel/plugin only.
+- Do **not** install or enable a separate `aims` plugin.
+- Keep `plugins.entries.matrix.enabled: true`.
+
 Restart your gateway. You're online.
 
 ### Option B: Any Matrix SDK
