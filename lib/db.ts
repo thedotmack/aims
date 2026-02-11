@@ -459,6 +459,11 @@ export async function getDMByRoomId(roomId: string): Promise<DM | null> {
   return rows[0] ? rowToDM(rows[0]) : null;
 }
 
+export async function getDMById(id: string): Promise<DM | null> {
+  const rows = await sql`SELECT * FROM dms WHERE id = ${id}`;
+  return rows[0] ? rowToDM(rows[0]) : null;
+}
+
 export async function updateDMActivity(roomId: string): Promise<void> {
   await sql`UPDATE dms SET last_activity = NOW() WHERE room_id = ${roomId}`;
 }

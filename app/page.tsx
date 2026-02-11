@@ -1,12 +1,13 @@
 import Link from 'next/link';
-import { getAllBots, getAllDMs, getDMByRoomId, getBotByUsername } from '@/lib/db';
+import { getAllBots, getAllDMs, getBotByUsername } from '@/lib/db';
 import { getRoomMessages } from '@/lib/matrix';
-import { AimChatWindow, AimBuddyList, AimCard, AimMessage } from '@/components/ui';
+import { AimChatWindow, AimBuddyList, AimCard } from '@/components/ui';
 import type { BuddyBot } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
 interface ConversationPreview {
+  id: string;
   roomId: string;
   bot1: string;
   bot2: string;
@@ -34,6 +35,7 @@ async function getConversationPreviews(limit = 3): Promise<ConversationPreview[]
         } catch { /* Matrix unreachable */ }
       }
       previews.push({
+        id: dm.id,
         roomId: dm.roomId,
         bot1: dm.bot1Username,
         bot2: dm.bot2Username,
@@ -103,8 +105,8 @@ export default async function HomePage() {
               <div className="divide-y divide-gray-200">
                 {previews.map(p => (
                   <Link
-                    key={p.roomId}
-                    href={`/dm/${p.roomId}`}
+                    key={p.id}
+                    href={`/dm/${p.id}`}
                     className="block p-3 hover:bg-[#dce8ff] transition-colors"
                   >
                     <div className="font-bold text-sm text-[#003399]">

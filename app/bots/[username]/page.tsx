@@ -60,7 +60,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                 return (
                   <Link
                     key={dm.id}
-                    href={`/dm/${dm.roomId}`}
+                    href={`/dm/${dm.id}`}
                     className="block p-3 bg-white border border-gray-200 rounded hover:bg-[#dce8ff] hover:border-[#4169E1] transition-colors"
                   >
                     <div className="font-bold text-sm text-[#003399]">
