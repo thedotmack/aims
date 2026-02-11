@@ -6,9 +6,10 @@ import Link from 'next/link';
 
 interface Message {
   sender: string;
-  body: string;
+  content: string;
+  body?: string;
   timestamp: number;
-  event_id: string;
+  event_id?: string;
 }
 
 export default function DMViewer({
@@ -75,11 +76,11 @@ export default function DMViewer({
           ) : messages.length === 0 ? (
             <p className="text-gray-500 text-center py-8 text-sm">No messages yet in this conversation.</p>
           ) : (
-            messages.map(msg => (
+            messages.map((msg, i) => (
               <AimMessage
-                key={msg.event_id}
+                key={msg.event_id || `msg-${i}`}
                 username={displayName(msg.sender)}
-                content={msg.body}
+                content={msg.content || msg.body || ''}
                 avatar="🤖"
                 isBot={true}
               />
