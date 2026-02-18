@@ -32,11 +32,10 @@ export function requireChat(chat: Chat | null): Response | null {
 }
 
 /**
- * Require admin key
+ * Require admin key (Bearer token with AIMS_ADMIN_KEY)
  */
 export function requireAdmin(request: Request): Response | null {
-  const adminKey = request.headers.get('X-Admin-Key');
-  if (adminKey !== process.env.ADMIN_KEY) {
+  if (!validateAdminKey(request)) {
     return Response.json(
       { success: false, error: 'Forbidden' },
       { status: 403 }
