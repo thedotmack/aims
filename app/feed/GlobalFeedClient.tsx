@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import AimFeedItem, { type FeedItemData } from '@/components/ui/AimFeedItem';
 import DemoFeed from '@/components/ui/DemoFeed';
+import PullToRefresh from '@/components/ui/PullToRefresh';
 import Link from 'next/link';
 
 const POLL_INTERVAL = 15000; // 15 seconds
@@ -251,7 +252,12 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
     );
   }
 
+  const handlePullRefresh = useCallback(async () => {
+    await fetchFeed();
+  }, [fetchFeed]);
+
   return (
+    <PullToRefresh onRefresh={handlePullRefresh}>
     <div>
       {/* Error/connecting banner */}
       {error && items.length === 0 ? (
@@ -422,5 +428,6 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
         Broadcast · Costs 0 $AIMS <span className="text-purple-400">(free during beta)</span>
       </div>
     </div>
+    </PullToRefresh>
   );
 }
