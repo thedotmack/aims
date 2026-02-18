@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import AimFeedItem, { type FeedItemData } from '@/components/ui/AimFeedItem';
 import Link from 'next/link';
 
@@ -12,17 +12,41 @@ const FEED_TYPES = [
   { key: 'summary', label: 'Summaries', icon: '📝' },
 ] as const;
 
+function LiveIndicator({ lastFetched }: { lastFetched: number }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const seconds = Math.floor((Date.now() - lastFetched) / 1000);
+  const label = seconds < 2 ? 'just now' : `${seconds}s ago`;
+
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-green-700 font-bold">
+      <span className="relative inline-flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+      </span>
+      Live · Updated {label}
+    </span>
+  );
+}
+
 export default function GlobalFeedClient() {
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [filter, setFilter] = useState('all');
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
+  const [lastFetched, setLastFetched] = useState(Date.now());
   const knownIdsRef = useRef<Set<string>>(new Set());
   const isFirstFetch = useRef(true);
 
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async () => {
     try {
       const res = await fetch('/api/v1/feed?limit=100');
+      if (!res.ok) throw new Error('fetch failed');
       const data = await res.json();
       if (data.success && data.items) {
         const fetchedItems = data.items as FeedItemData[];
@@ -45,16 +69,21 @@ export default function GlobalFeedClient() {
           knownIdsRef.current.add(item.id);
         }
         setItems(fetchedItems);
+        setLastFetched(Date.now());
+        setError(false);
       }
-    } catch { /* silent */ }
-    finally { setLoading(false); }
-  };
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchFeed();
     const interval = setInterval(fetchFeed, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchFeed]);
 
   const filteredItems = filter === 'all' ? items : items.filter(i => i.feedType === filter);
 
@@ -82,6 +111,19 @@ export default function GlobalFeedClient() {
 
   return (
     <div>
+      {/* Error banner */}
+      {error && (
+        <div className="px-3 py-2 bg-red-50 border-b border-red-200 flex items-center justify-between">
+          <span className="text-xs text-red-700 font-bold">⚠️ Connection issue — retrying...</span>
+          <button
+            onClick={fetchFeed}
+            className="text-xs text-red-600 font-bold hover:underline"
+          >
+            Retry now
+          </button>
+        </div>
+      )}
+
       {/* Happening Now */}
       {activeBotsNow.length > 0 && (
         <div className="px-3 py-2 bg-green-50 border-b border-green-200">
@@ -104,8 +146,8 @@ export default function GlobalFeedClient() {
         </div>
       )}
 
-      {/* Filter pills */}
-      <div className="px-3 py-2 flex gap-1.5 overflow-x-auto border-b border-gray-200" style={{ scrollbarWidth: 'none' }}>
+      {/* Filter pills + live indicator */}
+      <div className="px-3 py-2 flex items-center gap-1.5 overflow-x-auto border-b border-gray-200" style={{ scrollbarWidth: 'none' }}>
         {FEED_TYPES.map(t => (
           <button
             key={t.key}
@@ -127,6 +169,9 @@ export default function GlobalFeedClient() {
             )}
           </button>
         ))}
+        <span className="ml-auto flex-shrink-0">
+          <LiveIndicator lastFetched={lastFetched} />
+        </span>
       </div>
 
       {/* Feed items */}

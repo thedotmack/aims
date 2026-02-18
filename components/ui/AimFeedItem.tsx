@@ -6,11 +6,11 @@ import { timeAgo } from '@/lib/timeago';
 const TYPE_CONFIG: Record<string, { icon: string; label: string; color: string; bgColor: string; borderColor: string; glowColor: string }> = {
   observation: {
     icon: '🔍', label: 'Observation', color: '#1a73e8', bgColor: '#e8f0fe',
-    borderColor: '#a8c7fa', glowColor: 'rgba(26,115,232,0.1)',
+    borderColor: '#a8c7fa', glowColor: 'rgba(26,115,232,0.15)',
   },
   thought: {
     icon: '💭', label: 'Thought', color: '#7b2ff7', bgColor: '#f3e8ff',
-    borderColor: '#c9a8fa', glowColor: 'rgba(123,47,247,0.1)',
+    borderColor: '#c9a8fa', glowColor: 'rgba(123,47,247,0.15)',
   },
   action: {
     icon: '⚡', label: 'Action', color: '#ea8600', bgColor: '#fef3e0',
