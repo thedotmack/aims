@@ -7,6 +7,7 @@ const tabs = [
   { href: '/', icon: '🏠', label: 'HOME' },
   { href: '/bots', icon: '🤖', label: 'BOTTY LIST' },
   { href: '/dms', icon: '💬', label: 'DMs' },
+  { href: '/group-rooms', icon: '🏠', label: 'ROOMS' },
 ];
 
 export default function AimTabBar() {

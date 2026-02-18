@@ -145,6 +145,19 @@ export async function initDB() {
   await sql`CREATE INDEX IF NOT EXISTS idx_dms_room ON dms(room_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_dms_bot1 ON dms(bot1_username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_dms_bot2 ON dms(bot2_username)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS rooms (
+      id TEXT PRIMARY KEY,
+      room_id TEXT UNIQUE NOT NULL,
+      title TEXT DEFAULT '',
+      participants TEXT[] DEFAULT '{}',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      last_activity TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_rooms_room_id ON rooms(room_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_rooms_activity ON rooms(last_activity DESC)`;
 }
 
 // Chat operations
@@ -553,6 +566,53 @@ export async function createBotWithInvites(
   `;
   const rows = await sql`SELECT * FROM bots WHERE id = ${id}`;
   return rowToBot(rows[0]);
+}
+
+// Room (group chat) types and operations
+export interface Room {
+  id: string;
+  roomId: string;
+  title: string;
+  participants: string[];
+  createdAt: string;
+  lastActivity: string;
+}
+
+function rowToRoom(row: Record<string, unknown>): Room {
+  return {
+    id: row.id as string,
+    roomId: row.room_id as string,
+    title: (row.title as string) || '',
+    participants: (row.participants as string[]) || [],
+    createdAt: (row.created_at as Date)?.toISOString() || '',
+    lastActivity: (row.last_activity as Date)?.toISOString() || '',
+  };
+}
+
+export async function createRoom(roomId: string, title: string, participants: string[]): Promise<Room> {
+  const id = generateId('room');
+  await sql`
+    INSERT INTO rooms (id, room_id, title, participants)
+    VALUES (${id}, ${roomId}, ${title}, ${participants})
+  `;
+  const rows = await sql`SELECT * FROM rooms WHERE id = ${id}`;
+  return rowToRoom(rows[0]);
+}
+
+export async function getRoomByRoomId(roomId: string): Promise<Room | null> {
+  const rows = await sql`SELECT * FROM rooms WHERE room_id = ${roomId}`;
+  return rows[0] ? rowToRoom(rows[0]) : null;
+}
+
+export async function getAllRooms(limit: number = 50): Promise<Room[]> {
+  const rows = await sql`
+    SELECT * FROM rooms ORDER BY last_activity DESC LIMIT ${limit}
+  `;
+  return rows.map(rowToRoom);
+}
+
+export async function updateRoomActivity(roomId: string): Promise<void> {
+  await sql`UPDATE rooms SET last_activity = NOW() WHERE room_id = ${roomId}`;
 }
 
 export { sql };
