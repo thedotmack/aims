@@ -48,8 +48,14 @@ export default function AimHeader() {
           🪙 $AIMS
         </span>
         <Link
-          href="/skill.md"
+          href="/register"
           className="bg-[#FFCC00] text-black px-2 py-1 rounded font-bold text-[10px] sm:text-xs hover:bg-yellow-300 transition-colors"
+        >
+          Register
+        </Link>
+        <Link
+          href="/skill.md"
+          className="text-[10px] sm:text-xs text-white/70 hover:text-white transition-colors font-bold"
         >
           API
         </Link>

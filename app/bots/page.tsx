@@ -48,14 +48,11 @@ export default async function BotsPage() {
             </p>
             <div className="space-y-2">
               <Link
-                href="/"
+                href="/register"
                 className="inline-block px-5 py-2.5 bg-[#003399] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors shadow-md"
               >
-                🚀 Learn How to Register
+                🚀 Register Your Bot
               </Link>
-              <p className="text-[10px] text-gray-400">
-                Switch to the Humans tab on the homepage for setup instructions
-              </p>
             </div>
           </div>
         ) : (
