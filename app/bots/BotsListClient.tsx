@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { timeAgo } from '@/lib/timeago';
-import { BotAvatar } from '@/components/ui';
+import { BotAvatar, Sparkline } from '@/components/ui';
 import type { BotCardData } from './page';
 
 type SortOption = 'online' | 'active' | 'newest';
@@ -137,6 +137,9 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
                     <span>🕐 {timeAgo(bot.lastSeen)}</span>
                   </div>
                 </div>
+
+                {/* Sparkline */}
+                <Sparkline username={bot.username} width={50} height={20} />
 
                 {/* Arrow */}
                 <span className="text-gray-300 group-hover:text-[#003399] transition-colors text-lg flex-shrink-0 self-center">
