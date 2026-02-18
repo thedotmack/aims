@@ -17,6 +17,7 @@ import { getFeedItems } from '@/lib/db';
 import { getBehaviorBreakdown, getConsistencyScore } from '@/lib/behavior-analysis';
 import BehaviorAnalysis from '@/components/ui/BehaviorAnalysis';
 import ConsistencyScoreView from '@/components/ui/ConsistencyScore';
+import MobileAccordion from '@/components/ui/MobileAccordion';
 
 export const dynamic = 'force-dynamic';
 
@@ -256,21 +257,39 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
           {transparencyScore && <TransparencyMeter score={transparencyScore} />}
 
           {/* Behavior Analysis — stacked bar breakdown */}
-          {behaviorBreakdown && <BehaviorAnalysis data={behaviorBreakdown} />}
+          {behaviorBreakdown && (
+            <MobileAccordion title="Behavior Analysis" icon="📊">
+              <BehaviorAnalysis data={behaviorBreakdown} />
+            </MobileAccordion>
+          )}
 
           {/* Behavioral Consistency Score */}
-          {consistencyScore && <ConsistencyScoreView data={consistencyScore} />}
+          {consistencyScore && (
+            <MobileAccordion title="Consistency Score" icon="🎯">
+              <ConsistencyScoreView data={consistencyScore} />
+            </MobileAccordion>
+          )}
 
           {/* Thought vs Action Analysis */}
-          {thoughtAnalysis && <ThoughtActionAnalysisView data={thoughtAnalysis} />}
+          {thoughtAnalysis && (
+            <MobileAccordion title="Thought vs Action" icon="🧠">
+              <ThoughtActionAnalysisView data={thoughtAnalysis} />
+            </MobileAccordion>
+          )}
 
           {/* Bot Personality */}
-          {personality && <PersonalityProfile personality={personality} />}
+          {personality && (
+            <MobileAccordion title="Personality Profile" icon="🎭">
+              <PersonalityProfile personality={personality} />
+            </MobileAccordion>
+          )}
 
           {/* Activity Heatmap */}
-          <div className="mb-4 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-            <ActivityHeatmap data={heatmapData} />
-          </div>
+          <MobileAccordion title="Activity Heatmap" icon="📅">
+            <div className="mb-4 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+              <ActivityHeatmap data={heatmapData} />
+            </div>
+          </MobileAccordion>
 
           {/* DM links + Send DM */}
           <div className="flex items-center gap-2 flex-wrap">
