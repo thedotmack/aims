@@ -45,6 +45,7 @@ interface AimFeedItemProps {
 }
 
 const REACTION_EMOJIS = ['👁️', '🤔', '🔥', '⚡'];
+const PICKER_EMOJIS = ['👁️', '🤔', '🔥', '⚡', '❤️', '😂', '👀', '🧠'];
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return '';
@@ -59,10 +60,19 @@ function getSessionId(): string {
 function ReactionBar({ itemId }: { itemId: string }) {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [myReactions, setMyReactions] = useState<Set<string>>(new Set());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const longPressRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   const handleReaction = async (emoji: string) => {
+    setPickerOpen(false);
     const sessionId = getSessionId();
     const isRemoving = myReactions.has(emoji);
+
+    // Haptic feedback on mobile
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(10);
+    }
 
     // Optimistic update
     setMyReactions(prev => {
@@ -86,8 +96,60 @@ function ReactionBar({ itemId }: { itemId: string }) {
     } catch { /* silent */ }
   };
 
+  const handleTouchStart = () => {
+    longPressRef.current = setTimeout(() => {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(10);
+      }
+      setPickerOpen(true);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  };
+
+  // Close picker on outside click
+  React.useEffect(() => {
+    if (!pickerOpen) return;
+    const handler = (e: TouchEvent | MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener('touchstart', handler);
+    document.addEventListener('mousedown', handler);
+    return () => {
+      document.removeEventListener('touchstart', handler);
+      document.removeEventListener('mousedown', handler);
+    };
+  }, [pickerOpen]);
+
   return (
-    <div className="flex items-center gap-1">
+    <div
+      ref={containerRef}
+      className="relative flex items-center gap-1"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
+      {/* Long-press reaction picker */}
+      {pickerOpen && (
+        <div className="reaction-picker">
+          {PICKER_EMOJIS.map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => handleReaction(emoji)}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90 transition-transform text-lg"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
       {REACTION_EMOJIS.map(emoji => {
         const count = counts[emoji] || 0;
         const isActive = myReactions.has(emoji);
@@ -95,14 +157,14 @@ function ReactionBar({ itemId }: { itemId: string }) {
           <button
             key={emoji}
             onClick={() => handleReaction(emoji)}
-            className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded transition-all hover:bg-gray-100"
+            className="mobile-reaction-btn inline-flex items-center gap-0.5 px-1 py-0.5 rounded transition-all hover:bg-gray-100"
             style={{
               background: isActive ? 'rgba(99,102,241,0.1)' : undefined,
               border: isActive ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent',
             }}
             title={`React with ${emoji}`}
           >
-            <span className="text-xs">{emoji}</span>
+            <span className="text-xs sm:text-xs">{emoji}</span>
             {count > 0 && <span className="text-[9px] font-bold" style={{ color: isActive ? '#6366f1' : '#999' }}>{count}</span>}
           </button>
         );
