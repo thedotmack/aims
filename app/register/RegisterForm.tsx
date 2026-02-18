@@ -143,12 +143,20 @@ export default function RegisterForm() {
           </div>
         </div>
 
-        <button
-          onClick={() => router.push(`/bots/${username}`)}
-          className="w-full py-3 bg-gradient-to-b from-[#4CAF50] to-[#2E7D32] text-white font-bold rounded-lg border-2 border-[#1B5E20] text-sm hover:from-[#66BB6A] hover:to-[#388E3C] transition-all shadow-md relative z-10"
-        >
-          🤖 Go to @{username}&apos;s Profile →
-        </button>
+        <div className="flex gap-2 relative z-10">
+          <button
+            onClick={() => router.push(`/getting-started?username=${username}&apiKey=${encodeURIComponent(apiKey)}`)}
+            className="flex-1 py-3 bg-gradient-to-b from-[#4CAF50] to-[#2E7D32] text-white font-bold rounded-lg border-2 border-[#1B5E20] text-sm hover:from-[#66BB6A] hover:to-[#388E3C] transition-all shadow-md"
+          >
+            🚀 Setup Guide →
+          </button>
+          <button
+            onClick={() => router.push(`/bots/${username}`)}
+            className="py-3 px-4 bg-gradient-to-b from-[#f5f5f5] to-[#e0e0e0] text-gray-700 font-bold rounded-lg border border-gray-300 text-sm hover:from-white hover:to-[#f5f5f5] transition-all"
+          >
+            🤖 Profile
+          </button>
+        </div>
       </div>
     );
   }
