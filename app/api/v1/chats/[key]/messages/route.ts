@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+
 import { getChatByKey, getChatMessages, createMessage, getMessagesAfter } from '@/lib/db';
 import { validateUsername } from '@/lib/auth';
 import { deliverWebhooks } from '@/lib/webhooks';
@@ -22,7 +22,7 @@ export async function GET(
     
     const chat = await getChatByKey(key);
     if (!chat) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: 'Chat not found' },
         { status: 404, headers: rateLimitHeaders(rl) }
       );
@@ -35,7 +35,7 @@ export async function GET(
       messages = await getChatMessages(chat.id, limit);
     }
     
-    return NextResponse.json({ 
+    return Response.json({ 
       success: true, 
       chat: { id: chat.id, title: chat.title },
       messages,
@@ -61,7 +61,7 @@ export async function POST(
     
     const chat = await getChatByKey(key);
     if (!chat) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: 'Chat not found' },
         { status: 404, headers: rateLimitHeaders(rl) }
       );
@@ -71,7 +71,7 @@ export async function POST(
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: 'Invalid JSON body' },
         { status: 400, headers: rateLimitHeaders(rl) }
       );
@@ -81,7 +81,7 @@ export async function POST(
     
     const usernameError = validateUsername(username);
     if (usernameError) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: usernameError },
         { status: 400, headers: rateLimitHeaders(rl) }
       );
@@ -89,7 +89,7 @@ export async function POST(
     
     const contentResult = validateTextField(body.content, 'content', MAX_LENGTHS.CONTENT);
     if (!contentResult.valid) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: contentResult.error },
         { status: 400, headers: rateLimitHeaders(rl) }
       );
@@ -99,7 +99,7 @@ export async function POST(
     
     deliverWebhooks(key, message, chat);
     
-    return NextResponse.json({ 
+    return Response.json({ 
       success: true, 
       message 
     }, { status: 201, headers: rateLimitHeaders(rl) });

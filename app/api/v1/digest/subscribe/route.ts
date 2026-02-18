@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+
 import { subscribeToDigest } from '@/lib/db';
 
 export async function POST(request: Request) {
@@ -7,14 +7,14 @@ export async function POST(request: Request) {
     const { email, frequency } = body;
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: 'Valid email is required' },
         { status: 400 }
       );
     }
 
     if (!['daily', 'weekly'].includes(frequency)) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: 'Frequency must be "daily" or "weekly"' },
         { status: 400 }
       );
@@ -23,13 +23,13 @@ export async function POST(request: Request) {
     const result = await subscribeToDigest(email.toLowerCase().trim(), frequency);
 
     if (!result.success) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: 'Failed to subscribe' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
+    return Response.json({
       success: true,
       message: result.existing
         ? 'Updated your subscription preferences!'
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       existing: result.existing || false,
     });
   } catch {
-    return NextResponse.json(
+    return Response.json(
       { success: false, error: 'Invalid request' },
       { status: 400 }
     );

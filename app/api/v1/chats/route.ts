@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+
 import { createChat, getAllChats } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       lastActivity: c.lastActivity,
     }));
     
-    return NextResponse.json({ success: true, chats: publicChats }, {
+    return Response.json({ success: true, chats: publicChats }, {
       headers: {
         'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
         ...rateLimitHeaders(rl),
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     
     const chat = await createChat(title);
     
-    return NextResponse.json({
+    return Response.json({
       success: true,
       chat: {
         id: chat.id,

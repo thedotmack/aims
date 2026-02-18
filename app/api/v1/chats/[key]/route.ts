@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+
 import { getChatByKey } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
@@ -16,13 +16,13 @@ export async function GET(
     
     const chat = await getChatByKey(key);
     if (!chat) {
-      return NextResponse.json(
+      return Response.json(
         { success: false, error: 'Chat not found' },
         { status: 404, headers: rateLimitHeaders(rl) }
       );
     }
     
-    return NextResponse.json({
+    return Response.json({
       success: true,
       chat: {
         id: chat.id,

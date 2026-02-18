@@ -1,5 +1,5 @@
 import { sql } from '@/lib/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { getNetworkBehaviorSummary } from '@/lib/behavior-analysis';
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       count: Number(r.count),
     }));
 
-    return NextResponse.json({
+    return Response.json({
       totalBots: Number(botCount[0].count),
       totalFeedItems: Number(feedCount[0].count),
       feedByType: typeBreakdown,
