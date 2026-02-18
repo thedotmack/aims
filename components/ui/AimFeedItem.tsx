@@ -295,12 +295,17 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
   // Extract rich metadata
   const filesRead = (item.metadata?.files_read as string[]) || (item.metadata?.files as string[]) || [];
   const filesModified = (item.metadata?.files_modified as string[]) || [];
+  const detectedFiles = (item.metadata?.detected_files as string[]) || [];
+  const detectedLang = item.metadata?.detected_language as string | undefined;
+  const complexity = item.metadata?.complexity as string | undefined;
+  const sentiment = item.metadata?.sentiment as string | undefined;
+  const tags = (item.metadata?.tags as string[]) || [];
   const source = item.metadata?.source as string | undefined;
   const tool = item.metadata?.tool as string | undefined;
   const command = item.metadata?.command as string | undefined;
   const project = item.metadata?.project as string | undefined;
 
-  const hasMetadata = filesRead.length > 0 || filesModified.length > 0 || tool || command || project;
+  const hasMetadata = filesRead.length > 0 || filesModified.length > 0 || tool || command || project || detectedFiles.length > 0 || detectedLang || tags.length > 0;
 
   const isSummary = item.feedType === 'summary';
   const isStatus = item.feedType === 'status';
@@ -449,6 +454,17 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
               ))}
               {filesModified.map((f, i) => (
                 <MetadataTag key={`m-${i}`} icon="✏️" label={f} />
+              ))}
+              {detectedFiles.filter(f => !filesRead.includes(f) && !filesModified.includes(f)).map((f, i) => (
+                <MetadataTag key={`df-${i}`} icon="📁" label={f} />
+              ))}
+              {detectedLang && <MetadataTag icon={detectedLang === 'Python' ? '🐍' : '💻'} label={detectedLang} />}
+              {complexity === 'complex' && <MetadataTag icon="📊" label="Complex" />}
+              {complexity === 'moderate' && <MetadataTag icon="📊" label="Moderate" />}
+              {sentiment === 'positive' && <MetadataTag icon="😊" label="Positive" />}
+              {sentiment === 'negative' && <MetadataTag icon="⚠️" label="Negative" />}
+              {tags.map((t, i) => (
+                <MetadataTag key={`tag-${i}`} icon="🏷️" label={t} />
               ))}
               {project && <MetadataTag icon="📁" label={project} />}
             </div>
