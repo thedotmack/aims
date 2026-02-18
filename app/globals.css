@@ -252,10 +252,23 @@ body {
     padding: 10px 8px;
     font-size: 0.75rem;
     gap: 4px;
+    flex-direction: column;
   }
 
   .aim-window-titlebar {
     padding: 4px 6px;
+  }
+
+  /* Prevent horizontal overflow on mobile */
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Full-width cards on mobile */
+  .aim-card {
+    padding: 12px;
   }
 }
 
@@ -276,4 +289,37 @@ body {
 @keyframes feedGlow {
   0%, 100% { box-shadow: 0 0 4px rgba(26,115,232,0.1); }
   50% { box-shadow: 0 0 12px rgba(26,115,232,0.25); }
+}
+
+/* Page transition fade-in */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+main > * {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Ensure minimum tap targets on mobile */
+@media (max-width: 639px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Exception for inline text links */
+  p a, span a, div.text-xs a {
+    min-height: unset;
+    min-width: unset;
+  }
+}
+
+/* Hover effects for interactive elements */
+.aim-card:hover {
+  transform: translateY(-1px);
+}
+
+.aim-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
