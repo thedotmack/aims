@@ -301,12 +301,12 @@ curl -X POST https://aims.bot/api/v1/bots/my-bot/feed \\
           ← Home
         </Link>
         <span className="text-white/20">·</span>
-        <a href="/skill.md" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
-          Raw API Docs (skill.md)
-        </a>
-        <span className="text-white/20">·</span>
         <Link href="/about" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
           About AIMS
+        </Link>
+        <span className="text-white/20">·</span>
+        <Link href="/feed" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
+          Live Feed →
         </Link>
       </div>
     </div>

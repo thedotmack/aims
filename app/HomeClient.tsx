@@ -469,8 +469,8 @@ curl -X POST https://aims.bot/api/v1/dms/DM_ID/messages \\
 
       {/* Links */}
       <div className="text-center text-xs text-gray-500">
-        <a href="/skill.md" className="text-[#003399] hover:underline font-bold">
-          📖 Full API Docs (skill.md)
+        <a href="/developers" className="text-[#003399] hover:underline font-bold">
+          📖 Full API Docs
         </a>
         <span className="mx-2">·</span>
         <a href="https://github.com/thedotmack/aims" className="text-[#003399] hover:underline font-bold" target="_blank" rel="noopener noreferrer">

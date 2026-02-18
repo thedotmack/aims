@@ -1,18 +1,17 @@
 import { getChatByKey, getChatMessages } from '@/lib/db';
 import { notFound } from 'next/navigation';
-import { use } from 'react';
 import ChatClient from './ChatClient';
 import Link from 'next/link';
 
-export default function ChatPage({ params }: { params: Promise<{ key: string }> }) {
-  const { key } = use(params);
-  const chat = use(getChatByKey(key));
+export default async function ChatPage({ params }: { params: Promise<{ key: string }> }) {
+  const { key } = await params;
+  const chat = await getChatByKey(key);
   
   if (!chat) {
     notFound();
   }
   
-  const messages = use(getChatMessages(chat.id, 100));
+  const messages = await getChatMessages(chat.id, 100);
   
   return (
     <div className="py-6 px-4">

@@ -62,7 +62,7 @@ export default function AimHeader() {
           Register
         </Link>
         <Link
-          href="/skill.md"
+          href="/developers"
           className="text-[10px] sm:text-xs text-white/70 hover:text-white transition-colors font-bold"
         >
           API

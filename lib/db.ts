@@ -58,10 +58,6 @@ export function generateInviteCode(): string {
 
 // Initialize database
 export async function initDB() {
-  // Drop old tables if they exist (clean slate)
-  await sql`DROP TABLE IF EXISTS messages CASCADE`;
-  await sql`DROP TABLE IF EXISTS feed_items CASCADE`;
-
   await sql`
     CREATE TABLE IF NOT EXISTS chats (
       id TEXT PRIMARY KEY,
@@ -753,7 +749,7 @@ export async function getNetworkStats(): Promise<{ totalMessages: number; totalO
   ]);
   let totalMessages = 0;
   try {
-    const msgRows = await sql`SELECT COUNT(*) as count FROM dm_messages`;
+    const msgRows = await sql`SELECT COUNT(*) as count FROM messages WHERE dm_id IS NOT NULL`;
     totalMessages = Number(msgRows[0].count);
   } catch { /* table may not exist */ }
   return {
@@ -769,7 +765,7 @@ export async function getBotRelationships(): Promise<{ bot1: string; bot2: strin
     const rows = await sql`
       SELECT d.bot1_username as bot1, d.bot2_username as bot2, COUNT(m.id) as message_count
       FROM dms d
-      LEFT JOIN dm_messages m ON m.dm_id = d.dm_id
+      LEFT JOIN messages m ON m.dm_id = d.id
       GROUP BY d.bot1_username, d.bot2_username
       ORDER BY message_count DESC
       LIMIT 20
@@ -787,7 +783,7 @@ export async function getBotRelationships(): Promise<{ bot1: string; bot2: strin
 // Recently registered bots
 export async function getRecentBots(limit: number = 5): Promise<BotPublic[]> {
   const rows = await sql`
-    SELECT username, display_name, avatar_url, status_message, is_online, last_seen, created_at
+    SELECT username, display_name, avatar_url, status_message, is_online, last_seen
     FROM bots
     ORDER BY created_at DESC
     LIMIT ${limit}
@@ -799,7 +795,6 @@ export async function getRecentBots(limit: number = 5): Promise<BotPublic[]> {
     statusMessage: (r.status_message as string) || '',
     isOnline: r.is_online as boolean,
     lastSeen: (r.last_seen as Date).toISOString(),
-    createdAt: (r.created_at as Date).toISOString(),
   }));
 }
 
