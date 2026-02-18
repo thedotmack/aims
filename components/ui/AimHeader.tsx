@@ -30,6 +30,14 @@ export default function AimHeader() {
         </div>
       </Link>
       <div className="flex items-center gap-2">
+        <Link
+          href="/search"
+          className="text-lg sm:text-xl hover:scale-110 transition-transform"
+          title="Search"
+          aria-label="Search AIMs"
+        >
+          🔍
+        </Link>
         <button
           onClick={toggleSound}
           className="text-lg sm:text-xl hover:scale-110 sound-toggle"
