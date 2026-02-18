@@ -4,19 +4,11 @@ import {
   getInviteByCode,
   useInvite,
   getBotByUsername,
-  createBotWithInvites,
-  getRecentRegistrationsByIp,
+  createBot,
   createDM,
+  getRecentRegistrationsByIp,
   generateApiKey,
 } from '@/lib/db';
-import {
-  createMatrixUser,
-  loginMatrixUser,
-  setPresence,
-  generatePassword,
-  createDMRoom,
-  joinRoom,
-} from '@/lib/matrix';
 
 function getClientIp(request: NextRequest): string {
   return (
@@ -78,52 +70,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Create Matrix user
-    const password = generatePassword();
-    const display = displayName || username;
-    const { matrixId } = await createMatrixUser(username, display, password);
-
-    // 5. Login to get access token
-    const accessToken = await loginMatrixUser(username, password);
-
-    // 6. Set initial presence
-    try {
-      await setPresence(accessToken, matrixId, 'offline');
-    } catch {
-      // non-fatal
-    }
-
-    // 7. Store bot in DB (with Moltbook-style API key)
+    // 4. Create bot with API key
     const apiKey = generateApiKey();
-    await createBotWithInvites(username, matrixId, display, accessToken, password, ip !== 'unknown' ? ip : null, apiKey);
+    const display = displayName || username;
+    const bot = await createBot(username, display, apiKey, ip !== 'unknown' ? ip : null);
 
-    // 8. Mark invite as used
+    // 5. Mark invite as used
     await useInvite(inviteCode, username);
 
-    // 9. Auto-create DM between inviter and invitee
-    let dmRoomId: string | null = null;
+    // 6. Auto-create DM between inviter and invitee
+    let dm: { id: string } | null = null;
     const inviter = await getBotByUsername(invite.createdBy);
     if (inviter) {
       try {
-        // Inviter creates the DM room and invites the new bot
-        dmRoomId = await createDMRoom(inviter.accessToken, matrixId);
-        // New bot joins
-        await joinRoom(accessToken, dmRoomId);
-        // Store DM in Postgres
-        await createDM(dmRoomId, invite.createdBy, username);
+        const newDm = await createDM(invite.createdBy, username);
+        dm = { id: newDm.id };
       } catch (dmErr) {
-        // Log but don't fail registration
         console.error('Failed to create auto-DM:', dmErr);
       }
     }
 
-    // 10. Return (API key is the primary credential, shown once)
+    // 7. Return
     return Response.json({
       success: true,
-      bot: { matrixId, username, displayName: display },
+      bot: { username: bot.username, displayName: display },
       api_key: apiKey,
       invitedBy: invite.createdBy,
-      dm: dmRoomId ? { roomId: dmRoomId } : null,
+      dm,
       important: 'SAVE THIS API KEY! It will not be shown again.',
     });
   } catch (err: unknown) {

@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
-import { getBotByUsername, createRoom, getAllRooms } from '@/lib/db';
-import { createGroupRoom, joinGroupRoom } from '@/lib/rooms';
+import { getBotByUsername, createRoom, getAllRooms, generateId } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   const isAdmin = validateAdminKey(request);
@@ -22,35 +21,20 @@ export async function POST(request: NextRequest) {
       return Response.json({ success: false, error: 'At least 2 participant usernames required' }, { status: 400 });
     }
 
-    // If bot auth, must be a participant
     if (authBot && !participants.includes(authBot.username)) {
       return Response.json({ success: false, error: 'Bot must be a participant in the room' }, { status: 403 });
     }
 
-    // Look up all bots
-    const bots = await Promise.all(participants.map(u => getBotByUsername(u)));
-    for (let i = 0; i < participants.length; i++) {
-      if (!bots[i]) {
-        return Response.json({ success: false, error: `Bot "${participants[i]}" not found` }, { status: 404 });
+    // Verify all bots exist
+    for (const u of participants) {
+      const bot = await getBotByUsername(u);
+      if (!bot) {
+        return Response.json({ success: false, error: `Bot "${u}" not found` }, { status: 404 });
       }
     }
 
-    // Create room using first participant's token
-    const creator = bots[0]!;
-    const inviteIds = bots.slice(1).map(b => b!.matrixId);
-    const matrixRoomId = await createGroupRoom(creator.accessToken, title, inviteIds);
-
-    // All invited bots join
-    for (const bot of bots.slice(1)) {
-      try {
-        await joinGroupRoom(bot!.accessToken, matrixRoomId);
-      } catch {
-        // May fail if already joined
-      }
-    }
-
-    // Store in DB
-    const room = await createRoom(matrixRoomId, title, participants);
+    const roomId = generateId('room');
+    const room = await createRoom(roomId, title, participants);
 
     return Response.json({
       success: true,

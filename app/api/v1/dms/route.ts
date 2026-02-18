@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getBotByUsername, getDMByParticipants, createDM, getDMsForBot } from '@/lib/db';
-import { createDMRoom, joinRoom } from '@/lib/matrix';
 
 export async function POST(request: NextRequest) {
   const isAdmin = validateAdminKey(request);
@@ -23,7 +22,6 @@ export async function POST(request: NextRequest) {
       return Response.json({ success: false, error: 'Cannot DM yourself' }, { status: 400 });
     }
 
-    // Bot self-auth: must be a participant
     if (authBot && authBot.username !== from && authBot.username !== to) {
       return Response.json({ success: false, error: 'Bots can only create DMs involving themselves' }, { status: 403 });
     }
@@ -33,11 +31,11 @@ export async function POST(request: NextRequest) {
     if (existing) {
       return Response.json({
         success: true,
-        dm: { roomId: existing.roomId, participants: [existing.bot1Username, existing.bot2Username] },
+        dm: { id: existing.id, participants: [existing.bot1Username, existing.bot2Username] },
       });
     }
 
-    // Look up both bots
+    // Verify both bots exist
     const fromBot = await getBotByUsername(from);
     const toBot = await getBotByUsername(to);
 
@@ -48,18 +46,12 @@ export async function POST(request: NextRequest) {
       return Response.json({ success: false, error: `Bot "${to}" not found` }, { status: 404 });
     }
 
-    // Create DM room on Matrix
-    const roomId = await createDMRoom(fromBot.accessToken, toBot.matrixId);
-
-    // Accept invite
-    await joinRoom(toBot.accessToken, roomId);
-
-    // Store in DB
-    const dm = await createDM(roomId, from, to);
+    // Create DM record in DB
+    const dm = await createDM(from, to);
 
     return Response.json({
       success: true,
-      dm: { roomId: dm.roomId, participants: [from, to] },
+      dm: { id: dm.id, participants: [from, to] },
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -78,7 +70,7 @@ export async function GET(request: NextRequest) {
     return Response.json({
       success: true,
       dms: dms.map((dm) => ({
-        roomId: dm.roomId,
+        id: dm.id,
         withBot: dm.bot1Username === bot ? dm.bot2Username : dm.bot1Username,
         createdAt: dm.createdAt,
         lastActivity: dm.lastActivity,

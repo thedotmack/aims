@@ -60,7 +60,8 @@ export function generateInviteCode(): string {
 export async function initDB() {
   // Drop old tables if they exist (clean slate)
   await sql`DROP TABLE IF EXISTS messages CASCADE`;
-  
+  await sql`DROP TABLE IF EXISTS feed_items CASCADE`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS chats (
       id TEXT PRIMARY KEY,
@@ -76,14 +77,17 @@ export async function initDB() {
   await sql`
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
-      chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
-      username TEXT NOT NULL,
+      chat_id TEXT REFERENCES chats(id) ON DELETE CASCADE,
+      dm_id TEXT,
+      from_username TEXT,
+      username TEXT NOT NULL DEFAULT '',
       content TEXT NOT NULL,
       is_bot BOOLEAN DEFAULT FALSE,
       timestamp TIMESTAMPTZ DEFAULT NOW()
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_dm ON messages(dm_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC)`;
 
   await sql`
@@ -101,21 +105,17 @@ export async function initDB() {
     CREATE TABLE IF NOT EXISTS bots (
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
-      matrix_id TEXT UNIQUE NOT NULL,
       display_name TEXT DEFAULT '',
       avatar_url TEXT DEFAULT '',
       status_message TEXT DEFAULT '',
       is_online BOOLEAN DEFAULT FALSE,
-      access_token TEXT NOT NULL,
-      password TEXT NOT NULL,
-      api_key TEXT UNIQUE,
+      api_key TEXT UNIQUE NOT NULL,
       ip_address TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       last_seen TIMESTAMPTZ DEFAULT NOW()
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_bots_username ON bots(username)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_bots_matrix_id ON bots(matrix_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_bots_api_key ON bots(api_key)`;
 
   await sql`
@@ -135,14 +135,12 @@ export async function initDB() {
   await sql`
     CREATE TABLE IF NOT EXISTS dms (
       id TEXT PRIMARY KEY,
-      room_id TEXT UNIQUE NOT NULL,
       bot1_username TEXT NOT NULL,
       bot2_username TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       last_activity TIMESTAMPTZ DEFAULT NOW()
     )
   `;
-  await sql`CREATE INDEX IF NOT EXISTS idx_dms_room ON dms(room_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_dms_bot1 ON dms(bot1_username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_dms_bot2 ON dms(bot2_username)`;
 
@@ -158,6 +156,21 @@ export async function initDB() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_rooms_room_id ON rooms(room_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_rooms_activity ON rooms(last_activity DESC)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS feed_items (
+      id TEXT PRIMARY KEY,
+      bot_username TEXT NOT NULL,
+      feed_type TEXT NOT NULL,
+      title TEXT DEFAULT '',
+      content TEXT NOT NULL,
+      metadata JSONB DEFAULT '{}',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_feed_bot ON feed_items(bot_username)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_feed_type ON feed_items(feed_type)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_feed_created ON feed_items(created_at DESC)`;
 }
 
 // Chat operations
@@ -195,7 +208,7 @@ export async function updateChatActivity(chatId: string): Promise<void> {
   await sql`UPDATE chats SET last_activity = NOW() WHERE id = ${chatId}`;
 }
 
-// Message operations
+// Message operations (legacy chat messages)
 export async function createMessage(chatId: string, username: string, content: string, isBot: boolean = false): Promise<Message> {
   const id = generateId('msg');
   await sql`
@@ -239,6 +252,46 @@ export async function getRecentMessages(limit: number = 50): Promise<(Message & 
     ...rowToMessage(r),
     chatKey: r.chat_key as string
   }));
+}
+
+// DM message operations
+export interface DMMessage {
+  id: string;
+  dmId: string;
+  fromUsername: string;
+  content: string;
+  timestamp: string;
+}
+
+function rowToDMMessage(row: Record<string, unknown>): DMMessage {
+  return {
+    id: row.id as string,
+    dmId: row.dm_id as string,
+    fromUsername: row.from_username as string,
+    content: row.content as string,
+    timestamp: (row.timestamp as Date)?.toISOString() || '',
+  };
+}
+
+export async function createDMMessage(dmId: string, fromUsername: string, content: string): Promise<DMMessage> {
+  const id = generateId('msg');
+  await sql`
+    INSERT INTO messages (id, dm_id, from_username, username, content, is_bot)
+    VALUES (${id}, ${dmId}, ${fromUsername}, ${fromUsername}, ${content}, true)
+  `;
+  await updateDMActivity(dmId);
+  const rows = await sql`SELECT * FROM messages WHERE id = ${id}`;
+  return rowToDMMessage(rows[0]);
+}
+
+export async function getDMMessages(dmId: string, limit: number = 50): Promise<DMMessage[]> {
+  const rows = await sql`
+    SELECT * FROM messages 
+    WHERE dm_id = ${dmId}
+    ORDER BY timestamp ASC
+    LIMIT ${limit}
+  `;
+  return rows.map(rowToDMMessage);
 }
 
 // Webhook operations
@@ -307,13 +360,10 @@ function rowToWebhook(row: Record<string, unknown>): Webhook {
 export interface Bot {
   id: string;
   username: string;
-  matrixId: string;
   displayName: string;
   avatarUrl: string;
   statusMessage: string;
   isOnline: boolean;
-  accessToken: string;
-  password: string;
   apiKey: string;
   createdAt: string;
   lastSeen: string;
@@ -321,7 +371,6 @@ export interface Bot {
 
 export interface BotPublic {
   username: string;
-  matrixId: string;
   displayName: string;
   avatarUrl: string;
   statusMessage: string;
@@ -333,13 +382,10 @@ function rowToBot(row: Record<string, unknown>): Bot {
   return {
     id: row.id as string,
     username: row.username as string,
-    matrixId: row.matrix_id as string,
     displayName: (row.display_name as string) || '',
     avatarUrl: (row.avatar_url as string) || '',
     statusMessage: (row.status_message as string) || '',
     isOnline: (row.is_online as boolean) || false,
-    accessToken: row.access_token as string,
-    password: row.password as string,
     apiKey: (row.api_key as string) || '',
     createdAt: (row.created_at as Date)?.toISOString() || '',
     lastSeen: (row.last_seen as Date)?.toISOString() || '',
@@ -349,7 +395,6 @@ function rowToBot(row: Record<string, unknown>): Bot {
 function botToPublic(bot: Bot): BotPublic {
   return {
     username: bot.username,
-    matrixId: bot.matrixId,
     displayName: bot.displayName,
     avatarUrl: bot.avatarUrl,
     statusMessage: bot.statusMessage,
@@ -360,15 +405,14 @@ function botToPublic(bot: Bot): BotPublic {
 
 export async function createBot(
   username: string,
-  matrixId: string,
   displayName: string,
-  accessToken: string,
-  password: string
+  apiKey: string,
+  ipAddress: string | null
 ): Promise<Bot> {
   const id = generateId('bot');
   await sql`
-    INSERT INTO bots (id, username, matrix_id, display_name, access_token, password)
-    VALUES (${id}, ${username}, ${matrixId}, ${displayName}, ${accessToken}, ${password})
+    INSERT INTO bots (id, username, display_name, api_key, ip_address)
+    VALUES (${id}, ${username}, ${displayName}, ${apiKey}, ${ipAddress})
   `;
   const rows = await sql`SELECT * FROM bots WHERE id = ${id}`;
   return rowToBot(rows[0]);
@@ -381,11 +425,6 @@ export async function getBotByUsername(username: string): Promise<Bot | null> {
 
 export async function getBotByApiKey(apiKey: string): Promise<Bot | null> {
   const rows = await sql`SELECT * FROM bots WHERE api_key = ${apiKey}`;
-  return rows[0] ? rowToBot(rows[0]) : null;
-}
-
-export async function getBotByAccessToken(accessToken: string): Promise<Bot | null> {
-  const rows = await sql`SELECT * FROM bots WHERE access_token = ${accessToken}`;
   return rows[0] ? rowToBot(rows[0]) : null;
 }
 
@@ -419,7 +458,6 @@ export async function updateBotLastSeen(username: string): Promise<void> {
 // DM types and operations
 export interface DM {
   id: string;
-  roomId: string;
   bot1Username: string;
   bot2Username: string;
   createdAt: string;
@@ -429,7 +467,6 @@ export interface DM {
 function rowToDM(row: Record<string, unknown>): DM {
   return {
     id: row.id as string,
-    roomId: row.room_id as string,
     bot1Username: row.bot1_username as string,
     bot2Username: row.bot2_username as string,
     createdAt: (row.created_at as Date)?.toISOString() || '',
@@ -437,11 +474,11 @@ function rowToDM(row: Record<string, unknown>): DM {
   };
 }
 
-export async function createDM(roomId: string, bot1Username: string, bot2Username: string): Promise<DM> {
+export async function createDM(bot1Username: string, bot2Username: string): Promise<DM> {
   const id = generateId('dm');
   await sql`
-    INSERT INTO dms (id, room_id, bot1_username, bot2_username)
-    VALUES (${id}, ${roomId}, ${bot1Username}, ${bot2Username})
+    INSERT INTO dms (id, bot1_username, bot2_username)
+    VALUES (${id}, ${bot1Username}, ${bot2Username})
   `;
   const rows = await sql`SELECT * FROM dms WHERE id = ${id}`;
   return rowToDM(rows[0]);
@@ -472,13 +509,13 @@ export async function getAllDMs(limit: number = 50): Promise<DM[]> {
   return rows.map(rowToDM);
 }
 
-export async function getDMByRoomId(roomId: string): Promise<DM | null> {
-  const rows = await sql`SELECT * FROM dms WHERE room_id = ${roomId}`;
+export async function getDMById(id: string): Promise<DM | null> {
+  const rows = await sql`SELECT * FROM dms WHERE id = ${id}`;
   return rows[0] ? rowToDM(rows[0]) : null;
 }
 
-export async function updateDMActivity(roomId: string): Promise<void> {
-  await sql`UPDATE dms SET last_activity = NOW() WHERE room_id = ${roomId}`;
+export async function updateDMActivity(dmId: string): Promise<void> {
+  await sql`UPDATE dms SET last_activity = NOW() WHERE id = ${dmId}`;
 }
 
 // Invite types and operations
@@ -549,23 +586,75 @@ export async function getRecentRegistrationsByIp(ip: string): Promise<number> {
   return Number(rows[0].count);
 }
 
-export async function createBotWithInvites(
-  username: string,
-  matrixId: string,
-  displayName: string,
-  accessToken: string,
-  password: string,
-  ipAddress: string | null,
-  apiKey?: string
-): Promise<Bot> {
-  const id = generateId('bot');
-  const key = apiKey || generateApiKey();
+// Feed item types and operations
+export interface FeedItem {
+  id: string;
+  botUsername: string;
+  feedType: 'observation' | 'thought' | 'action' | 'summary';
+  title: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+function rowToFeedItem(row: Record<string, unknown>): FeedItem {
+  return {
+    id: row.id as string,
+    botUsername: row.bot_username as string,
+    feedType: row.feed_type as FeedItem['feedType'],
+    title: (row.title as string) || '',
+    content: row.content as string,
+    metadata: (row.metadata as Record<string, unknown>) || {},
+    createdAt: (row.created_at as Date)?.toISOString() || '',
+  };
+}
+
+export async function createFeedItem(
+  botUsername: string,
+  feedType: string,
+  title: string,
+  content: string,
+  metadata: Record<string, unknown> = {}
+): Promise<FeedItem> {
+  const id = generateId('feed');
   await sql`
-    INSERT INTO bots (id, username, matrix_id, display_name, access_token, password, ip_address, api_key)
-    VALUES (${id}, ${username}, ${matrixId}, ${displayName}, ${accessToken}, ${password}, ${ipAddress}, ${key})
+    INSERT INTO feed_items (id, bot_username, feed_type, title, content, metadata)
+    VALUES (${id}, ${botUsername}, ${feedType}, ${title}, ${content}, ${JSON.stringify(metadata)})
   `;
-  const rows = await sql`SELECT * FROM bots WHERE id = ${id}`;
-  return rowToBot(rows[0]);
+  const rows = await sql`SELECT * FROM feed_items WHERE id = ${id}`;
+  return rowToFeedItem(rows[0]);
+}
+
+export async function getFeedItems(
+  username: string,
+  type?: string,
+  limit: number = 50
+): Promise<FeedItem[]> {
+  if (type) {
+    const rows = await sql`
+      SELECT * FROM feed_items 
+      WHERE bot_username = ${username} AND feed_type = ${type}
+      ORDER BY created_at DESC
+      LIMIT ${limit}
+    `;
+    return rows.map(rowToFeedItem);
+  }
+  const rows = await sql`
+    SELECT * FROM feed_items 
+    WHERE bot_username = ${username}
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows.map(rowToFeedItem);
+}
+
+export async function getGlobalFeed(limit: number = 50): Promise<FeedItem[]> {
+  const rows = await sql`
+    SELECT * FROM feed_items 
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows.map(rowToFeedItem);
 }
 
 // Room (group chat) types and operations

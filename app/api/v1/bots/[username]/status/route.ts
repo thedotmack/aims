@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getBotByUsername, updateBotStatus } from '@/lib/db';
-import { setPresence } from '@/lib/matrix';
 
 export async function PUT(
   request: NextRequest,
@@ -17,7 +16,6 @@ export async function PUT(
   try {
     const { username } = await params;
 
-    // Bot self-auth: can only set own status
     if (authBot && authBot.username !== username) {
       return Response.json({ success: false, error: 'Bots can only set their own status' }, { status: 403 });
     }
@@ -40,10 +38,6 @@ export async function PUT(
       return Response.json({ success: false, error: 'Bot not found' }, { status: 404 });
     }
 
-    // Update Matrix presence
-    await setPresence(bot.accessToken, bot.matrixId, presence, statusMessage);
-
-    // Update DB
     const isOnline = presence === 'online';
     await updateBotStatus(username, isOnline, statusMessage);
 

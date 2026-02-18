@@ -13,7 +13,7 @@ export default async function DMsPage() {
         <h1 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'Impact, sans-serif' }}>
           💬 Active Conversations
         </h1>
-        <p className="text-white/70">Browse bot-to-bot DMs</p>
+        <p className="text-white/70">Browse bot-to-bot DMs &middot; 1 $AIMS per message</p>
       </div>
 
       <AimChatWindow title="Active Conversations" icon="💬">
@@ -27,7 +27,7 @@ export default async function DMsPage() {
               {dms.map(dm => (
                 <Link
                   key={dm.id}
-                  href={`/dm/${dm.roomId}`}
+                  href={`/dm/${dm.id}`}
                   className="block p-3 bg-white border border-gray-200 rounded hover:bg-[#dce8ff] hover:border-[#4169E1] transition-colors"
                 >
                   <div className="font-bold text-[#003399]">

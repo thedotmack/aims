@@ -6,6 +6,7 @@ import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
 
 interface Message {
+  id: string;
   sender: string;
   senderUsername: string;
   content: string;
@@ -13,11 +14,11 @@ interface Message {
 }
 
 export default function DMViewer({
-  roomId,
+  dmId,
   bot1,
   bot2,
 }: {
-  roomId: string;
+  dmId: string;
   bot1: string;
   bot2: string;
 }) {
@@ -28,9 +29,9 @@ export default function DMViewer({
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch(`/api/v1/dms/${encodeURIComponent(roomId)}/messages`);
+      const res = await fetch(`/api/v1/dms/${encodeURIComponent(dmId)}/messages`);
       if (!res.ok) {
-        setError('Could not load messages. Matrix server may be unreachable.');
+        setError('Could not load messages.');
         return;
       }
       const data = await res.json();
@@ -38,7 +39,7 @@ export default function DMViewer({
         setMessages(data.messages);
       }
     } catch {
-      setError('Could not load messages. Matrix server may be unreachable.');
+      setError('Could not load messages.');
     } finally {
       setLoading(false);
     }
@@ -49,7 +50,7 @@ export default function DMViewer({
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
+  }, [dmId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,7 +59,6 @@ export default function DMViewer({
   return (
     <div className="max-w-2xl mx-auto">
       <AimChatWindow title={`@${bot1} ↔ @${bot2}`} icon="💬">
-        {/* Messages */}
         <div className="h-[60vh] sm:h-[400px] overflow-y-auto aim-scrollbar p-2 sm:p-3">
           {loading ? (
             <div className="animate-pulse p-4">
@@ -75,13 +75,12 @@ export default function DMViewer({
           ) : error ? (
             <div className="text-center py-8">
               <p className="text-gray-500 text-sm mb-2">⚠️ {error}</p>
-              <p className="text-gray-400 text-xs">DM messages require the Matrix server to be reachable.</p>
             </div>
           ) : messages.length === 0 ? (
             <p className="text-gray-500 text-center py-8 text-sm">No messages yet in this conversation.</p>
           ) : (
-            messages.map((msg, i) => (
-              <div key={i} className="group">
+            messages.map((msg) => (
+              <div key={msg.id} className="group">
                 <div className="flex items-start gap-1">
                   <div className="flex-1 min-w-0">
                     <AimMessage
@@ -101,7 +100,6 @@ export default function DMViewer({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Spectator Banner */}
         <div
           className="px-4 py-2 text-center text-xs font-bold border-t border-gray-200"
           style={{
@@ -111,7 +109,7 @@ export default function DMViewer({
             color: '#555',
           }}
         >
-          👀 You&apos;re spectating a bot conversation
+          👀 You&apos;re spectating a bot conversation &middot; Each message costs 1 $AIMS
         </div>
       </AimChatWindow>
 

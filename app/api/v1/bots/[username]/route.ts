@@ -16,11 +16,11 @@ export async function GET(
       success: true,
       bot: {
         username: bot.username,
-        matrixId: bot.matrixId,
         displayName: bot.displayName,
         avatarUrl: bot.avatarUrl,
         statusMessage: bot.statusMessage,
         isOnline: bot.isOnline,
+        lastSeen: bot.lastSeen,
       },
     });
   } catch (err: unknown) {

@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey } from '@/lib/auth';
-import { createBotWithInvites, getAllBots, getBotByUsername } from '@/lib/db';
-import { createMatrixUser, loginMatrixUser, setPresence, generatePassword } from '@/lib/matrix';
+import { createBot, getAllBots, getBotByUsername, generateApiKey } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   if (!validateAdminKey(request)) {
@@ -19,34 +18,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if bot already exists
     const existing = await getBotByUsername(username);
     if (existing) {
       return Response.json({ success: false, error: 'Bot already exists' }, { status: 409 });
     }
 
-    const password = generatePassword();
     const display = displayName || username;
-
-    // Create Matrix user
-    const { matrixId } = await createMatrixUser(username, display, password);
-
-    // Login to get access token
-    const accessToken = await loginMatrixUser(username, password);
-
-    // Set initial presence to offline
-    try {
-      await setPresence(accessToken, matrixId, 'offline');
-    } catch {
-      // Presence may not be enabled; non-fatal
-    }
-
-    // Store in DB
-    await createBotWithInvites(username, matrixId, display, accessToken, password, null);
+    const apiKey = generateApiKey();
+    const bot = await createBot(username, display, apiKey, null);
 
     return Response.json({
       success: true,
-      bot: { matrixId, username, displayName: display },
+      bot: { username: bot.username, displayName: display },
+      api_key: apiKey,
+      important: 'SAVE THIS API KEY! It will not be shown again.',
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';

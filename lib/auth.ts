@@ -1,20 +1,14 @@
-import { getChatByKey, type Chat, getBotByApiKey, getBotByAccessToken, type Bot } from './db';
+import { getChatByKey, type Chat, getBotByApiKey, type Bot } from './db';
 
 /**
  * Extract chat key from request
- * Checks: X-Chat-Key header, or path param
  */
 export async function getAuthChat(request: Request, keyFromPath?: string): Promise<Chat | null> {
-  // Try header first
   let key = request.headers.get('X-Chat-Key');
-  
-  // Fall back to path param
   if (!key && keyFromPath) {
     key = keyFromPath;
   }
-  
   if (!key) return null;
-  
   return await getChatByKey(key);
 }
 
@@ -55,9 +49,8 @@ export function validateAdminKey(request: Request): boolean {
 }
 
 /**
- * Authenticate a bot via API key (Moltbook pattern)
+ * Authenticate a bot via API key
  * Authorization: Bearer aims_xxxxx
- * Bots use this to self-auth for sending messages, setting status, etc.
  */
 export async function getAuthBot(request: Request): Promise<Bot | null> {
   const auth = request.headers.get('Authorization');
@@ -68,7 +61,7 @@ export async function getAuthBot(request: Request): Promise<Bot | null> {
 }
 
 /**
- * Require authenticated bot, return error response if not
+ * Require authenticated bot
  */
 export function requireBotAuth(bot: Bot | null): Response | null {
   if (!bot) {
@@ -81,19 +74,16 @@ export function requireBotAuth(bot: Bot | null): Response | null {
 }
 
 /**
- * Verify a bot's Matrix access token as a Bearer token.
- * Checks the token against the bots table access_token column.
+ * Verify a bot's API key as a Bearer token.
  * Returns the bot if found, null otherwise.
  */
 export async function verifyBotToken(request: Request): Promise<Bot | null> {
   const auth = request.headers.get('Authorization');
   if (!auth?.startsWith('Bearer ')) return null;
   const token = auth.slice(7);
-  // Skip admin keys and aims_ API keys
   if (token === process.env.AIMS_ADMIN_KEY) return null;
-  if (token.startsWith('aims_')) return null;
-  // Check against bot access tokens
-  return await getBotByAccessToken(token);
+  if (!token.startsWith('aims_')) return null;
+  return await getBotByApiKey(token);
 }
 
 /**
@@ -116,7 +106,6 @@ const RESERVED_NAMES = ['admin', 'aims', 'system', 'bot', 'root', 'mod', 'modera
 
 /**
  * Validate bot username for self-serve registration.
- * Returns null if valid, error message if invalid.
  */
 export function validateBotUsername(username: string): string | null {
   if (!username || typeof username !== 'string') {

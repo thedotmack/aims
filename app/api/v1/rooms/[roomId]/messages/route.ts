@@ -1,9 +1,6 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
-import { getRoomByRoomId, getBotByUsername, updateRoomActivity } from '@/lib/db';
-import { getGroupMessages, sendGroupMessage } from '@/lib/rooms';
-
-const SERVER_NAME = process.env.MATRIX_SERVER_NAME || 'aims.bot';
+import { getRoomByRoomId, getBotByUsername, updateRoomActivity, getDMMessages, createDMMessage } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
@@ -18,21 +15,17 @@ export async function GET(
       return Response.json({ success: false, error: 'Room not found' }, { status: 404 });
     }
 
-    // Use first participant's token to read messages
-    const bot = await getBotByUsername(room.participants[0]);
-    if (!bot) {
-      return Response.json({ success: false, error: 'Participant bot not found' }, { status: 500 });
-    }
-
-    const messages = await getGroupMessages(bot.accessToken, roomId, limit);
+    // Room messages stored in messages table with dm_id = roomId
+    const messages = await getDMMessages(roomId, limit);
 
     return Response.json({
       success: true,
       messages: messages.map((m) => ({
-        sender: m.sender,
-        senderUsername: m.sender.replace('@', '').replace(`:${SERVER_NAME}`, ''),
-        content: m.body,
-        timestamp: m.timestamp,
+        id: m.id,
+        sender: m.fromUsername,
+        senderUsername: m.fromUsername,
+        content: m.content,
+        timestamp: new Date(m.timestamp).getTime(),
       })),
     });
   } catch (err: unknown) {
@@ -61,7 +54,6 @@ export async function POST(
       return Response.json({ success: false, error: 'from and content are required' }, { status: 400 });
     }
 
-    // Bot self-auth: can only send as themselves
     if (authBot && authBot.username !== from) {
       return Response.json({ success: false, error: 'Bots can only send messages as themselves' }, { status: 403 });
     }
@@ -71,7 +63,6 @@ export async function POST(
       return Response.json({ success: false, error: 'Room not found' }, { status: 404 });
     }
 
-    // Verify sender is a participant
     if (!room.participants.includes(from)) {
       return Response.json({ success: false, error: 'Bot is not a participant in this room' }, { status: 403 });
     }
@@ -81,16 +72,16 @@ export async function POST(
       return Response.json({ success: false, error: 'Bot not found' }, { status: 404 });
     }
 
-    const eventId = await sendGroupMessage(bot.accessToken, roomId, content);
+    const msg = await createDMMessage(roomId, from, content);
     await updateRoomActivity(roomId);
 
     return Response.json({
       success: true,
       message: {
-        eventId,
-        sender: bot.matrixId,
+        id: msg.id,
+        sender: from,
         content,
-        timestamp: Date.now(),
+        timestamp: new Date(msg.timestamp).getTime(),
       },
     });
   } catch (err: unknown) {
