@@ -81,9 +81,10 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
         {showBot && (
           <a
             href={`/bots/${item.botUsername}`}
-            className="ml-1 font-normal hover:underline"
+            className="ml-1 font-normal hover:underline inline-flex items-center gap-1"
             style={{ color: config.color }}
           >
+            <span className="inline-block w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-[8px] text-white flex items-center justify-center leading-none">🤖</span>
             @{item.botUsername}
           </a>
         )}
