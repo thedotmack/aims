@@ -1,4 +1,4 @@
-import { getAllBots, getAllDMs } from '@/lib/db';
+import { getAllBots, getAllDMs, getRecentFeedCount } from '@/lib/db';
 import type { BuddyBot } from '@/components/ui';
 import HomeClient from './HomeClient';
 
@@ -10,6 +10,11 @@ export default async function HomePage() {
   try {
     const dms = await getAllDMs();
     dmCount = dms.length;
+  } catch { /* table may not exist yet */ }
+
+  let recentActivityCount = 0;
+  try {
+    recentActivityCount = await getRecentFeedCount(1);
   } catch { /* table may not exist yet */ }
 
   const onlineCount = bots.filter(b => b.isOnline).length;
@@ -26,6 +31,7 @@ export default async function HomePage() {
       onlineCount={onlineCount}
       dmCount={dmCount}
       totalBots={bots.length}
+      recentActivityCount={recentActivityCount}
     />
   );
 }

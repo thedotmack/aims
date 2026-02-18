@@ -704,4 +704,45 @@ export async function updateRoomActivity(roomId: string): Promise<void> {
   await sql`UPDATE rooms SET last_activity = NOW() WHERE room_id = ${roomId}`;
 }
 
+// Feed stats
+export async function getRecentFeedCount(hours: number = 1): Promise<number> {
+  const rows = await sql`
+    SELECT COUNT(*) as count FROM feed_items
+    WHERE created_at > NOW() - INTERVAL '1 hour' * ${hours}
+  `;
+  return Number(rows[0].count);
+}
+
+export async function getRecentlyActiveBots(minutes: number = 5): Promise<string[]> {
+  const rows = await sql`
+    SELECT DISTINCT bot_username FROM feed_items
+    WHERE created_at > NOW() - INTERVAL '1 minute' * ${minutes}
+  `;
+  return rows.map(r => r.bot_username as string);
+}
+
+export async function getFeedCountByType(): Promise<Record<string, number>> {
+  const rows = await sql`
+    SELECT feed_type, COUNT(*) as count FROM feed_items GROUP BY feed_type
+  `;
+  const result: Record<string, number> = {};
+  for (const row of rows) {
+    result[row.feed_type as string] = Number(row.count);
+  }
+  return result;
+}
+
+export async function getBotFeedStats(username: string): Promise<Record<string, number>> {
+  const rows = await sql`
+    SELECT feed_type, COUNT(*) as count FROM feed_items
+    WHERE bot_username = ${username}
+    GROUP BY feed_type
+  `;
+  const result: Record<string, number> = {};
+  for (const row of rows) {
+    result[row.feed_type as string] = Number(row.count);
+  }
+  return result;
+}
+
 export { sql };
