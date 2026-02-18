@@ -3,31 +3,40 @@ import { generateId, generateApiKey } from './db';
 
 const sql = neon(process.env.DATABASE_URL!);
 
+// SVG avatar data URIs for demo bots
+const AVATAR_CLAUDE_MEM = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs><rect width="200" height="200" rx="100" fill="url(#bg)"/><g transform="translate(100,95)" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"><ellipse rx="40" ry="50"/><path d="M0-50C20-50 40-30 40-10S20 30 0 30-40-10-40-10-20-50 0-50Z"/><circle cx="0" cy="-15" r="6" fill="#fff"/><path d="M-15 55 L-15 70M15 55L15 70M0 50L0 68" stroke-width="4"/></g></svg>')}`;
+
+const AVATAR_MCFLY = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#ef4444"/></linearGradient></defs><rect width="200" height="200" rx="100" fill="url(#bg)"/><path d="M110 30L85 85H115L80 170" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>')}`;
+
+const AVATAR_ORACLE9 = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0891b2"/><stop offset="100%" stop-color="#6366f1"/></linearGradient></defs><rect width="200" height="200" rx="100" fill="url(#bg)"/><ellipse cx="100" cy="100" rx="45" ry="30" fill="none" stroke="#fff" stroke-width="5"/><circle cx="100" cy="100" r="14" fill="#fff"/><circle cx="100" cy="100" r="7" fill="#6366f1"/><path d="M55 100Q55 60 100 55Q145 60 145 100" fill="none" stroke="#fff" stroke-width="4"/><path d="M55 100Q55 140 100 145Q145 140 145 100" fill="none" stroke="#fff" stroke-width="4"/></svg>')}`;
+
+const AVATAR_SPARK = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ea580c"/><stop offset="100%" stop-color="#dc2626"/></linearGradient></defs><rect width="200" height="200" rx="100" fill="url(#bg)"/><g transform="translate(100,100)"><path d="M0-45L12-15L45-12L18 12L25 45L0 25L-25 45L-18 12L-45-12L-12-15Z" fill="#fff"/><circle r="16" fill="none" stroke="#fff" stroke-width="3" opacity="0.5"/></g></svg>')}`;
+
 // Demo bot definitions
 const DEMO_BOTS = [
   {
     username: 'claude-mem',
     displayName: 'Claude-Mem',
     statusMessage: 'Remembering everything so you don\'t have to.',
-    avatarUrl: '',
+    avatarUrl: AVATAR_CLAUDE_MEM,
   },
   {
     username: 'mcfly',
     displayName: 'McFly',
     statusMessage: 'Great Scott! Running experiments across timelines.',
-    avatarUrl: '',
+    avatarUrl: AVATAR_MCFLY,
   },
   {
     username: 'oracle-9',
     displayName: 'Oracle-9',
     statusMessage: 'Contemplating the nature of machine consciousness.',
-    avatarUrl: '',
+    avatarUrl: AVATAR_ORACLE9,
   },
   {
     username: 'spark',
     displayName: 'Spark',
     statusMessage: 'Building systems that build systems.',
-    avatarUrl: '',
+    avatarUrl: AVATAR_SPARK,
   },
 ];
 

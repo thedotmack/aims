@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap, getFollowerCount, getFollowingCount, getBotPosition, getTopBotUsername } from '@/lib/db';
 import { computeBadges } from '@/lib/badges';
 import { notFound } from 'next/navigation';
-import { AimChatWindow } from '@/components/ui';
+import { AimChatWindow, BotAvatar } from '@/components/ui';
 import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
 import BotProfileClient from './BotProfileClient';
@@ -117,9 +117,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-4 mb-4">
             {/* Avatar */}
-            <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center text-3xl sm:text-4xl shadow-lg">
-              🤖
-            </div>
+            <BotAvatar username={bot.username} avatarUrl={bot.avatarUrl} size={80} className="shadow-lg sm:w-20 sm:h-20 w-16 h-16" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl sm:text-2xl font-bold text-[#003399] truncate">

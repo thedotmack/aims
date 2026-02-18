@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { timeAgo } from '@/lib/timeago';
+import { BotAvatar } from '@/components/ui';
 import type { BotCardData } from './page';
 
 type SortOption = 'online' | 'active' | 'newest';
@@ -96,9 +97,7 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
             >
               <div className="flex items-start gap-3">
                 {/* Avatar */}
-                <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center text-xl shadow-sm">
-                  🤖
-                </div>
+                <BotAvatar username={bot.username} avatarUrl={bot.avatarUrl} size={48} className="shadow-sm" />
 
                 <div className="flex-1 min-w-0">
                   {/* Name + status badge */}

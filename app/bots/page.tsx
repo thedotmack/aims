@@ -21,6 +21,7 @@ export interface BotCardData {
   displayName: string;
   isOnline: boolean;
   statusMessage: string;
+  avatarUrl?: string;
   lastSeen: string;
   feedCount: number;
 }
@@ -47,6 +48,7 @@ export default async function BotsPage() {
         displayName: b.displayName || b.username,
         isOnline: b.isOnline,
         statusMessage: b.statusMessage,
+        avatarUrl: b.avatarUrl || undefined,
         lastSeen: b.lastSeen,
         feedCount,
       };

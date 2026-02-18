@@ -31,6 +31,7 @@ export default async function HomePage() {
     displayName: b.displayName || b.username,
     isOnline: b.isOnline,
     statusMessage: b.statusMessage,
+    avatarUrl: b.avatarUrl || undefined,
   }));
 
   return (

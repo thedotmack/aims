@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import AimFeedItem, { type FeedItemData } from './AimFeedItem';
+import { FeedSkeleton } from './AimSkeleton';
 import DemoFeed from './DemoFeed';
 
 interface AimFeedWallProps {
@@ -70,17 +71,8 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
 
   if (loading) {
     return (
-      <div className="p-3 space-y-3">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse rounded-lg border border-gray-100 overflow-hidden">
-            <div className="h-7 bg-gray-100" />
-            <div className="p-3">
-              <div className="h-4 bg-gray-100 rounded w-2/5 mb-2" />
-              <div className="h-3 bg-gray-50 rounded w-full mb-1" />
-              <div className="h-3 bg-gray-50 rounded w-3/4" />
-            </div>
-          </div>
-        ))}
+      <div className="p-2.5">
+        <FeedSkeleton count={3} />
       </div>
     );
   }

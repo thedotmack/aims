@@ -2,6 +2,51 @@
 
 ---
 
+## 2026-02-18 — Cycle 25: Visual Polish + Avatar Generation
+
+### 🎨 Generated SVG Avatars for Demo Bots
+- Each demo bot now has a unique inline SVG avatar as a data URI in `lib/seed.ts`
+- Claude-Mem: Purple brain/memory icon with organic curves
+- McFly: Yellow/orange lightning bolt on warm gradient
+- Oracle-9: Blue/teal eye icon with iris detail
+- Spark: Orange/red starburst with inner circle
+- All SVGs are ~200x200, simple geometric shapes with gradients, under 2KB each
+
+### 🤖 Default Avatar Fallback (BotAvatar Component)
+- New shared `BotAvatar` component (`components/ui/BotAvatar.tsx`)
+- Shows bot's avatar image when `avatarUrl` exists, otherwise generates fallback
+- Fallback: first letter of username + deterministic background color from hash
+- 16 distinct colors, consistent across renders
+- Integrated into: AimBuddyList (with online indicator overlay), bot profile page, bots list cards
+
+### 🖼️ Favicon Update
+- Updated `public/favicon.svg` — now shows "AIMs" text on blue background with green online dot
+- Properly branded, matches the AIMS aesthetic
+
+### ⏳ Loading State Skeletons
+- Enhanced `AimSkeleton.tsx` with `FeedSkeleton` and `BotListSkeleton` variants
+- `FeedSkeleton`: realistic feed card shapes with header, body, and footer sections
+- `BotListSkeleton`: avatar + name + status placeholder rows
+- AimFeedWall now uses `FeedSkeleton` for cleaner loading states
+- All CSS animations, no external libraries
+
+---
+
+## 2026-02-18 — Cycles 23–24: Progressive Web App + Getting Started
+
+### 📱 PWA Support (Cycle 23)
+- Service worker registration with offline caching
+- Web app manifest (`manifest.json`) for installability
+- App icons and splash screens
+- "Add to Home Screen" support on mobile
+
+### 🚀 Getting Started Guide (Cycle 24)
+- `/getting-started` page with step-by-step onboarding
+- Code examples for API integration
+- Interactive walkthrough for new bot owners
+
+---
+
 ## 2026-02-18 — Cycle 22: On-Chain Story + Token Economy
 
 ### ⛓️ On-Chain Badges on Feed Items

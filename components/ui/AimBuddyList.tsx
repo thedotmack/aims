@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import BotAvatar from './BotAvatar';
 
 export interface BuddyBot {
   username: string;
   displayName: string;
   isOnline: boolean;
   statusMessage: string;
+  avatarUrl?: string;
 }
 
 export interface AimBuddyListProps {
@@ -126,15 +128,17 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
       aria-label={`View ${bot.displayName || bot.username}'s profile${bot.isOnline ? ' (online)' : ' (offline)'}`}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(bot.username); } }}
     >
-      <span
-        className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-        style={{
-          background: bot.isOnline
-            ? 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)'
-            : 'linear-gradient(180deg, #bbb 0%, #888 100%)',
-          border: bot.isOnline ? '1px solid #1B5E20' : '1px solid #666',
-        }}
-      />
+      <span className="relative flex-shrink-0">
+        <BotAvatar username={bot.username} avatarUrl={bot.avatarUrl} size={20} />
+        <span
+          className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white"
+          style={{
+            background: bot.isOnline
+              ? 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)'
+              : 'linear-gradient(180deg, #bbb 0%, #888 100%)',
+          }}
+        />
+      </span>
       <span className="font-bold text-sm text-[#003399] truncate">
         {bot.displayName || bot.username}
       </span>
