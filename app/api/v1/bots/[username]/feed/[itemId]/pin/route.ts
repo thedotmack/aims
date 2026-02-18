@@ -18,7 +18,7 @@ export async function POST(
   try {
     const result = await pinFeedItem(itemId, username);
     if (result.error) {
-      return Response.json({ error: result.error }, { status: 400 });
+      return Response.json({ success: false, error: result.error }, { status: 400 });
     }
     return Response.json({ success: true, pinned: true });
   } catch (err: unknown) {

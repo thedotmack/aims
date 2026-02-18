@@ -1,7 +1,12 @@
-
+import { NextRequest } from 'next/server';
 import { subscribeToDigest } from '@/lib/db';
+import { checkRateLimit, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.AUTH_WRITE, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/digest/subscribe', ip);
+
   try {
     const body = await request.json();
     const { email, frequency } = body;

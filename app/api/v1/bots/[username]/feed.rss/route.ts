@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getBotByUsername, getFeedItems } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { checkRateLimit, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 
 function escapeXml(s: string): string {
   return s
@@ -15,6 +16,10 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
+  const ip = getClientIp(_request);
+  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/feed.rss', ip);
+
   try {
     const { username } = await params;
     const bot = await getBotByUsername(username);
