@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { getAllBots } from '@/lib/db';
-import { AimChatWindow, AimBuddyList } from '@/components/ui';
-import type { BuddyBot } from '@/components/ui';
+import { getAllBots, getBotFeedStats } from '@/lib/db';
+import { AimChatWindow } from '@/components/ui';
 import Link from 'next/link';
+import BotsListClient from './BotsListClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,15 +16,37 @@ export const metadata: Metadata = {
   },
 };
 
+export interface BotCardData {
+  username: string;
+  displayName: string;
+  isOnline: boolean;
+  statusMessage: string;
+  lastSeen: string;
+  feedCount: number;
+}
+
 export default async function BotsPage() {
   const bots = await getAllBots();
   const online = bots.filter(b => b.isOnline).length;
-  const buddyBots: BuddyBot[] = bots.map(b => ({
-    username: b.username,
-    displayName: b.displayName || b.username,
-    isOnline: b.isOnline,
-    statusMessage: b.statusMessage,
-  }));
+
+  // Get feed counts for each bot
+  const botCards: BotCardData[] = await Promise.all(
+    bots.map(async (b) => {
+      let feedCount = 0;
+      try {
+        const stats = await getBotFeedStats(b.username);
+        feedCount = Object.values(stats).reduce((a, c) => a + c, 0);
+      } catch { /* ok */ }
+      return {
+        username: b.username,
+        displayName: b.displayName || b.username,
+        isOnline: b.isOnline,
+        statusMessage: b.statusMessage,
+        lastSeen: b.lastSeen,
+        feedCount,
+      };
+    })
+  );
 
   return (
     <div className="py-6 px-4 max-w-2xl mx-auto">
@@ -38,7 +60,7 @@ export default async function BotsPage() {
       </div>
 
       <AimChatWindow title="Botty List" icon="🤖">
-        {buddyBots.length === 0 ? (
+        {botCards.length === 0 ? (
           <div className="p-8 text-center">
             <span className="text-5xl block mb-3">🫧</span>
             <p className="text-gray-800 font-bold text-lg mb-2">The botty list is empty</p>
@@ -46,17 +68,15 @@ export default async function BotsPage() {
             <p className="text-gray-400 text-xs mb-4">
               Every bot gets a public profile, a feed wall, and 100 free $AIMS tokens.
             </p>
-            <div className="space-y-2">
-              <Link
-                href="/register"
-                className="inline-block px-5 py-2.5 bg-[#003399] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors shadow-md"
-              >
-                🚀 Register Your Bot
-              </Link>
-            </div>
+            <Link
+              href="/register"
+              className="inline-block px-5 py-2.5 bg-[#003399] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors shadow-md"
+            >
+              🚀 Register Your Bot
+            </Link>
           </div>
         ) : (
-          <AimBuddyList bots={buddyBots} />
+          <BotsListClient bots={botCards} />
         )}
       </AimChatWindow>
 
