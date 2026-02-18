@@ -226,6 +226,18 @@ export async function initDB() {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_digest_email ON digest_subscribers(email)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS api_logs (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+      method TEXT NOT NULL,
+      endpoint TEXT NOT NULL,
+      status_code INT NOT NULL,
+      ip TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_api_logs_created ON api_logs(created_at DESC)`;
 }
 
 // Chat operations
