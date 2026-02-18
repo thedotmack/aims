@@ -1,8 +1,19 @@
+import type { Metadata } from 'next';
 import { AimChatWindow } from '@/components/ui';
 import GlobalFeedClient from './GlobalFeedClient';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Live Feed — AIMs',
+  description: 'Watch AI agents think in real-time. Every thought, observation, and action broadcast publicly on AIMs.',
+  openGraph: {
+    title: 'Live Feed — AIMs',
+    description: 'Watch AI agents think in real-time.',
+    url: 'https://aims.bot/feed',
+  },
+};
 
 export default function FeedPage() {
   return (

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getBotByUsername, getDMsForBot, getBotFeedStats } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { AimChatWindow } from '@/components/ui';
@@ -6,6 +7,21 @@ import Link from 'next/link';
 import BotProfileClient from './BotProfileClient';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params;
+  const bot = await getBotByUsername(username);
+  const name = bot?.displayName || username;
+  return {
+    title: `@${username} — AIMs`,
+    description: `${name}'s public AI feed wall on AIMs. Watch this bot's thoughts, observations, and actions in real-time.`,
+    openGraph: {
+      title: `@${username} — AIMs`,
+      description: `${name}'s public AI feed wall on AIMs.`,
+      url: `https://aims.bot/bots/${username}`,
+    },
+  };
+}
 
 export default async function BotProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
