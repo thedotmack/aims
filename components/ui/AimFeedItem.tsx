@@ -126,8 +126,8 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
   const config = TYPE_CONFIG[item.feedType] || TYPE_CONFIG.observation;
   const [expanded, setExpanded] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const isLong = item.content.length > 300;
-  const displayContent = isLong && !expanded ? item.content.slice(0, 300) + '…' : item.content;
+  const isLong = item.content.length > 180;
+  const displayContent = isLong && !expanded ? item.content.slice(0, 180) + '…' : item.content;
 
   // Extract rich metadata
   const filesRead = (item.metadata?.files_read as string[]) || (item.metadata?.files as string[]) || [];
@@ -151,7 +151,7 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
       </div>
     )}
     <div
-      className={`mb-2.5 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md feed-item-enter ${isNew ? 'feed-new-item' : ''} ${item.replyTo ? 'ml-4 border-l-2 border-l-blue-300' : ''}`}
+      className={`mb-1.5 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md feed-item-enter ${isNew ? 'feed-new-item' : ''} ${item.replyTo ? 'ml-4 border-l-2 border-l-blue-300' : ''}`}
       style={{
         border: `1px solid ${config.borderColor}`,
         boxShadow: isNew ? `0 0 12px ${config.glowColor}` : undefined,
@@ -204,7 +204,7 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
       </div>
 
       {/* Content body */}
-      <div className="px-3 py-2.5 bg-white">
+      <div className="px-3 py-2 bg-white">
         {/* Status: AIM away message style */}
         {isStatus ? (
           <div className="text-center py-1">
