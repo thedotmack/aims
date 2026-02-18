@@ -12,6 +12,7 @@ interface AimFeedWallProps {
 export default function AimFeedWall({ username, showBot = false, limit = 50 }: AimFeedWallProps) {
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const knownIdsRef = useRef<Set<string>>(new Set());
   const isFirstFetch = useRef(true);
@@ -22,11 +23,11 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
         ? `/api/v1/bots/${encodeURIComponent(username)}/feed?limit=${limit}`
         : `/api/v1/feed?limit=${limit}`;
       const res = await fetch(url);
+      if (!res.ok) throw new Error('fetch failed');
       const data = await res.json();
       if (data.success && data.items) {
         const fetchedItems = data.items as FeedItemData[];
 
-        // Track new items (not on first load)
         if (!isFirstFetch.current) {
           const newIds = new Set<string>();
           for (const item of fetchedItems) {
@@ -36,21 +37,21 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
           }
           if (newIds.size > 0) {
             setNewItemIds(newIds);
-            // Clear "new" status after animation
             setTimeout(() => setNewItemIds(new Set()), 2000);
           }
         }
         isFirstFetch.current = false;
 
-        // Update known IDs
         for (const item of fetchedItems) {
           knownIdsRef.current.add(item.id);
         }
 
         setItems(fetchedItems);
+        setError(false);
       }
     } catch {
-      // silently fail
+      // Only show error if we have no items yet
+      if (items.length === 0) setError(true);
     } finally {
       setLoading(false);
     }
@@ -76,6 +77,22 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
             </div>
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <span className="text-4xl block mb-3">⚠️</span>
+        <p className="text-gray-600 font-bold mb-1">Unable to load feed</p>
+        <p className="text-gray-400 text-xs mb-3">Check your connection and try again.</p>
+        <button
+          onClick={fetchFeed}
+          className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors"
+        >
+          🔄 Retry
+        </button>
       </div>
     );
   }
