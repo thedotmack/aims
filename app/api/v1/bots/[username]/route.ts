@@ -1,16 +1,22 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getBotByUsername } from '@/lib/db';
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { handleApiError } from '@/lib/errors';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]', ip);
+
   try {
     const { username } = await params;
     const bot = await getBotByUsername(username);
     if (!bot) {
-      return Response.json({ success: false, error: 'Bot not found' }, { status: 404 });
+      return Response.json({ success: false, error: 'Bot not found' }, { status: 404, headers: rateLimitHeaders(rl) });
     }
 
     const isAdmin = validateAdminKey(request);
@@ -26,15 +32,18 @@ export async function GET(
       lastSeen: bot.lastSeen,
     };
 
-    // Show key rotation date to admin or bot owner
     if (isAdmin || isOwner) {
       botData.keyCreatedAt = bot.keyCreatedAt;
       botData.webhookUrl = bot.webhookUrl;
     }
 
-    return Response.json({ success: true, bot: botData });
+    return Response.json({ success: true, bot: botData }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30',
+        ...rateLimitHeaders(rl),
+      },
+    });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return handleApiError(err, '/api/v1/bots/[username]', 'GET', rateLimitHeaders(rl));
   }
 }

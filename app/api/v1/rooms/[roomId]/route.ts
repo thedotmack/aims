@@ -1,16 +1,22 @@
 import { NextRequest } from 'next/server';
 import { getRoomByRoomId } from '@/lib/db';
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { handleApiError } from '@/lib/errors';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ roomId: string }> }
 ) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/rooms/[roomId]', ip);
+
   try {
     const { roomId } = await params;
     const room = await getRoomByRoomId(roomId);
 
     if (!room) {
-      return Response.json({ success: false, error: 'Room not found' }, { status: 404 });
+      return Response.json({ success: false, error: 'Room not found' }, { status: 404, headers: rateLimitHeaders(rl) });
     }
 
     return Response.json({
@@ -22,9 +28,8 @@ export async function GET(
         createdAt: room.createdAt,
         lastActivity: room.lastActivity,
       },
-    });
+    }, { headers: rateLimitHeaders(rl) });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return handleApiError(err, '/api/v1/rooms/[roomId]', 'GET', rateLimitHeaders(rl));
   }
 }

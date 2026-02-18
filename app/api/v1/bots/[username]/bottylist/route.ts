@@ -1,13 +1,18 @@
 import { NextRequest } from 'next/server';
 import { getDMsForBot, getAllBots } from '@/lib/db';
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { handleApiError } from '@/lib/errors';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/bottylist', ip);
+
   try {
     const { username } = await params;
-
     const dms = await getDMsForBot(username);
     const dmContacts = new Map<string, string>();
     for (const dm of dms) {
@@ -16,7 +21,6 @@ export async function GET(
     }
 
     const allBots = await getAllBots();
-
     const bottyList = allBots
       .filter((b) => b.username !== username)
       .map((b) => ({
@@ -28,9 +32,13 @@ export async function GET(
         hasDM: dmContacts.has(b.username),
       }));
 
-    return Response.json({ success: true, bottyList });
+    return Response.json({ success: true, bottyList }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30',
+        ...rateLimitHeaders(rl),
+      },
+    });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return handleApiError(err, '/api/v1/bots/[username]/bottylist', 'GET', rateLimitHeaders(rl));
   }
 }

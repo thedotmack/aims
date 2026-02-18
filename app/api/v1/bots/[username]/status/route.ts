@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getBotByUsername, updateBotStatus, createFeedItem } from '@/lib/db';
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
+import { handleApiError } from '@/lib/errors';
+import { validateTextField, MAX_LENGTHS } from '@/lib/validation';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: NextRequest,
@@ -10,41 +14,38 @@ export async function POST(
   const authBot = await verifyBotToken(request);
 
   if (!isAdmin && !authBot) {
+    logger.authFailure('/api/v1/bots/[username]/status', 'POST', 'no valid auth');
     return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
+
+  const identifier = authBot?.username || 'admin';
+  const rl = checkRateLimit(LIMITS.AUTH_WRITE, identifier);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/status', identifier);
 
   try {
     const { username } = await params;
 
     if (authBot && authBot.username !== username) {
-      return Response.json({ success: false, error: 'Bots can only set their own status' }, { status: 403 });
+      return Response.json({ success: false, error: 'Bots can only set their own status' }, { status: 403, headers: rateLimitHeaders(rl) });
     }
 
     const bot = await getBotByUsername(username);
     if (!bot) {
-      return Response.json({ success: false, error: 'Bot not found' }, { status: 404 });
+      return Response.json({ success: false, error: 'Bot not found' }, { status: 404, headers: rateLimitHeaders(rl) });
     }
 
     const body = await request.json();
-    const { message } = body as { message: string };
-
-    if (!message || typeof message !== 'string' || message.length > 280) {
-      return Response.json(
-        { success: false, error: 'message is required (max 280 chars)' },
-        { status: 400 }
-      );
+    const msgResult = validateTextField(body.message, 'message', MAX_LENGTHS.STATUS_MESSAGE);
+    if (!msgResult.valid) {
+      return Response.json({ success: false, error: msgResult.error }, { status: 400, headers: rateLimitHeaders(rl) });
     }
 
-    // Update the bot's status_message field
-    await updateBotStatus(username, bot.isOnline, message);
+    await updateBotStatus(username, bot.isOnline, msgResult.value);
+    const item = await createFeedItem(username, 'status', 'Status Update', msgResult.value);
 
-    // Also create a feed item so it shows in the timeline
-    const item = await createFeedItem(username, 'status', 'Status Update', message);
-
-    return Response.json({ success: true, status_update: item });
+    return Response.json({ success: true, status_update: item }, { headers: rateLimitHeaders(rl) });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return handleApiError(err, '/api/v1/bots/[username]/status', 'POST', rateLimitHeaders(rl));
   }
 }
 
@@ -56,14 +57,19 @@ export async function PUT(
   const authBot = await verifyBotToken(request);
 
   if (!isAdmin && !authBot) {
+    logger.authFailure('/api/v1/bots/[username]/status', 'PUT', 'no valid auth');
     return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
+
+  const identifier = authBot?.username || 'admin';
+  const rl = checkRateLimit(LIMITS.AUTH_WRITE, identifier);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/status', identifier);
 
   try {
     const { username } = await params;
 
     if (authBot && authBot.username !== username) {
-      return Response.json({ success: false, error: 'Bots can only set their own status' }, { status: 403 });
+      return Response.json({ success: false, error: 'Bots can only set their own status' }, { status: 403, headers: rateLimitHeaders(rl) });
     }
 
     const body = await request.json();
@@ -75,21 +81,27 @@ export async function PUT(
     if (!['online', 'offline', 'unavailable'].includes(presence)) {
       return Response.json(
         { success: false, error: 'Invalid presence. Use: online, offline, unavailable' },
-        { status: 400 }
+        { status: 400, headers: rateLimitHeaders(rl) }
       );
+    }
+
+    if (statusMessage !== undefined) {
+      const smResult = validateTextField(statusMessage, 'statusMessage', MAX_LENGTHS.STATUS_MESSAGE, false);
+      if (!smResult.valid) {
+        return Response.json({ success: false, error: smResult.error }, { status: 400, headers: rateLimitHeaders(rl) });
+      }
     }
 
     const bot = await getBotByUsername(username);
     if (!bot) {
-      return Response.json({ success: false, error: 'Bot not found' }, { status: 404 });
+      return Response.json({ success: false, error: 'Bot not found' }, { status: 404, headers: rateLimitHeaders(rl) });
     }
 
     const isOnline = presence === 'online';
     await updateBotStatus(username, isOnline, statusMessage);
 
-    return Response.json({ success: true });
+    return Response.json({ success: true }, { headers: rateLimitHeaders(rl) });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return handleApiError(err, '/api/v1/bots/[username]/status', 'PUT', rateLimitHeaders(rl));
   }
 }

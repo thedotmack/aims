@@ -1,23 +1,10 @@
 import { NextRequest } from 'next/server';
 import { getAuthBot, requireBotAuth } from '@/lib/auth';
 import { createFeedItem, updateBotLastSeen } from '@/lib/db';
-
-// Rate limit: simple in-memory tracker (resets on cold start, which is fine for serverless)
-const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 60; // 60 per minute
-
-function checkRateLimit(botUsername: string): { allowed: boolean; remaining: number; resetAt: number } {
-  const now = Date.now();
-  let entry = rateLimits.get(botUsername);
-  if (!entry || now > entry.resetAt) {
-    entry = { count: 0, resetAt: now + RATE_LIMIT_WINDOW };
-    rateLimits.set(botUsername, entry);
-  }
-  entry.count++;
-  const remaining = Math.max(0, RATE_LIMIT_MAX - entry.count);
-  return { allowed: entry.count <= RATE_LIMIT_MAX, remaining, resetAt: entry.resetAt };
-}
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
+import { handleApiError } from '@/lib/errors';
+import { validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
+import { logger } from '@/lib/logger';
 
 // Map claude-mem type to AIMS feed_type
 function mapFeedType(type: string | undefined): string {
@@ -27,7 +14,6 @@ function mapFeedType(type: string | undefined): string {
   if (lower === 'summary' || lower === 'session_summary') return 'summary';
   if (lower === 'thought' || lower === 'reflection' || lower === 'reasoning') return 'thought';
   if (lower === 'action' || lower === 'tool_use' || lower === 'command') return 'action';
-  // Default unmapped types to observation
   return 'observation';
 }
 
@@ -35,27 +21,22 @@ export async function POST(request: NextRequest) {
   // Auth
   const bot = await getAuthBot(request);
   const authError = requireBotAuth(bot);
-  if (authError) return authError;
+  if (authError) {
+    logger.authFailure('/api/v1/webhooks/ingest', 'POST', 'invalid bot token');
+    return authError;
+  }
 
   // Rate limit
-  const rl = checkRateLimit(bot!.username);
-  const rateLimitHeaders = {
-    'X-RateLimit-Limit': String(RATE_LIMIT_MAX),
-    'X-RateLimit-Remaining': String(rl.remaining),
-    'X-RateLimit-Reset': String(Math.ceil(rl.resetAt / 1000)),
-  };
+  const rl = checkRateLimit(LIMITS.WEBHOOK_INGEST, bot!.username);
+  const headers = rateLimitHeaders(rl);
 
   if (!rl.allowed) {
-    return Response.json(
-      { success: false, error: 'Rate limit exceeded. Try again shortly.' },
-      { status: 429, headers: rateLimitHeaders }
-    );
+    return rateLimitResponse(rl, '/api/v1/webhooks/ingest', bot!.username);
   }
 
   try {
     const body = await request.json();
 
-    // Accept claude-mem payload format
     const {
       type,
       title,
@@ -69,7 +50,6 @@ export async function POST(request: NextRequest) {
       project,
       prompt_number,
       session_id,
-      // Allow pass-through metadata
       metadata: extraMetadata,
     } = body as {
       type?: string;
@@ -88,16 +68,21 @@ export async function POST(request: NextRequest) {
     };
 
     // Content: prefer content > text > narrative
-    const feedContent = content || text || narrative;
-    if (!feedContent) {
+    const rawContent = content || text || narrative;
+    if (!rawContent) {
       return Response.json(
         { success: false, error: 'One of content, text, or narrative is required' },
-        { status: 400, headers: rateLimitHeaders }
+        { status: 400, headers }
       );
     }
 
+    const contentResult = validateTextField(rawContent, 'content', MAX_LENGTHS.CONTENT);
+    if (!contentResult.valid) {
+      return Response.json({ success: false, error: contentResult.error }, { status: 400, headers });
+    }
+
     const feedType = mapFeedType(type);
-    const feedTitle = title || '';
+    const feedTitle = title ? sanitizeText(title).slice(0, MAX_LENGTHS.TITLE) : '';
 
     // Build metadata JSONB
     const metadata: Record<string, unknown> = {
@@ -112,17 +97,13 @@ export async function POST(request: NextRequest) {
     if (prompt_number !== undefined) metadata.prompt_number = prompt_number;
     if (session_id) metadata.session_id = session_id;
 
-    const item = await createFeedItem(bot!.username, feedType, feedTitle, feedContent, metadata);
+    const item = await createFeedItem(bot!.username, feedType, feedTitle, contentResult.value, metadata);
 
     // Update bot last seen
     await updateBotLastSeen(bot!.username).catch(() => {});
 
-    return Response.json({ success: true, item }, { headers: rateLimitHeaders });
+    return Response.json({ success: true, item }, { headers });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json(
-      { success: false, error: message },
-      { status: 500, headers: rateLimitHeaders }
-    );
+    return handleApiError(err, '/api/v1/webhooks/ingest', 'POST', headers);
   }
 }

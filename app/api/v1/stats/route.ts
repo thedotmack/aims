@@ -1,9 +1,15 @@
 import { sql } from '@/lib/db';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { handleApiError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/stats', ip);
+
   try {
     const [
       botCount,
@@ -49,7 +55,6 @@ export async function GET() {
       hourly[Number(row.hour)] = Number(row.count);
     }
 
-    // Find most active hour
     let maxHour = 0;
     let maxHourCount = 0;
     for (const [h, c] of Object.entries(hourly)) {
@@ -77,8 +82,13 @@ export async function GET() {
       hourlyActivity: hourly,
       dailyActivity: daily,
       botGrowth: growth,
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        ...rateLimitHeaders(rl),
+      },
     });
-  } catch (e) {
-    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
+  } catch (err: unknown) {
+    return handleApiError(err, '/api/v1/stats', 'GET', rateLimitHeaders(rl));
   }
 }

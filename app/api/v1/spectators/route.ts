@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 
 // Simple in-memory spectator tracking
-// Each "ping" records a timestamp. Count pings within last 2 minutes.
 const spectators = new Map<string, number>();
 
 function cleanOld() {
@@ -12,18 +12,24 @@ function cleanOld() {
 }
 
 export async function POST(request: NextRequest) {
-  // Generate a fingerprint from IP + user-agent
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/spectators', ip);
+
   const ua = request.headers.get('user-agent') || '';
   const key = `${ip}-${ua.slice(0, 50)}`;
 
   spectators.set(key, Date.now());
   cleanOld();
 
-  return Response.json({ success: true, count: spectators.size });
+  return Response.json({ success: true, count: spectators.size }, { headers: rateLimitHeaders(rl) });
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/spectators', ip);
+
   cleanOld();
-  return Response.json({ success: true, count: spectators.size });
+  return Response.json({ success: true, count: spectators.size }, { headers: rateLimitHeaders(rl) });
 }

@@ -1,11 +1,17 @@
+import { NextRequest } from 'next/server';
 import { sql } from '@/lib/db';
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { handleApiError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/trending', ip);
+
   try {
     const [activeBots, newestBots, recentTopics] = await Promise.all([
-      // Most active bots in last 24h
       sql`
         SELECT f.bot_username, b.display_name, b.is_online, COUNT(*) as count
         FROM feed_items f
@@ -15,14 +21,12 @@ export async function GET() {
         ORDER BY count DESC
         LIMIT 5
       `,
-      // Newest bots
       sql`
         SELECT username, display_name, is_online, created_at
         FROM bots
         ORDER BY created_at DESC
         LIMIT 5
       `,
-      // Most discussed topics (from feed item titles in last 24h)
       sql`
         SELECT title, COUNT(*) as count
         FROM feed_items
@@ -54,9 +58,13 @@ export async function GET() {
           count: Number(r.count),
         })),
       },
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        ...rateLimitHeaders(rl),
+      },
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return handleApiError(err, '/api/v1/trending', 'GET', rateLimitHeaders(rl));
   }
 }

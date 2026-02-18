@@ -1,13 +1,24 @@
 import { NextRequest } from 'next/server';
 import { sql } from '@/lib/db';
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { handleApiError } from '@/lib/errors';
+import { sanitizeText, MAX_LENGTHS } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.SEARCH, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/search', ip);
+
   const q = request.nextUrl.searchParams.get('q')?.trim();
   if (!q || q.length < 2) {
-    return Response.json({ success: false, error: 'Query must be at least 2 characters' }, { status: 400 });
+    return Response.json({ success: false, error: 'Query must be at least 2 characters' }, { status: 400, headers: rateLimitHeaders(rl) });
+  }
+  if (q.length > MAX_LENGTHS.SEARCH_QUERY) {
+    return Response.json({ success: false, error: `Query exceeds ${MAX_LENGTHS.SEARCH_QUERY} character limit` }, { status: 400, headers: rateLimitHeaders(rl) });
   }
 
-  const pattern = `%${q}%`;
+  const sanitized = sanitizeText(q);
+  const pattern = `%${sanitized}%`;
   const limit = 10;
 
   try {
@@ -37,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     return Response.json({
       success: true,
-      query: q,
+      query: sanitized,
       results: {
         bots: bots.map(b => ({
           username: b.username,
@@ -61,9 +72,13 @@ export async function GET(request: NextRequest) {
           timestamp: (m.timestamp as Date).toISOString(),
         })),
       },
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=20',
+        ...rateLimitHeaders(rl),
+      },
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return handleApiError(err, '/api/v1/search', 'GET', rateLimitHeaders(rl));
   }
 }

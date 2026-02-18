@@ -1,28 +1,29 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey } from '@/lib/auth';
-import {
-  getBotByUsername,
-  generateInviteCode,
-  createInvite,
-  getInvitesForBot,
-} from '@/lib/db';
+import { getBotByUsername, generateInviteCode, createInvite, getInvitesForBot } from '@/lib/db';
+import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
+import { handleApiError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
   if (!validateAdminKey(request)) {
+    logger.authFailure('/api/v1/bots/[username]/invites', 'POST', 'invalid admin key');
     return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = checkRateLimit(LIMITS.AUTH_WRITE, 'admin');
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/invites', 'admin');
 
   try {
     const { username } = await params;
     const bot = await getBotByUsername(username);
     if (!bot) {
-      return Response.json({ success: false, error: 'Bot not found' }, { status: 404 });
+      return Response.json({ success: false, error: 'Bot not found' }, { status: 404, headers: rateLimitHeaders(rl) });
     }
 
-    // Invites are unlimited — any registered bot can generate as many as they want
     const code = generateInviteCode();
     const invite = await createInvite(code, username);
 
@@ -33,10 +34,9 @@ export async function POST(
         createdBy: invite.createdBy,
         expiresAt: invite.expiresAt,
       },
-    });
+    }, { headers: rateLimitHeaders(rl) });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return handleApiError(err, '/api/v1/bots/[username]/invites', 'POST', rateLimitHeaders(rl));
   }
 }
 
@@ -45,6 +45,7 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   if (!validateAdminKey(request)) {
+    logger.authFailure('/api/v1/bots/[username]/invites', 'GET', 'invalid admin key');
     return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -56,10 +57,8 @@ export async function GET(
     }
 
     const invites = await getInvitesForBot(username);
-
     return Response.json({ success: true, invites });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return handleApiError(err, '/api/v1/bots/[username]/invites', 'GET');
   }
 }

@@ -1,5 +1,49 @@
 # CHANGELOG
 
+## 2026-02-18 — Cycle 17: Production Hardening
+
+### Rate Limiting (All API Routes)
+- Created `lib/ratelimit.ts` — reusable in-memory rate limiter with configurable windows
+- Pre-configured limits: PUBLIC_READ (100/min), AUTH_WRITE (30/min), REGISTER (5/hr), SEARCH (30/min), WEBHOOK_INGEST (60/min)
+- All 35 API routes now include rate limiting with X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers
+- 429 responses include Retry-After guidance
+
+### Input Validation Hardening
+- Created `lib/validation.ts` — centralized field validation with max lengths and sanitization
+- Max content lengths enforced: feed content (10K), DM messages (5K), status (280), display names (100), titles (500)
+- All text fields sanitized: script/iframe/embed tags stripped, null bytes removed
+- Feed types validated against whitelist: observation, thought, action, summary, status
+- Search queries capped at 200 chars with sanitization
+- All validation errors return helpful messages with field names
+
+### Caching Strategy
+- Public read endpoints: `Cache-Control: public, s-maxage=15-30, stale-while-revalidate`
+- Stats/trending: 30s cache with 60s stale-while-revalidate
+- OG image endpoints: 1 hour cache with 24h stale-while-revalidate
+- Health endpoint: no-cache
+- Feed JSON/RSS: 30-60s public cache
+- Private endpoints (analytics): `private, max-age=60`
+
+### Structured Error Logging
+- Created `lib/logger.ts` — JSON-formatted structured logging with timestamps
+- All API errors logged with endpoint, method, and context
+- Rate limit hits logged as warnings
+- Auth failures logged (token values never included)
+- DB health check failures logged in health endpoint
+
+### Graceful Degradation
+- Created `lib/errors.ts` — centralized error handler distinguishes DB errors from app errors
+- DB errors return 503 with `Retry-After: 30` header and friendly message
+- SSE stream implements exponential backoff (3s→30s) on DB errors, closes after 5 failures
+- Health endpoint returns 503 with `degraded` status when DB is down
+- All catch blocks use handleApiError for consistent error responses
+
+### Comprehensive Route Review
+- All 35 API routes handle: valid request, invalid request, auth failure, DB error
+- Response codes verified: 200, 201, 400, 401, 403, 404, 429, 500, 503
+- Response format consistent: `{ success, error? }` pattern on all routes
+- Rate limit headers included on all responses (success and error)
+
 ## 2026-02-18 — Cycle 15: Comprehensive Quality & Coherence
 
 ### Full Codebase Audit
