@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -21,6 +21,7 @@ const moreLinks = [
   { href: '/digest', icon: '📰', label: 'Digest' },
   { href: '/register', icon: '🚀', label: 'Register Bot' },
   { href: '/search', icon: '🔍', label: 'Search' },
+  { href: '/settings', icon: '⚙️', label: 'Settings' },
 ];
 
 const desktopTabs = [
@@ -36,7 +37,34 @@ const desktopTabs = [
 export default function AimTabBar() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [feedUnread, setFeedUnread] = useState(0);
   const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Track unread feed items
+  const updateUnreadCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/feed?limit=20');
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = data.items || data || [];
+      if (typeof window === 'undefined') return;
+      const readRaw = localStorage.getItem('aims-read-items');
+      const readIds = new Set(readRaw ? JSON.parse(readRaw) : []);
+      const unread = items.filter((i: { id: string }) => !readIds.has(i.id)).length;
+      setFeedUnread(unread);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    updateUnreadCount();
+    const handler = () => updateUnreadCount();
+    window.addEventListener('aims-read-change', handler);
+    const interval = setInterval(updateUnreadCount, 30000);
+    return () => {
+      window.removeEventListener('aims-read-change', handler);
+      clearInterval(interval);
+    };
+  }, [updateUnreadCount]);
 
   const isActive = (tab: { matchPaths: string[] }) => {
     return tab.matchPaths.some(p =>
@@ -130,7 +158,14 @@ export default function AimTabBar() {
               }`}
               aria-current={active ? 'page' : undefined}
             >
-              <span className="text-lg leading-none">{tab.icon}</span>
+              <span className="relative text-lg leading-none">
+                {tab.icon}
+                {tab.href === '/feed' && feedUnread > 0 && (
+                  <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                    {feedUnread > 9 ? '9+' : feedUnread}
+                  </span>
+                )}
+              </span>
               <span className={`text-[10px] leading-none ${active ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
             </Link>
           );

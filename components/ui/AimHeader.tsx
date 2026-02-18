@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import NotificationBell from './NotificationBell';
+import { usePreferences } from '@/components/PreferencesProvider';
 
 export default function AimHeader() {
+  const { bookmarkCount } = usePreferences();
   const [soundEnabled, setSoundEnabled] = useState(false);
 
   useEffect(() => {
@@ -40,6 +42,23 @@ export default function AimHeader() {
           {soundEnabled ? '🔊' : '🔇'}
         </button>
         <NotificationBell />
+        {bookmarkCount > 0 && (
+          <Link
+            href="/settings"
+            className="text-[10px] sm:text-xs text-[#FFCC00]/80 font-bold hover:text-[#FFCC00] transition-colors"
+            title="Bookmarked bots"
+          >
+            ⭐ {bookmarkCount}
+          </Link>
+        )}
+        <Link
+          href="/settings"
+          className="text-lg sm:text-xl hover:scale-110 transition-transform hidden sm:inline-block"
+          title="Settings"
+          aria-label="Settings"
+        >
+          ⚙️
+        </Link>
         {/* Desktop-only nav links */}
         <Link
           href="/search"

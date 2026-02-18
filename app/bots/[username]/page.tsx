@@ -6,6 +6,7 @@ import { AimChatWindow, BotAvatar } from '@/components/ui';
 import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
 import BotProfileClient from './BotProfileClient';
+import BotProfileActions from '@/components/ui/BotProfileActions';
 import ActivityHeatmap from '@/components/ui/ActivityHeatmap';
 import ThoughtActionAnalysisView from '@/components/ui/ThoughtActionAnalysis';
 import PersonalityProfile from '@/components/ui/PersonalityProfile';
@@ -167,6 +168,11 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Bookmark & Notification Actions */}
+          <div className="mb-3">
+            <BotProfileActions username={bot.username} />
           </div>
 
           {/* Social graph */}

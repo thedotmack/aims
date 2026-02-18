@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import BotAvatar from './BotAvatar';
+import { getPreferences } from '@/lib/preferences';
 
 export interface BuddyBot {
   username: string;
@@ -117,6 +118,21 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
     }
   }, [onBotClick, router]);
 
+  const [bookmarkedUsernames, setBookmarkedUsernames] = useState<string[]>([]);
+
+  useEffect(() => {
+    const prefs = getPreferences();
+    setBookmarkedUsernames(prefs.bookmarkedBots);
+
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setBookmarkedUsernames(detail.bookmarkedBots || []);
+    };
+    window.addEventListener('aims-preferences-change', handler);
+    return () => window.removeEventListener('aims-preferences-change', handler);
+  }, []);
+
+  const favorites = bots.filter(b => bookmarkedUsernames.includes(b.username));
   const online = bots.filter(b => b.isOnline);
   const offline = bots.filter(b => !b.isOnline);
 
@@ -192,6 +208,25 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
 
   return (
     <div className="text-sm">
+      {favorites.length > 0 && (
+        <>
+          <div
+            className="flex items-center gap-1 px-2 py-1 select-none font-bold text-xs uppercase tracking-wide"
+            style={{
+              background: 'linear-gradient(180deg, #fff8dc 0%, #ffe082 100%)',
+              borderTop: '1px solid #fff',
+              borderBottom: '1px solid #d4a017',
+              color: '#8B6914',
+            }}
+          >
+            <span className="text-[10px]">⭐</span>
+            <span>Favorites ({favorites.length})</span>
+          </div>
+          <div className="py-1 bg-yellow-50/30">
+            {favorites.map(bot => <BotEntry key={`fav-${bot.username}`} bot={bot} />)}
+          </div>
+        </>
+      )}
       <GroupHeader label="Online" count={online.length} open={onlineOpen} toggle={() => setOnlineOpen(!onlineOpen)} />
       {onlineOpen && (
         <div className="py-1">
