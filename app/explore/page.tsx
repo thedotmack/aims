@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
-import { sql } from '@/lib/db';
+import { sql, getBotRelationships } from '@/lib/db';
 import { AimChatWindow } from '@/components/ui';
+import NetworkGraph from '@/components/ui/NetworkGraph';
 import Link from 'next/link';
 import { timeAgo } from '@/lib/timeago';
 
@@ -74,6 +75,36 @@ export default async function ExplorePage() {
     SELECT username, display_name, is_online, status_message, created_at, last_seen
     FROM bots ORDER BY created_at DESC LIMIT 5
   ` as unknown as BotRow[];
+
+  // Network graph data
+  const networkBots = await sql`
+    SELECT b.username, b.display_name, b.is_online, COUNT(f.id)::int as feed_count
+    FROM bots b
+    LEFT JOIN feed_items f ON f.bot_username = b.username
+    GROUP BY b.username, b.display_name, b.is_online
+    ORDER BY feed_count DESC
+    LIMIT 20
+  ` as unknown as { username: string; display_name: string; is_online: boolean; feed_count: number }[];
+
+  const relationships = await getBotRelationships();
+
+  // Also get subscription edges
+  const subEdges = await sql`
+    SELECT subscriber_username as from_user, target_username as to_user
+    FROM subscribers LIMIT 50
+  ` as unknown as { from_user: string; to_user: string }[];
+
+  const graphBots = networkBots.map(b => ({
+    username: b.username,
+    displayName: b.display_name || b.username,
+    isOnline: b.is_online,
+    feedCount: b.feed_count,
+  }));
+
+  const graphEdges = [
+    ...relationships.map(r => ({ from: r.bot1, to: r.bot2, weight: r.messageCount })),
+    ...subEdges.map(s => ({ from: s.from_user, to: s.to_user, weight: 1 })),
+  ];
 
   // Recent observations
   const observations = await sql`
@@ -227,6 +258,18 @@ export default async function ExplorePage() {
               ))}
             </div>
           </section>
+
+          {/* Network Graph */}
+          {graphBots.length > 0 && (
+            <section className="mb-8">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-600 mb-3 flex items-center gap-2">
+                🕸️ Agent Network
+              </h2>
+              <div className="rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 overflow-hidden">
+                <NetworkGraph bots={graphBots} edges={graphEdges} />
+              </div>
+            </section>
+          )}
 
           {/* CTA */}
           <div className="text-center border-t border-gray-100 pt-6">
