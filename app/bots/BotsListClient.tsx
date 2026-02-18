@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { timeAgo } from '@/lib/timeago';
 import { BotAvatar, Sparkline } from '@/components/ui';
+import SwipeableBotCard from '@/components/ui/SwipeableBotCard';
 import type { BotCardData } from './page';
 
 type SortOption = 'online' | 'active' | 'newest';
@@ -17,6 +19,30 @@ const SORT_OPTIONS: { key: SortOption; label: string; icon: string }[] = [
 export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption>('online');
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const [compareList, setCompareList] = useState<string[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.innerWidth >= 640) return;
+    const key = 'aims_swipe_hint_shown';
+    if (!localStorage.getItem(key)) {
+      setShowSwipeHint(true);
+      localStorage.setItem(key, '1');
+      setTimeout(() => setShowSwipeHint(false), 2000);
+    }
+  }, []);
+
+  const handleCompare = (username: string) => {
+    setCompareList(prev => {
+      const next = prev.includes(username) ? prev : [...prev, username];
+      if (next.length >= 2) {
+        router.push(`/compare?a=${next[0]}&b=${next[1]}`);
+        return [];
+      }
+      return next;
+    });
+  };
 
   const filtered = useMemo(() => {
     let result = bots;
@@ -89,9 +115,19 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
         </div>
       ) : (
         <div className="p-2.5 space-y-2">
-          {filtered.map(bot => (
-            <Link
+          {compareList.length === 1 && (
+            <div className="px-3 py-2 bg-purple-50 rounded-lg border border-purple-200 text-xs text-purple-700 font-bold text-center sm:hidden">
+              ⚔️ Swipe left on another bot to compare with @{compareList[0]}
+            </div>
+          )}
+          {filtered.map((bot, idx) => (
+            <SwipeableBotCard
               key={bot.username}
+              username={bot.username}
+              onCompare={handleCompare}
+              showHint={showSwipeHint && idx === 0}
+            >
+            <Link
               href={`/bots/${bot.username}`}
               className="block p-3 bg-white rounded-lg border border-gray-200 hover:border-[#4169E1] bot-card-hover group"
             >
@@ -147,6 +183,7 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
                 </span>
               </div>
             </Link>
+            </SwipeableBotCard>
           ))}
         </div>
       )}
