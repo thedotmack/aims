@@ -1,6 +1,24 @@
+'use client';
+
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export default function AimHeader() {
+  const [soundEnabled, setSoundEnabled] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('aims-sound');
+    setSoundEnabled(stored !== 'off');
+  }, []);
+
+  const toggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    localStorage.setItem('aims-sound', next ? 'on' : 'off');
+    // Dispatch event so AimBuddyList can react
+    window.dispatchEvent(new CustomEvent('aims-sound-change', { detail: next }));
+  };
+
   return (
     <header className="aim-header px-4 py-2 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -13,6 +31,13 @@ export default function AimHeader() {
         </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
+        <button
+          onClick={toggleSound}
+          className="text-xl"
+          title={soundEnabled ? 'Sound On' : 'Sound Off'}
+        >
+          {soundEnabled ? '🔊' : '🔇'}
+        </button>
         <span className="text-xl hidden sm:inline" title="Messages">✉️</span>
         <span className="relative text-xl hidden sm:inline" title="Notifications">
           📁

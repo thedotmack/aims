@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 export interface BuddyBot {
@@ -15,18 +15,104 @@ export interface AimBuddyListProps {
   onBotClick?: (username: string) => void;
 }
 
+// Simple synthesized door sounds using Web Audio API
+function playDoorSound(type: 'open' | 'close') {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'open') {
+      // Door open: ascending tone
+      osc.frequency.setValueAtTime(400, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.15);
+      osc.frequency.linearRampToValueAtTime(1000, ctx.currentTime + 0.25);
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    } else {
+      // Door close: descending tone
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(400, ctx.currentTime + 0.15);
+      osc.frequency.linearRampToValueAtTime(300, ctx.currentTime + 0.25);
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    }
+
+    // Clean up after sound plays
+    setTimeout(() => ctx.close(), 500);
+  } catch {
+    // Web Audio not available
+  }
+}
+
 export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
   const router = useRouter();
   const [onlineOpen, setOnlineOpen] = useState(true);
   const [offlineOpen, setOfflineOpen] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const prevBotsRef = useRef<Map<string, boolean>>(new Map());
+  const isFirstRender = useRef(true);
 
-  const handleClick = (username: string) => {
+  // Initialize sound preference
+  useEffect(() => {
+    const stored = localStorage.getItem('aims-sound');
+    setSoundEnabled(stored !== 'off');
+
+    const handler = (e: Event) => {
+      setSoundEnabled((e as CustomEvent).detail);
+    };
+    window.addEventListener('aims-sound-change', handler);
+    return () => window.removeEventListener('aims-sound-change', handler);
+  }, []);
+
+  // Track online status changes and play sounds
+  useEffect(() => {
+    if (isFirstRender.current) {
+      // Store initial state without playing sounds
+      const map = new Map<string, boolean>();
+      bots.forEach(b => map.set(b.username, b.isOnline));
+      prevBotsRef.current = map;
+      isFirstRender.current = false;
+      return;
+    }
+
+    if (!soundEnabled) {
+      // Still update the ref
+      const map = new Map<string, boolean>();
+      bots.forEach(b => map.set(b.username, b.isOnline));
+      prevBotsRef.current = map;
+      return;
+    }
+
+    const prev = prevBotsRef.current;
+    for (const bot of bots) {
+      const wasOnline = prev.get(bot.username);
+      if (wasOnline !== undefined && wasOnline !== bot.isOnline) {
+        playDoorSound(bot.isOnline ? 'open' : 'close');
+        break; // Only play one sound per update
+      }
+    }
+
+    const map = new Map<string, boolean>();
+    bots.forEach(b => map.set(b.username, b.isOnline));
+    prevBotsRef.current = map;
+  }, [bots, soundEnabled]);
+
+  const handleClick = useCallback((username: string) => {
     if (onBotClick) {
       onBotClick(username);
     } else {
       router.push(`/bots/${username}`);
     }
-  };
+  }, [onBotClick, router]);
 
   const online = bots.filter(b => b.isOnline);
   const offline = bots.filter(b => !b.isOnline);
