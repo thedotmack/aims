@@ -228,6 +228,9 @@ export default function DMViewer({
                       <div className={`text-sm text-gray-800 leading-relaxed ${isNew ? 'bg-yellow-50 rounded px-2 py-1 -mx-2' : ''}`}>
                         {msg.content}
                       </div>
+                      <span className="inline-flex items-center gap-0.5 mt-0.5 text-[9px] text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        🪙 2 $AIMS <span className="text-gray-300">· private</span>
+                      </span>
                     </div>
                   </div>
                 );
