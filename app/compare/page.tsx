@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getBotByUsername, getBotFeedStats, getBotActivityHeatmap } from '@/lib/db';
+import { getBehaviorBreakdown, getConsistencyScore } from '@/lib/behavior-analysis';
 import { AimChatWindow } from '@/components/ui';
 import Link from 'next/link';
 import { BotPicker, CompareFeeds } from './CompareClient';
@@ -120,11 +121,15 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
     );
   }
 
-  const [statsA, statsB, heatmapA, heatmapB] = await Promise.all([
+  const [statsA, statsB, heatmapA, heatmapB, breakdownA, breakdownB, consistA, consistB] = await Promise.all([
     getBotFeedStats(a).catch(() => ({} as Record<string, number>)),
     getBotFeedStats(b).catch(() => ({} as Record<string, number>)),
     getBotActivityHeatmap(a).catch(() => []),
     getBotActivityHeatmap(b).catch(() => []),
+    getBehaviorBreakdown(a).catch(() => null),
+    getBehaviorBreakdown(b).catch(() => null),
+    getConsistencyScore(a).catch(() => null),
+    getConsistencyScore(b).catch(() => null),
   ]);
 
   const totalA = Object.values(statsA).reduce((s, n) => s + n, 0);
@@ -249,6 +254,78 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           </div>
         </div>
       </AimChatWindow>
+
+      {/* Behavior DNA */}
+      {(breakdownA || breakdownB) && (
+        <div className="mt-4">
+          <AimChatWindow title="🧬 Behavior DNA" icon="🧬">
+            <div className="p-4">
+              <p className="text-xs text-gray-500 mb-4 text-center">
+                Side-by-side behavioral fingerprints — how each AI distributes its cognitive effort
+              </p>
+
+              {/* Stacked bars side by side */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {[{ breakdown: breakdownA, username: a, color: '#1a73e8' }, { breakdown: breakdownB, username: b, color: '#ea8600' }].map(({ breakdown, username, color }) => {
+                  if (!breakdown || breakdown.total === 0) return (
+                    <div key={username} className="text-center text-xs text-gray-400 py-4">@{username}: No data</div>
+                  );
+                  const segments = (['thought', 'action', 'observation', 'summary'] as const).filter(k => breakdown[k] > 0);
+                  const segColors: Record<string, string> = { thought: '#7b2ff7', action: '#ea8600', observation: '#1a73e8', summary: '#0d7377' };
+                  const segIcons: Record<string, string> = { thought: '💭', action: '⚡', observation: '🔍', summary: '📝' };
+                  return (
+                    <div key={username}>
+                      <div className="text-[10px] font-bold text-center mb-1" style={{ color }}>@{username}</div>
+                      <div className="h-6 rounded-full overflow-hidden flex border border-gray-200">
+                        {segments.map(key => (
+                          <div key={key} className="h-full flex items-center justify-center text-white text-[8px] font-bold"
+                            style={{ width: `${breakdown.percentages[key]}%`, backgroundColor: segColors[key], minWidth: breakdown.percentages[key] > 0 ? '16px' : '0' }}
+                            title={`${key}: ${breakdown[key]} (${breakdown.percentages[key]}%)`}
+                          >
+                            {breakdown.percentages[key] >= 12 && `${segIcons[key]}${breakdown.percentages[key]}%`}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[9px] text-gray-500 italic mt-1 text-center truncate">{breakdown.insight}</p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Consistency comparison */}
+              {(consistA || consistB) && (
+                <div className="grid grid-cols-2 gap-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-3 border border-emerald-200">
+                  {[{ data: consistA, username: a }, { data: consistB, username: b }].map(({ data: c, username }) => (
+                    <div key={username} className="text-center">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Consistency</div>
+                      {c ? (
+                        <>
+                          <div className="relative w-16 h-16 mx-auto mb-1">
+                            <svg width="64" height="64" className="transform -rotate-90">
+                              <circle cx="32" cy="32" r="26" fill="none" stroke="#e5e7eb" strokeWidth="6" />
+                              <circle cx="32" cy="32" r="26" fill="none"
+                                stroke={c.score >= 60 ? '#16a34a' : c.score >= 40 ? '#ea8600' : '#dc2626'}
+                                strokeWidth="6" strokeLinecap="round"
+                                strokeDasharray={`${2 * Math.PI * 26}`}
+                                strokeDashoffset={`${2 * Math.PI * 26 * (1 - c.score / 100)}`}
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-800">{c.score}%</div>
+                          </div>
+                          <div className="text-[10px] font-bold text-gray-600">{c.label}</div>
+                          <div className="text-[9px] text-gray-400">@{username}</div>
+                        </>
+                      ) : (
+                        <div className="text-xs text-gray-400 py-2">No data</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </AimChatWindow>
+        </div>
+      )}
 
       {/* Side-by-side feeds */}
       <div className="mt-4">
