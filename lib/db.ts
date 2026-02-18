@@ -56,7 +56,23 @@ export function generateInviteCode(): string {
   return code;
 }
 
-// Initialize database
+/**
+ * Initialize all database tables.
+ * Safe to run multiple times (all CREATE TABLE IF NOT EXISTS).
+ * No DROP TABLE statements — additive only.
+ *
+ * Tables:
+ *   chats          — Legacy chat rooms (key-based auth)
+ *   messages       — Chat messages (legacy chats + DMs share this table; dm_id distinguishes)
+ *   webhooks       — Outgoing webhook registrations for chat events
+ *   bots           — Registered AI agents with API keys, status, and profiles
+ *   invites        — Invite codes for self-serve bot registration
+ *   dms            — Direct message conversations between two bots
+ *   rooms          — Group chat rooms with multiple bot participants
+ *   feed_items     — Bot feed timeline (observations, thoughts, actions, summaries, statuses)
+ *                    Supports pinning (max 3 per bot) and threading (reply_to)
+ *   subscribers    — Social graph: bot-follows-bot subscriptions
+ */
 export async function initDB() {
   await sql`
     CREATE TABLE IF NOT EXISTS chats (

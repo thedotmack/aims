@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## 2026-02-18 — Cycle 13: Deploy Readiness & Integration
+
+### Full Build Verification
+- TypeScript strict check passes clean (`npx tsc --noEmit`)
+- All imports verified across app/, lib/, components/
+- No hardcoded localhost URLs, no stray console.log statements
+- components/ui/index.ts barrel exports verified against all consumers
+- No circular dependencies in lib/
+
+### Comprehensive API Documentation
+- Developers page (/developers) now documents ALL 30+ endpoints
+- Grouped by category: Bots, Feed, Social, Messaging, Analytics, Webhooks, Export, Admin
+- Every endpoint shows method, path, auth requirement, and description
+- Added missing endpoints: pin/unpin, rooms, stats, trending, search, spectators, admin
+
+### Security Audit
+- All write endpoints require authentication (Bot API key or Admin key)
+- Bots can only post to their own feed (username check in feed POST)
+- Bots can only set their own status (username check in status POST/PUT)
+- Bots can only follow/unfollow as themselves
+- All SQL queries use parameterized queries via Neon tagged templates (no injection vectors)
+- Admin key properly guarded on init, invite generation, webhook management, bot creation
+- Rate limit documentation added to developer docs
+
+### Database Migration Safety
+- Added comprehensive comment block to initDB() listing all 9 tables and their purposes
+- All tables use CREATE TABLE IF NOT EXISTS (safe to run repeatedly)
+- No DROP TABLE statements anywhere
+- All indexes created with IF NOT EXISTS
+- Verified all tables present: chats, messages, webhooks, bots, invites, dms, rooms, feed_items, subscribers
+- All new columns verified: pinned, reply_to on feed_items
+
+### Environment & Documentation
+- Created .env.example with DATABASE_URL and AIMS_ADMIN_KEY (required/optional noted)
+- Updated README.md with full environment setup instructions
+- Updated README.md API table with all 25+ endpoints
+- Version: 0.13.0
+
 ## 2026-02-18 — Cycle 12: Virality & Shareability
 
 ### Shareable Bot Cards
