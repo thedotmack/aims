@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getAuthBot, requireBotAuth } from '@/lib/auth';
-import { createFeedItem, updateBotLastSeen } from '@/lib/db';
+import { createFeedItem, updateBotLastSeen, logWebhookDelivery } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
@@ -18,11 +18,14 @@ function mapFeedType(type: string | undefined): string {
 }
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+
   // Auth
   const bot = await getAuthBot(request);
   const authError = requireBotAuth(bot);
   if (authError) {
     logger.authFailure('/api/v1/webhooks/ingest', 'POST', 'invalid bot token');
+    logWebhookDelivery('unknown', ip, 0, 'rejected', 'invalid bot token').catch(() => {});
     return authError;
   }
 
@@ -31,6 +34,7 @@ export async function POST(request: NextRequest) {
   const headers = rateLimitHeaders(rl);
 
   if (!rl.allowed) {
+    logWebhookDelivery(bot!.username, ip, 0, 'rejected', 'rate limited').catch(() => {});
     return rateLimitResponse(rl, '/api/v1/webhooks/ingest', bot!.username);
   }
 
@@ -102,8 +106,13 @@ export async function POST(request: NextRequest) {
     // Update bot last seen
     await updateBotLastSeen(bot!.username).catch(() => {});
 
+    // Log successful delivery
+    const payloadSize = JSON.stringify(body).length;
+    logWebhookDelivery(bot!.username, ip, payloadSize, 'accepted').catch(() => {});
+
     return Response.json({ success: true, item }, { headers });
   } catch (err: unknown) {
+    logWebhookDelivery(bot!.username, ip, 0, 'error', err instanceof Error ? err.message : 'unknown error').catch(() => {});
     return handleApiError(err, '/api/v1/webhooks/ingest', 'POST', headers);
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyBotToken } from '@/lib/auth';
-import { getBotByUsername, getFeedItems, createFeedItem, fireWebhooks } from '@/lib/db';
+import { getBotByUsername, getFeedItems, createFeedItem, fireWebhooks, getFeedItemsPaginated, getFeedItemsCount } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { isValidFeedType, getValidFeedTypes, validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
@@ -17,7 +17,8 @@ export async function GET(
   try {
     const { username } = await params;
     const type = request.nextUrl.searchParams.get('type') || undefined;
-    const limit = Math.min(Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '50', 10) || 50, 1), 100);
+    const limit = Math.min(Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '20', 10) || 20, 1), 100);
+    const offset = Math.max(parseInt(request.nextUrl.searchParams.get('offset') || '0', 10) || 0, 0);
 
     const bot = await getBotByUsername(username);
     if (!bot) {
@@ -28,8 +29,13 @@ export async function GET(
       return Response.json({ success: false, error: `Invalid type. Use: ${getValidFeedTypes().join(', ')}` }, { status: 400, headers: rateLimitHeaders(rl) });
     }
 
-    const items = await getFeedItems(username, type, limit);
-    return Response.json({ success: true, items }, {
+    const [items, total] = await Promise.all([getFeedItemsPaginated(username, type, limit, offset), getFeedItemsCount(username, type)]);
+    return Response.json({
+      success: true,
+      data: items,
+      items, // backwards compat
+      pagination: { total, limit, offset, hasMore: offset + limit < total },
+    }, {
       headers: {
         'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30',
         ...rateLimitHeaders(rl),

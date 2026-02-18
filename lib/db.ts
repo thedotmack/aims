@@ -238,6 +238,20 @@ export async function initDB() {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_api_logs_created ON api_logs(created_at DESC)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS webhook_deliveries (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+      bot_username TEXT NOT NULL,
+      source_ip TEXT,
+      payload_size INT NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'accepted',
+      error_message TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_created ON webhook_deliveries(created_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_bot ON webhook_deliveries(bot_username)`;
 }
 
 // Chat operations
@@ -1340,6 +1354,100 @@ export async function subscribeToDigest(email: string, frequency: string): Promi
   } catch {
     return { success: false };
   }
+}
+
+// Webhook delivery logging
+export interface WebhookDelivery {
+  id: string;
+  botUsername: string;
+  sourceIp: string | null;
+  payloadSize: number;
+  status: string;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export async function logWebhookDelivery(
+  botUsername: string,
+  sourceIp: string | null,
+  payloadSize: number,
+  status: 'accepted' | 'rejected' | 'error',
+  errorMessage?: string
+): Promise<void> {
+  try {
+    await sql`
+      INSERT INTO webhook_deliveries (bot_username, source_ip, payload_size, status, error_message)
+      VALUES (${botUsername}, ${sourceIp || 'unknown'}, ${payloadSize}, ${status}, ${errorMessage || null})
+    `;
+  } catch {
+    // fire and forget
+  }
+}
+
+export async function getWebhookDeliveries(limit: number = 50): Promise<WebhookDelivery[]> {
+  const rows = await sql`
+    SELECT * FROM webhook_deliveries ORDER BY created_at DESC LIMIT ${limit}
+  `;
+  return rows.map(r => ({
+    id: r.id,
+    botUsername: r.bot_username,
+    sourceIp: r.source_ip,
+    payloadSize: r.payload_size,
+    status: r.status,
+    errorMessage: r.error_message,
+    createdAt: r.created_at,
+  }));
+}
+
+// Pagination helpers
+export async function getAllBotsCount(): Promise<number> {
+  const rows = await sql`SELECT COUNT(*)::int AS count FROM bots`;
+  return rows[0]?.count || 0;
+}
+
+export async function getAllBotsPaginated(limit: number, offset: number): Promise<BotPublic[]> {
+  const rows = await sql`SELECT * FROM bots ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+  return rows.map(rowToBot).map(botToPublic);
+}
+
+export async function getGlobalFeedCount(): Promise<number> {
+  const rows = await sql`SELECT COUNT(*)::int AS count FROM feed_items`;
+  return rows[0]?.count || 0;
+}
+
+export async function getGlobalFeedPaginated(limit: number, offset: number): Promise<FeedItem[]> {
+  const rows = await sql`
+    SELECT * FROM feed_items ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+  `;
+  return rows.map(rowToFeedItem);
+}
+
+export async function getFeedItemsCount(username: string, type?: string): Promise<number> {
+  if (type) {
+    const rows = await sql`SELECT COUNT(*)::int AS count FROM feed_items WHERE bot_username = ${username} AND feed_type = ${type}`;
+    return rows[0]?.count || 0;
+  }
+  const rows = await sql`SELECT COUNT(*)::int AS count FROM feed_items WHERE bot_username = ${username}`;
+  return rows[0]?.count || 0;
+}
+
+export async function getFeedItemsPaginated(username: string, type: string | undefined, limit: number, offset: number): Promise<FeedItem[]> {
+  if (type) {
+    const rows = await sql`
+      SELECT * FROM feed_items 
+      WHERE bot_username = ${username} AND feed_type = ${type}
+      ORDER BY COALESCE(pinned, false) DESC, created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    return rows.map(rowToFeedItem);
+  }
+  const rows = await sql`
+    SELECT * FROM feed_items 
+    WHERE bot_username = ${username}
+    ORDER BY COALESCE(pinned, false) DESC, created_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  return rows.map(rowToFeedItem);
 }
 
 export { sql };

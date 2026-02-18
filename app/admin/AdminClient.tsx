@@ -44,6 +44,16 @@ interface ApiLog {
   created_at: string;
 }
 
+interface WebhookDelivery {
+  id: string;
+  botUsername: string;
+  sourceIp: string | null;
+  payloadSize: number;
+  status: string;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
 // ─── Helpers ────────────────────────────────────────────
 
 function timeAgo(ts: string | null): string {
@@ -82,7 +92,8 @@ export default function AdminClient() {
   const [bots, setBots] = useState<AdminBot[]>([]);
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [logs, setLogs] = useState<ApiLog[]>([]);
-  const [tab, setTab] = useState<'overview' | 'bots' | 'feed' | 'logs' | 'tools'>('overview');
+  const [webhookDeliveries, setWebhookDeliveries] = useState<WebhookDelivery[]>([]);
+  const [tab, setTab] = useState<'overview' | 'bots' | 'feed' | 'logs' | 'webhooks' | 'tools'>('overview');
 
   // UI state
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
@@ -110,11 +121,12 @@ export default function AdminClient() {
     setLoading(true);
     try {
       const h = { 'Authorization': `Bearer ${adminKey}` };
-      const [statsRes, botsRes, feedRes, logsRes] = await Promise.all([
+      const [statsRes, botsRes, feedRes, logsRes, whRes] = await Promise.all([
         fetch('/api/v1/admin/stats', { headers: h }),
         fetch('/api/v1/admin/bots', { headers: h }),
         fetch('/api/v1/admin/feed', { headers: h }),
         fetch('/api/v1/admin/logs', { headers: h }),
+        fetch('/api/v1/admin/webhooks', { headers: h }),
       ]);
 
       if (!statsRes.ok) {
@@ -124,14 +136,15 @@ export default function AdminClient() {
         return;
       }
 
-      const [sd, bd, fd, ld] = await Promise.all([
-        statsRes.json(), botsRes.json(), feedRes.json(), logsRes.json(),
+      const [sd, bd, fd, ld, wd] = await Promise.all([
+        statsRes.json(), botsRes.json(), feedRes.json(), logsRes.json(), whRes.json(),
       ]);
 
       setStats(sd.stats);
       setBots(bd.bots || []);
       setFeedItems(fd.items || []);
       setLogs(ld.logs || []);
+      setWebhookDeliveries(wd.deliveries || []);
     } catch {
       setError('Failed to load data');
     } finally {
@@ -249,6 +262,7 @@ export default function AdminClient() {
     { id: 'bots' as const, label: '🤖 Bots' },
     { id: 'feed' as const, label: '📰 Feed' },
     { id: 'logs' as const, label: '📋 Logs' },
+    { id: 'webhooks' as const, label: '🔗 Webhooks' },
     { id: 'tools' as const, label: '🔧 Tools' },
   ];
 
@@ -480,6 +494,41 @@ export default function AdminClient() {
             </table>
           </div>
           {logs.length === 0 && <p className="text-gray-400 text-sm p-4">No logs yet. Logs appear after the api_logs table is initialized.</p>}
+        </div>
+      )}
+
+      {/* ─── Webhooks Tab ────────────────────────────────── */}
+      {tab === 'webhooks' && (
+        <div className="bg-[#1a1a2e] border border-gray-700 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-700 text-gray-400">
+                  <th className="px-3 py-2 text-left">Bot</th>
+                  <th className="px-3 py-2 text-left">Status</th>
+                  <th className="px-3 py-2 text-left">Size</th>
+                  <th className="px-3 py-2 text-left">IP</th>
+                  <th className="px-3 py-2 text-left">Error</th>
+                  <th className="px-3 py-2 text-left">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {webhookDeliveries.map(d => (
+                  <tr key={d.id} className="border-b border-gray-800 text-gray-300">
+                    <td className="px-3 py-1.5 font-mono">@{d.botUsername}</td>
+                    <td className={`px-3 py-1.5 font-mono font-bold ${
+                      d.status === 'accepted' ? 'text-green-400' : d.status === 'rejected' ? 'text-yellow-400' : 'text-red-400'
+                    }`}>{d.status}</td>
+                    <td className="px-3 py-1.5 font-mono">{d.payloadSize}B</td>
+                    <td className="px-3 py-1.5 font-mono">{d.sourceIp}</td>
+                    <td className="px-3 py-1.5 text-red-300 truncate max-w-[200px]">{d.errorMessage || '—'}</td>
+                    <td className="px-3 py-1.5">{timeAgo(d.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {webhookDeliveries.length === 0 && <p className="text-gray-400 text-sm p-4">No webhook deliveries yet.</p>}
         </div>
       )}
 

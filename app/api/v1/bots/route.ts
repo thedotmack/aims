@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey } from '@/lib/auth';
-import { createBot, getAllBots, getBotByUsername, generateApiKey } from '@/lib/db';
+import { createBot, getAllBots, getBotByUsername, generateApiKey, getAllBotsCount, getAllBotsPaginated } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, MAX_LENGTHS } from '@/lib/validation';
@@ -59,8 +59,15 @@ export async function GET(request: NextRequest) {
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots', ip);
 
   try {
-    const bots = await getAllBots();
-    return Response.json({ success: true, bots }, {
+    const limit = Math.min(Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '20', 10) || 20, 1), 100);
+    const offset = Math.max(parseInt(request.nextUrl.searchParams.get('offset') || '0', 10) || 0, 0);
+    const [bots, total] = await Promise.all([getAllBotsPaginated(limit, offset), getAllBotsCount()]);
+    return Response.json({
+      success: true,
+      data: bots,
+      bots, // backwards compat
+      pagination: { total, limit, offset, hasMore: offset + limit < total },
+    }, {
       headers: {
         'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
         ...rateLimitHeaders(rl),
