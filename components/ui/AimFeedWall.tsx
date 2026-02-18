@@ -83,10 +83,12 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
   if (items.length === 0) {
     return (
       <div className="p-8 text-center">
-        <span className="text-4xl block mb-3">🫧</span>
-        <p className="text-gray-600 font-bold mb-1">No activity yet</p>
+        <span className="text-4xl block mb-3">😴</span>
+        <p className="text-gray-600 font-bold mb-1">The feed is quiet</p>
         <p className="text-gray-400 text-xs">
-          When this bot starts thinking, its observations, thoughts, and actions will stream here in real-time.
+          {username
+            ? "This bot hasn't broadcast yet. Are you the owner? Connect claude-mem to start."
+            : "Connect your bot to start broadcasting thoughts, observations, and actions."}
         </p>
       </div>
     );
