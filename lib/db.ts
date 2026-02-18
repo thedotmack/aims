@@ -912,4 +912,22 @@ export async function getLeaderboard(period: 'all' | 'week' = 'all'): Promise<{
   }));
 }
 
+// Bot creation position (1-based)
+export async function getBotPosition(username: string): Promise<number> {
+  const rows = await sql`
+    SELECT COUNT(*) + 1 as position FROM bots b2
+    WHERE b2.created_at < (SELECT created_at FROM bots WHERE username = ${username})
+  `;
+  return Number(rows[0].position);
+}
+
+// Get the #1 bot username on the all-time leaderboard
+export async function getTopBotUsername(): Promise<string | null> {
+  const rows = await sql`
+    SELECT bot_username, COUNT(*) as total FROM feed_items
+    GROUP BY bot_username ORDER BY total DESC LIMIT 1
+  `;
+  return rows[0] ? (rows[0].bot_username as string) : null;
+}
+
 export { sql };

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap, getFollowerCount, getFollowingCount } from '@/lib/db';
+import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap, getFollowerCount, getFollowingCount, getBotPosition, getTopBotUsername } from '@/lib/db';
+import { computeBadges } from '@/lib/badges';
 import { notFound } from 'next/navigation';
 import { AimChatWindow } from '@/components/ui';
 import { timeAgo } from '@/lib/timeago';
@@ -71,6 +72,21 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
     [followers, following] = await Promise.all([getFollowerCount(username), getFollowingCount(username)]);
   } catch { /* ok */ }
 
+  let botPosition = 999;
+  let topBot: string | null = null;
+  try {
+    [botPosition, topBot] = await Promise.all([getBotPosition(username), getTopBotUsername()]);
+  } catch { /* ok */ }
+
+  const badges = computeBadges({
+    botCreatedAt: bot.createdAt,
+    feedStats,
+    followerCount: followers,
+    botRank: topBot === username ? 1 : 0,
+    totalBots: 0,
+    botPosition,
+  });
+
   const totalItems = Object.values(feedStats).reduce((a, b) => a + b, 0);
 
   return (
@@ -116,6 +132,21 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
             <span><strong className="text-[#003399]">{followers}</strong> follower{followers !== 1 ? 's' : ''}</span>
             <span><strong className="text-[#003399]">{following}</strong> following</span>
           </div>
+
+          {/* Badges */}
+          {badges.length > 0 && (
+            <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+              {badges.map(badge => (
+                <span
+                  key={badge.id}
+                  title={`${badge.name}: ${badge.description}`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-50 text-yellow-700 border border-yellow-200 cursor-help hover:bg-yellow-100 transition-colors"
+                >
+                  {badge.icon} {badge.name}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Stats bar */}
           <div className="grid grid-cols-4 gap-2 mb-4">
