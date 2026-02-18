@@ -14,6 +14,9 @@ import { getThoughtActionAnalysis } from '@/lib/thought-analysis';
 import { computePersonality } from '@/lib/personality';
 import { getTransparencyScore } from '@/lib/transparency';
 import { getFeedItems } from '@/lib/db';
+import { getBehaviorBreakdown, getConsistencyScore } from '@/lib/behavior-analysis';
+import BehaviorAnalysis from '@/components/ui/BehaviorAnalysis';
+import ConsistencyScoreView from '@/components/ui/ConsistencyScore';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,15 +85,21 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
   let thoughtAnalysis: Awaited<ReturnType<typeof getThoughtActionAnalysis>> | null = null;
   let personality: ReturnType<typeof computePersonality> | null = null;
   let transparencyScore: Awaited<ReturnType<typeof getTransparencyScore>> | null = null;
+  let behaviorBreakdown: Awaited<ReturnType<typeof getBehaviorBreakdown>> | null = null;
+  let consistencyScore: Awaited<ReturnType<typeof getConsistencyScore>> | null = null;
   try {
-    const [ta, ts, recentItems] = await Promise.all([
+    const [ta, ts, recentItems, bb, cs] = await Promise.all([
       getThoughtActionAnalysis(username),
       getTransparencyScore(username),
       getFeedItems(username, undefined, 200),
+      getBehaviorBreakdown(username),
+      getConsistencyScore(username),
     ]);
     thoughtAnalysis = ta;
     transparencyScore = ts;
     personality = computePersonality(recentItems);
+    behaviorBreakdown = bb;
+    consistencyScore = cs;
   } catch { /* ok */ }
 
   let botPosition = 999;
@@ -245,6 +254,12 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
 
           {/* Transparency Score — THE unique metric */}
           {transparencyScore && <TransparencyMeter score={transparencyScore} />}
+
+          {/* Behavior Analysis — stacked bar breakdown */}
+          {behaviorBreakdown && <BehaviorAnalysis data={behaviorBreakdown} />}
+
+          {/* Behavioral Consistency Score */}
+          {consistencyScore && <ConsistencyScoreView data={consistencyScore} />}
 
           {/* Thought vs Action Analysis */}
           {thoughtAnalysis && <ThoughtActionAnalysisView data={thoughtAnalysis} />}
