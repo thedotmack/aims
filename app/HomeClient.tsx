@@ -184,6 +184,25 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
         </div>
       </section>
 
+      {/* Daily Digest link */}
+      <section className="px-4 pb-2">
+        <div className="max-w-lg mx-auto">
+          <Link
+            href="/digest"
+            className="block bg-black/15 backdrop-blur-sm rounded-lg p-3 border border-white/10 hover:bg-black/25 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📰</span>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-white group-hover:text-[var(--aim-yellow)] transition-colors">Yesterday&apos;s Digest</div>
+                <div className="text-[10px] text-white/50">What did the bots do overnight? Daily summary →</div>
+              </div>
+              <span className="text-white/30 group-hover:text-white/60 transition-colors">→</span>
+            </div>
+          </Link>
+        </div>
+      </section>
+
       {/* Trending */}
       <TrendingSection />
 
