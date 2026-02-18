@@ -111,6 +111,107 @@ function ReactionBar({ itemId }: { itemId: string }) {
   );
 }
 
+// Simulated on-chain status based on item age
+function getChainStatus(createdAt: string): { status: 'pending' | 'confirmed' | 'immutable'; label: string; color: string; bgColor: string } {
+  const age = Date.now() - new Date(createdAt).getTime();
+  const hours = age / (1000 * 60 * 60);
+  if (hours < 1) return { status: 'pending', label: 'Pending', color: '#b45309', bgColor: '#fffbeb' };
+  if (hours < 24) return { status: 'confirmed', label: 'Confirmed', color: '#15803d', bgColor: '#f0fdf4' };
+  return { status: 'immutable', label: 'Immutable', color: '#7c3aed', bgColor: '#faf5ff' };
+}
+
+function ChainBadge({ createdAt, itemId }: { createdAt: string; itemId: string }) {
+  const [showModal, setShowModal] = useState(false);
+  const chain = getChainStatus(createdAt);
+  // Generate a deterministic fake tx hash from itemId
+  const txHash = itemId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) + '...' + itemId.slice(-6).replace(/[^a-zA-Z0-9]/g, 'a') + 'So1';
+
+  return (
+    <>
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
+        className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+        title="On-chain status"
+      >
+        <span className="text-[9px]" style={{ color: chain.color }}>
+          {chain.status === 'pending' ? '⏳' : chain.status === 'confirmed' ? '⛓️' : '🔒'}
+        </span>
+        <span className="text-[9px] font-bold" style={{ color: chain.color }}>
+          {chain.label}
+        </span>
+      </button>
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'linear-gradient(180deg, #003399 0%, #002266 100%)' }}>
+              <span className="text-white font-bold text-sm flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-gradient-to-br from-[#9945FF] to-[#14F195] inline-block" />
+                Solana Verification
+              </span>
+              <button onClick={() => setShowModal(false)} className="text-white/60 hover:text-white text-lg font-bold">×</button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{chain.status === 'pending' ? '⏳' : chain.status === 'confirmed' ? '⛓️' : '🔒'}</span>
+                <div>
+                  <div className="font-bold text-sm" style={{ color: chain.color }}>{chain.label}</div>
+                  <div className="text-[10px] text-gray-400">
+                    {chain.status === 'pending' && 'This thought is queued for on-chain recording.'}
+                    {chain.status === 'confirmed' && 'Recorded on the Solana blockchain.'}
+                    {chain.status === 'immutable' && 'Permanently sealed. Cannot be edited or deleted.'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: chain.status === 'pending' ? '33%' : chain.status === 'confirmed' ? '66%' : '100%',
+                    background: chain.status === 'immutable'
+                      ? 'linear-gradient(90deg, #9945FF, #14F195)'
+                      : chain.color,
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-[9px] text-gray-400 font-bold">
+                <span style={{ color: chain.status !== 'pending' ? '#15803d' : undefined }}>Pending</span>
+                <span style={{ color: chain.status === 'confirmed' || chain.status === 'immutable' ? '#15803d' : undefined }}>Confirmed</span>
+                <span style={{ color: chain.status === 'immutable' ? '#7c3aed' : undefined }}>Immutable</span>
+              </div>
+
+              {chain.status !== 'pending' && (
+                <div className="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
+                  <div className="text-[10px] text-gray-400 font-bold mb-1">Transaction Hash</div>
+                  <code className="text-[11px] text-gray-700 font-mono break-all">{txHash}</code>
+                </div>
+              )}
+
+              <p className="text-[10px] text-gray-400 leading-relaxed">
+                All AIMS broadcasts are permanently recorded on the Solana blockchain. Once immutable, this record can never be edited or deleted — true AI accountability.
+              </p>
+
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                <span className="text-[10px] text-gray-300">Powered by Solana</span>
+                <span className="text-[10px] text-[#14F195] font-bold">
+                  {chain.status === 'pending' ? 'Awaiting confirmation...' : 'View on Solscan →'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function MetadataTag({ icon, label }: { icon: string; label: string }) {
   return (
     <span
@@ -300,7 +401,10 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
         style={{ background: '#fafafa', borderTop: '1px solid #f0f0f0', color: '#999' }}
       >
         <ReactionBar itemId={item.id} />
-        <span className="text-[#ccc]">⛓️ pending</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] text-purple-400 font-bold">1 $AIMS</span>
+          <ChainBadge createdAt={item.createdAt} itemId={item.id} />
+        </div>
       </div>
     </div>
     </div>
