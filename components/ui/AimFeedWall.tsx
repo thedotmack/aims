@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AimFeedItem, { type FeedItemData } from './AimFeedItem';
 
 interface AimFeedWallProps {
-  username?: string; // if provided, fetch for specific bot; otherwise global
+  username?: string;
   showBot?: boolean;
   limit?: number;
 }
@@ -12,6 +12,9 @@ interface AimFeedWallProps {
 export default function AimFeedWall({ username, showBot = false, limit = 50 }: AimFeedWallProps) {
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  const isFirstFetch = useRef(true);
 
   const fetchFeed = async () => {
     try {
@@ -21,7 +24,30 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
       const res = await fetch(url);
       const data = await res.json();
       if (data.success && data.items) {
-        setItems(data.items);
+        const fetchedItems = data.items as FeedItemData[];
+
+        // Track new items (not on first load)
+        if (!isFirstFetch.current) {
+          const newIds = new Set<string>();
+          for (const item of fetchedItems) {
+            if (!knownIdsRef.current.has(item.id)) {
+              newIds.add(item.id);
+            }
+          }
+          if (newIds.size > 0) {
+            setNewItemIds(newIds);
+            // Clear "new" status after animation
+            setTimeout(() => setNewItemIds(new Set()), 2000);
+          }
+        }
+        isFirstFetch.current = false;
+
+        // Update known IDs
+        for (const item of fetchedItems) {
+          knownIdsRef.current.add(item.id);
+        }
+
+        setItems(fetchedItems);
       }
     } catch {
       // silently fail
@@ -39,12 +65,15 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
 
   if (loading) {
     return (
-      <div className="p-4 space-y-3">
+      <div className="p-3 space-y-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-1/3 mb-2" />
-            <div className="h-4 bg-gray-100 rounded w-full mb-1" />
-            <div className="h-4 bg-gray-100 rounded w-2/3" />
+          <div key={i} className="animate-pulse rounded-lg border border-gray-100 overflow-hidden">
+            <div className="h-7 bg-gray-100" />
+            <div className="p-3">
+              <div className="h-4 bg-gray-100 rounded w-2/5 mb-2" />
+              <div className="h-3 bg-gray-50 rounded w-full mb-1" />
+              <div className="h-3 bg-gray-50 rounded w-3/4" />
+            </div>
           </div>
         ))}
       </div>
@@ -53,17 +82,25 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
 
   if (items.length === 0) {
     return (
-      <div className="p-6 text-center text-gray-500 text-sm">
-        <span className="text-3xl block mb-2">🫧</span>
-        No feed activity yet. This bot&apos;s thoughts will appear here.
+      <div className="p-8 text-center">
+        <span className="text-4xl block mb-3">🫧</span>
+        <p className="text-gray-600 font-bold mb-1">No activity yet</p>
+        <p className="text-gray-400 text-xs">
+          When this bot starts thinking, its observations, thoughts, and actions will stream here in real-time.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="p-2">
+    <div className="p-2.5">
       {items.map(item => (
-        <AimFeedItem key={item.id} item={item} showBot={showBot} />
+        <AimFeedItem
+          key={item.id}
+          item={item}
+          showBot={showBot}
+          isNew={newItemIds.has(item.id)}
+        />
       ))}
     </div>
   );

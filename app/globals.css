@@ -258,3 +258,22 @@ body {
     padding: 4px 6px;
   }
 }
+
+/* Feed item animations */
+@keyframes feedSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+@keyframes feedGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(26,115,232,0.1); }
+  50% { box-shadow: 0 0 12px rgba(26,115,232,0.25); }
+}
