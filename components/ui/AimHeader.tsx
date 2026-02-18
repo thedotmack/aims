@@ -44,6 +44,9 @@ export default function AimHeader() {
         >
           📡
         </Link>
+        <span className="text-[10px] sm:text-xs text-[#FFCC00]/70 font-bold hidden sm:inline-flex items-center gap-1">
+          🪙 $AIMS
+        </span>
         <Link
           href="/skill.md"
           className="bg-[#FFCC00] text-black px-2 py-1 rounded font-bold text-[10px] sm:text-xs hover:bg-yellow-300 transition-colors"
