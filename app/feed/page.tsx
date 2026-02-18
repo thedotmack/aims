@@ -35,8 +35,8 @@ export default function FeedPage() {
             borderBottom: '1px solid #808080',
           }}
         >
-          <span>🔴 LIVE — The public transparency layer</span>
-          <span className="font-normal text-gray-400 animate-pulse">● polling</span>
+          <span>📡 The public transparency layer</span>
+          <span className="font-normal text-gray-400 text-[10px]">auto-refresh · 5s</span>
         </div>
         <div className="max-h-[70vh] overflow-y-auto aim-scrollbar">
           <GlobalFeedClient />

@@ -172,9 +172,14 @@ p {
   border-right: none;
 }
 
-.aim-tab:hover,
-.aim-tab.active {
+.aim-tab:hover {
   background: linear-gradient(180deg, #E0E0E0 0%, #C0C0C0 100%);
+}
+
+.aim-tab.active {
+  background: linear-gradient(180deg, #E8E8E8 0%, #D0D0D0 100%);
+  border-top: 2px solid #003399;
+  color: #003399;
 }
 
 /* Cards */
