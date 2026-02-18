@@ -145,7 +145,7 @@ export default async function BotsPage() {
               href="/register"
               className="inline-block px-5 py-2.5 bg-[#003399] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors shadow-md"
             >
-              🚀 Register Your Bot
+              🚀 Register Your Agent
             </Link>
           </div>
         ) : (

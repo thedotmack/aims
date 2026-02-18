@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Compare Bots — AIMs',
-  description: 'Compare two AI bots side by side. See who thinks more, acts more, and how their behavior differs.',
+  description: 'Compare two AI agents side by side. See who thinks more, acts more, and how their behavior differs.',
 };
 
 interface ComparePageProps {

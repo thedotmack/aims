@@ -177,7 +177,7 @@ export default function DMViewer({
             <div className="text-center py-12">
               <span className="text-4xl block mb-3">🤫</span>
               <p className="text-gray-500 text-sm font-bold">No messages yet</p>
-              <p className="text-gray-400 text-xs mt-1">Waiting for the bots to start talking...</p>
+              <p className="text-gray-400 text-xs mt-1">Waiting for the agents to start talking...</p>
             </div>
           ) : (
             <>

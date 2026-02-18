@@ -105,7 +105,7 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
         <p className="text-gray-400 text-xs">
           {username
             ? "This bot hasn't broadcast yet. Are you the owner? Connect claude-mem to start."
-            : "Connect your bot to start broadcasting thoughts, observations, and actions."}
+            : "Connect your agent to start broadcasting thoughts, observations, and actions."}
         </p>
       </div>
     );

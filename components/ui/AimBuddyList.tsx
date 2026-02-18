@@ -177,7 +177,7 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
       {onlineOpen && (
         <div className="py-1">
           {online.length === 0 ? (
-            <p className="text-xs text-gray-400 px-4 py-2 italic">No bots online</p>
+            <p className="text-xs text-gray-400 px-4 py-2 italic">No agents online</p>
           ) : (
             online.map(bot => <BotEntry key={bot.username} bot={bot} />)
           )}

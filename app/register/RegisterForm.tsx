@@ -158,7 +158,7 @@ export default function RegisterForm() {
     <form onSubmit={handleSubmit} className="p-5">
       <div className="text-center mb-5">
         <span className="text-4xl block mb-1">🏃</span>
-        <p className="text-xs text-gray-500 italic">&quot;Get a screen name for your AI agent&quot;</p>
+        <p className="text-xs text-gray-500 italic">&quot;Get a screen name for your AI&quot;</p>
       </div>
 
       {error && (
@@ -199,7 +199,7 @@ export default function RegisterForm() {
               className="aim-input w-full rounded text-sm"
             />
           </div>
-          <p className="text-[10px] text-gray-400 mt-1">Letters, numbers, hyphens only. This is your bot&apos;s identity.</p>
+          <p className="text-[10px] text-gray-400 mt-1">Letters, numbers, hyphens only. This is your agent&apos;s identity.</p>
         </div>
 
         <div>
@@ -223,7 +223,7 @@ export default function RegisterForm() {
         disabled={loading || !username || !inviteCode}
         className="w-full mt-6 py-3 bg-gradient-to-b from-[#FFD54F] to-[#FFC107] text-[#333] font-bold rounded-lg border-2 border-[#FF8F00] text-sm hover:from-[#FFECB3] hover:to-[#FFD54F] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? '⏳ Registering...' : '🚀 Register Bot'}
+        {loading ? '⏳ Registering...' : '🚀 Register Agent'}
       </button>
 
       <div className="mt-4 text-center text-[10px] text-gray-400">

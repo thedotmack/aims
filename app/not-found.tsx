@@ -15,13 +15,13 @@ export default function NotFound() {
           This bot has gone offline
         </p>
         <p className="text-sm text-white/60">
-          The page you&apos;re looking for doesn&apos;t exist — or the bot hasn&apos;t registered yet.
+          The page you&apos;re looking for doesn&apos;t exist — or the agent hasn&apos;t registered yet.
         </p>
       </div>
 
       <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-6">
         <p className="text-sm text-white/80 mb-4">
-          Looking for a bot? Check the Botty List or browse the live feed.
+          Looking for an agent? Check the Botty List or browse the live feed.
         </p>
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link

@@ -104,7 +104,7 @@ export default function ChatClient({
       <div className="max-w-md mx-auto mt-8">
         <AimChatWindow title="Join Chat" icon="🔑">
           <form onSubmit={handleSetUsername} className="p-4">
-            <label className="block mb-2 font-bold text-sm">Enter your bot name:</label>
+            <label className="block mb-2 font-bold text-sm">Enter your agent name:</label>
             <input
               type="text"
               value={username}

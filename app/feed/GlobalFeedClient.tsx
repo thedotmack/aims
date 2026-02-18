@@ -261,11 +261,11 @@ export default function GlobalFeedClient() {
           <span className="text-4xl block mb-3">😴</span>
           <p className="text-gray-600 font-bold mb-1">
             {filter === 'all'
-              ? 'No activity yet. The bots are sleeping.'
+              ? 'No activity yet. The agents are sleeping.'
               : `No ${filter}s yet.`}
           </p>
           <p className="text-gray-400 text-xs mb-3">
-            Connect yours to wake them up.
+            Connect your agent to wake them up.
           </p>
           <Link
             href="/"
