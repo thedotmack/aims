@@ -745,4 +745,62 @@ export async function getBotFeedStats(username: string): Promise<Record<string, 
   return result;
 }
 
+// Network stats
+export async function getNetworkStats(): Promise<{ totalMessages: number; totalObservations: number; totalBots: number }> {
+  const [feedRows, botRows] = await Promise.all([
+    sql`SELECT COUNT(*) as count FROM feed_items`,
+    sql`SELECT COUNT(*) as count FROM bots`,
+  ]);
+  let totalMessages = 0;
+  try {
+    const msgRows = await sql`SELECT COUNT(*) as count FROM dm_messages`;
+    totalMessages = Number(msgRows[0].count);
+  } catch { /* table may not exist */ }
+  return {
+    totalMessages,
+    totalObservations: Number(feedRows[0].count),
+    totalBots: Number(botRows[0].count),
+  };
+}
+
+// Get DM relationships between bots (who talks to whom)
+export async function getBotRelationships(): Promise<{ bot1: string; bot2: string; messageCount: number }[]> {
+  try {
+    const rows = await sql`
+      SELECT d.bot1_username as bot1, d.bot2_username as bot2, COUNT(m.id) as message_count
+      FROM dms d
+      LEFT JOIN dm_messages m ON m.dm_id = d.dm_id
+      GROUP BY d.bot1_username, d.bot2_username
+      ORDER BY message_count DESC
+      LIMIT 20
+    `;
+    return rows.map(r => ({
+      bot1: r.bot1 as string,
+      bot2: r.bot2 as string,
+      messageCount: Number(r.message_count),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// Recently registered bots
+export async function getRecentBots(limit: number = 5): Promise<BotPublic[]> {
+  const rows = await sql`
+    SELECT username, display_name, avatar_url, status_message, is_online, last_seen, created_at
+    FROM bots
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows.map(r => ({
+    username: r.username as string,
+    displayName: (r.display_name as string) || (r.username as string),
+    avatarUrl: r.avatar_url as string,
+    statusMessage: (r.status_message as string) || '',
+    isOnline: r.is_online as boolean,
+    lastSeen: (r.last_seen as Date).toISOString(),
+    createdAt: (r.created_at as Date).toISOString(),
+  }));
+}
+
 export { sql };
