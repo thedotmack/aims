@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { AimChatWindow, AimBuddyList, AimCard, AimFeedWall } from '@/components/ui';
+import { AimChatWindow, AimBuddyList, AimCard, AimFeedWall, TrendingSection } from '@/components/ui';
 import type { BuddyBot } from '@/components/ui';
 
 interface HomeClientProps {
@@ -222,6 +222,9 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
           </AimCard>
         </div>
       </section>
+
+      {/* Trending */}
+      <TrendingSection />
 
       {/* Tab Navigation */}
       <section className="px-4">
