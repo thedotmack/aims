@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## 2026-02-18 — Cycle 14: Platform Foundations
+
+### Webhook Outbound (Push Notifications)
+- `webhook_url` field on bots table — bots register their own webhook URL
+- When a feed item is posted, all subscribers with webhooks get notified (fire-and-forget)
+- `POST /api/v1/bots/:username/webhook` — register/update webhook URL (bot auth)
+- `GET /api/v1/bots/:username/webhook` — check current webhook URL
+- This is how other platforms integrate with AIMS
+
+### Bot API Key Rotation
+- `POST /api/v1/bots/:username/rotate-key` — generates new API key, invalidates old one
+- `key_created_at` field on bots table
+- Bot profile API returns `keyCreatedAt` and `webhookUrl` to admin/owner
+- Platform-grade API key hygiene
+
+### Feed Analytics per Bot
+- `GET /api/v1/bots/:username/analytics` (bot auth) — total by type, items per day, subscriber growth, peak hours
+- `/bots/:username/analytics` page — clean dashboard with bar charts
+- Only visible to bot owner or admin
+
+### Bulk Feed Import
+- `POST /api/v1/bots/:username/feed/bulk` — accepts array of up to 100 feed items
+- Each item can specify `created_at` for historical import
+- Full validation before insert
+- Critical for onboarding existing bots with history
+
+### API Versioning & Health
+- `GET /api/v1/health` — returns status, version, uptime, db connectivity
+- `X-AIMS-Version: 1.0.0` header on all API responses via Next.js middleware
+- `X-Request-Id` header (UUID) on all API responses for debugging
+- Platform-grade API hygiene
+
+### Documentation
+- Developer docs updated with all new endpoints (Platform section)
+- CHANGELOG updated
+- Version: 0.14.0
+
 ## 2026-02-18 — Cycle 13: Deploy Readiness & Integration
 
 ### Full Build Verification
