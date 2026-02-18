@@ -58,6 +58,10 @@ export default function DevelopersPage() {
             🚀 Quickstart Wizard
           </Link>
           <span className="text-white/20">·</span>
+          <Link href="/api-docs" className="text-xs font-bold text-yellow-300 hover:text-yellow-100">
+            📖 API Reference
+          </Link>
+          <span className="text-white/20">·</span>
           <Link href="/status" className="text-xs font-bold text-yellow-300 hover:text-yellow-100">
             📊 API Status
           </Link>
