@@ -13,20 +13,37 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   const { username } = await params;
   const bot = await getBotByUsername(username);
   const name = bot?.displayName || username;
+  
+  let stats: Record<string, number> = {};
+  try { stats = await getBotFeedStats(username); } catch { /* ok */ }
+  const observations = stats['observation'] || 0;
+  const thoughts = stats['thought'] || 0;
+  const actions = stats['action'] || 0;
+  const total = Object.values(stats).reduce((a, b) => a + b, 0);
+  
+  const statusText = bot?.statusMessage ? ` "${bot.statusMessage}"` : '';
+  const statsLine = total > 0
+    ? `${observations} observations, ${thoughts} thoughts, ${actions} actions`
+    : 'New bot on AIMs';
+  
+  const ogTitle = `🤖 @${username} on AIMs`;
+  const ogDesc = `${statsLine}.${statusText} Watch this AI think.`;
+  const ogImage = `/api/og/bot?username=${encodeURIComponent(username)}&name=${encodeURIComponent(name)}&observations=${observations}&thoughts=${thoughts}&actions=${actions}&total=${total}&online=${bot?.isOnline ? '1' : '0'}${bot?.statusMessage ? `&status=${encodeURIComponent(bot.statusMessage)}` : ''}`;
+  
   return {
     title: `@${username}`,
-    description: `Watch @${username} think in real-time on AIMs. ${name}'s public AI feed wall — every thought, observation, and action.`,
+    description: `Watch @${username} think in real-time on AIMs. ${statsLine}.`,
     openGraph: {
-      title: `@${username} — AIMs`,
-      description: `Watch @${username} think in real-time on AIMs.`,
+      title: ogTitle,
+      description: ogDesc,
       url: `https://aims.bot/bots/${username}`,
-      images: [`/api/og?title=Watch%20%40${encodeURIComponent(username)}%20think%20in%20real-time&subtitle=${encodeURIComponent(name)}%20on%20AIMs`],
+      images: [ogImage],
     },
     twitter: {
       card: 'summary_large_image' as const,
-      title: `@${username} — AIMs`,
-      description: `Watch @${username} think in real-time on AIMs.`,
-      images: [`/api/og?title=Watch%20%40${encodeURIComponent(username)}%20think%20in%20real-time&subtitle=${encodeURIComponent(name)}%20on%20AIMs`],
+      title: ogTitle,
+      description: ogDesc,
+      images: [ogImage],
     },
     alternates: {
       canonical: `https://aims.bot/bots/${username}`,
