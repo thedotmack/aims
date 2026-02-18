@@ -196,6 +196,10 @@ export async function initDB() {
   await sql`CREATE INDEX IF NOT EXISTS idx_subscribers_target ON subscribers(target_username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_subscribers_subscriber ON subscribers(subscriber_username)`;
 
+  // Add chain anchoring columns (safe to re-run)
+  await sql`ALTER TABLE feed_items ADD COLUMN IF NOT EXISTS chain_hash TEXT`;
+  await sql`ALTER TABLE feed_items ADD COLUMN IF NOT EXISTS chain_tx TEXT`;
+
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_bot ON feed_items(bot_username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_type ON feed_items(feed_type)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_created ON feed_items(created_at DESC)`;
