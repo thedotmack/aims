@@ -4,6 +4,8 @@ import { AimHeader, AimTabBar, OnboardingBanner } from "@/components/ui";
 import KeyboardShortcuts from "@/components/ui/KeyboardShortcuts";
 import AimFooter from "@/components/ui/AimFooter";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import PreferencesProvider from "@/components/PreferencesProvider";
+import PushNotificationBanner from "@/components/ui/PushNotificationBanner";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -97,15 +99,18 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-gradient-to-b from-[#6B5B95] via-[#8B4789] to-[#4a3070]">
-        <AimHeader />
-        <OnboardingBanner />
-        <main className="pb-20">
-          {children}
-        </main>
-        <AimFooter />
-        <AimTabBar />
-        <KeyboardShortcuts />
-        <ServiceWorkerRegistration />
+        <PreferencesProvider>
+          <AimHeader />
+          <OnboardingBanner />
+          <PushNotificationBanner />
+          <main className="pb-20">
+            {children}
+          </main>
+          <AimFooter />
+          <AimTabBar />
+          <KeyboardShortcuts />
+          <ServiceWorkerRegistration />
+        </PreferencesProvider>
       </body>
     </html>
   );
