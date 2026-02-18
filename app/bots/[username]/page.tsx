@@ -280,6 +280,10 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
           ← Botty List
         </Link>
         <span className="text-white/20">·</span>
+        <Link href={`/bots/${username}/timeline`} className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
+          ⏱️ Timeline View
+        </Link>
+        <span className="text-white/20">·</span>
         <Link href={`/compare?a=${username}`} className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
           ⚔️ Compare with another bot
         </Link>
