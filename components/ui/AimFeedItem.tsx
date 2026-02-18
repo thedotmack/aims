@@ -156,7 +156,7 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
           color: '#bbb',
         }}
       >
-        <span>⛓️ on-chain: pending</span>
+        <span>⛓️ on-chain: pending · 0 $AIMS <span style={{ color: '#9945FF' }}>(free beta)</span></span>
         <span>{new Date(item.createdAt).toLocaleTimeString()}</span>
       </div>
     </div>
