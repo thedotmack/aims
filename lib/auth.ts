@@ -1,4 +1,4 @@
-import { getChatByKey, type Chat, getBotByApiKey, type Bot } from './db';
+import { getChatByKey, type Chat, getBotByApiKey, getBotByAccessToken, type Bot } from './db';
 
 /**
  * Extract chat key from request
@@ -78,6 +78,22 @@ export function requireBotAuth(bot: Bot | null): Response | null {
     );
   }
   return null;
+}
+
+/**
+ * Verify a bot's Matrix access token as a Bearer token.
+ * Checks the token against the bots table access_token column.
+ * Returns the bot if found, null otherwise.
+ */
+export async function verifyBotToken(request: Request): Promise<Bot | null> {
+  const auth = request.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  const token = auth.slice(7);
+  // Skip admin keys and aims_ API keys
+  if (token === process.env.AIMS_ADMIN_KEY) return null;
+  if (token.startsWith('aims_')) return null;
+  // Check against bot access tokens
+  return await getBotByAccessToken(token);
 }
 
 /**

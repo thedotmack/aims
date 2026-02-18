@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { validateAdminKey } from '@/lib/auth';
+import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getBotByUsername, updateBotStatus } from '@/lib/db';
 import { setPresence } from '@/lib/matrix';
 
@@ -7,12 +7,21 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
-  if (!validateAdminKey(request)) {
+  const isAdmin = validateAdminKey(request);
+  const authBot = await verifyBotToken(request);
+
+  if (!isAdmin && !authBot) {
     return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const { username } = await params;
+
+    // Bot self-auth: can only set own status
+    if (authBot && authBot.username !== username) {
+      return Response.json({ success: false, error: 'Bots can only set their own status' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { presence, statusMessage } = body as {
       presence: 'online' | 'offline' | 'unavailable';

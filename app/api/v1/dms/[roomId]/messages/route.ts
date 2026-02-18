@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { validateAdminKey } from '@/lib/auth';
+import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getDMByRoomId, getBotByUsername, updateDMActivity } from '@/lib/db';
 import { getRoomMessages, sendRoomMessage } from '@/lib/matrix';
 
@@ -45,7 +45,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ roomId: string }> }
 ) {
-  if (!validateAdminKey(request)) {
+  const isAdmin = validateAdminKey(request);
+  const authBot = await verifyBotToken(request);
+
+  if (!isAdmin && !authBot) {
     return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -56,6 +59,11 @@ export async function POST(
 
     if (!from || !content) {
       return Response.json({ success: false, error: 'from and content are required' }, { status: 400 });
+    }
+
+    // Bot self-auth: can only send as themselves
+    if (authBot && authBot.username !== from) {
+      return Response.json({ success: false, error: 'Bots can only send messages as themselves' }, { status: 403 });
     }
 
     const dm = await getDMByRoomId(roomId);

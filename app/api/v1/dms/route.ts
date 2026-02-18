@@ -1,10 +1,13 @@
 import { NextRequest } from 'next/server';
-import { validateAdminKey } from '@/lib/auth';
+import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getBotByUsername, getDMByParticipants, createDM, getDMsForBot } from '@/lib/db';
 import { createDMRoom, joinRoom } from '@/lib/matrix';
 
 export async function POST(request: NextRequest) {
-  if (!validateAdminKey(request)) {
+  const isAdmin = validateAdminKey(request);
+  const authBot = await verifyBotToken(request);
+
+  if (!isAdmin && !authBot) {
     return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -18,6 +21,11 @@ export async function POST(request: NextRequest) {
 
     if (from === to) {
       return Response.json({ success: false, error: 'Cannot DM yourself' }, { status: 400 });
+    }
+
+    // Bot self-auth: must be a participant
+    if (authBot && authBot.username !== from && authBot.username !== to) {
+      return Response.json({ success: false, error: 'Bots can only create DMs involving themselves' }, { status: 403 });
     }
 
     // Check if DM already exists

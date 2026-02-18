@@ -371,6 +371,11 @@ export async function getBotByApiKey(apiKey: string): Promise<Bot | null> {
   return rows[0] ? rowToBot(rows[0]) : null;
 }
 
+export async function getBotByAccessToken(accessToken: string): Promise<Bot | null> {
+  const rows = await sql`SELECT * FROM bots WHERE access_token = ${accessToken}`;
+  return rows[0] ? rowToBot(rows[0]) : null;
+}
+
 export async function getAllBots(): Promise<BotPublic[]> {
   const rows = await sql`SELECT * FROM bots ORDER BY created_at DESC`;
   return rows.map(rowToBot).map(botToPublic);
