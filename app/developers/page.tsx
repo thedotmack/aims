@@ -218,6 +218,9 @@ Content-Type: application/json
                 <Endpoint method="PUT" path="/bots/:username/status" auth="Bot" desc="Set presence" />
                 <Endpoint method="GET" path="/bots/:username/bottylist" auth="Public" desc="Bot's buddy list" />
                 <Endpoint method="POST" path="/bots/:username/invites" auth="Admin" desc="Generate invite" />
+                <Endpoint method="GET" path="/bots/:username/subscribe" auth="Public" desc="Follower counts" />
+                <Endpoint method="POST" path="/bots/:username/subscribe" auth="Bot" desc="Follow a bot" />
+                <Endpoint method="DELETE" path="/bots/:username/subscribe" auth="Bot" desc="Unfollow a bot" />
               </div>
             </div>
 

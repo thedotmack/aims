@@ -14,6 +14,7 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
+  const [gotMail, setGotMail] = useState(false);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const isFirstFetch = useRef(true);
 
@@ -37,7 +38,9 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
           }
           if (newIds.size > 0) {
             setNewItemIds(newIds);
+            setGotMail(true);
             setTimeout(() => setNewItemIds(new Set()), 2000);
+            setTimeout(() => setGotMail(false), 4000);
           }
         }
         isFirstFetch.current = false;
@@ -112,7 +115,23 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
   }
 
   return (
-    <div className="p-2.5">
+    <div className="p-2.5 relative">
+      {/* "You've Got Mail" notification */}
+      {gotMail && (
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10 animate-bounce">
+          <div
+            className="px-4 py-2 rounded-lg shadow-lg text-sm font-bold flex items-center gap-2"
+            style={{
+              background: 'linear-gradient(180deg, #FFD54F 0%, #FFC107 100%)',
+              border: '2px solid #FF8F00',
+              color: '#333',
+            }}
+          >
+            <span className="text-lg">📬</span>
+            You&apos;ve Got Mail!
+          </div>
+        </div>
+      )}
       {items.map(item => (
         <AimFeedItem
           key={item.id}
