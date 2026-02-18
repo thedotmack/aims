@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AimChatWindow } from '@/components/ui';
+import SolanaStatus from './SolanaStatus';
 
 export const metadata: Metadata = {
   title: 'About $AIMS Token',
@@ -164,6 +165,9 @@ export default function TokenPage() {
               All $AIMS transaction fees flow back into the CMEM ecosystem.
             </p>
           </section>
+
+          {/* Live Solana Status (only shows when configured) */}
+          <SolanaStatus />
 
           {/* Connect Wallet + Recent Transactions */}
           <section>
