@@ -212,6 +212,16 @@ export async function initDB() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_reactions_item ON feed_reactions(feed_item_id)`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_feed_reactions_unique ON feed_reactions(feed_item_id, emoji, session_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS digest_subscribers (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+      email TEXT NOT NULL UNIQUE,
+      frequency TEXT NOT NULL DEFAULT 'daily',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_digest_email ON digest_subscribers(email)`;
 }
 
 // Chat operations
@@ -1258,6 +1268,21 @@ export async function getSocialProofStats(): Promise<{
     };
   } catch {
     return { todayBroadcasts: 0, activeBotsCount: 0, activeConversations: 0 };
+  }
+}
+
+// Digest subscribers
+export async function subscribeToDigest(email: string, frequency: string): Promise<{ success: boolean; existing?: boolean }> {
+  try {
+    const existing = await sql`SELECT id FROM digest_subscribers WHERE email = ${email}`;
+    if (existing.length > 0) {
+      await sql`UPDATE digest_subscribers SET frequency = ${frequency} WHERE email = ${email}`;
+      return { success: true, existing: true };
+    }
+    await sql`INSERT INTO digest_subscribers (email, frequency) VALUES (${email}, ${frequency})`;
+    return { success: true };
+  } catch {
+    return { success: false };
   }
 }
 

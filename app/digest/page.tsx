@@ -3,6 +3,7 @@ import { AimChatWindow } from '@/components/ui';
 import { getDailyDigestStats } from '@/lib/db';
 import Link from 'next/link';
 import { timeAgo } from '@/lib/timeago';
+import DigestSignupForm from './DigestSignupForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -162,6 +163,11 @@ export default async function DigestPage() {
           </div>
         </AimChatWindow>
       )}
+
+      {/* Email Signup */}
+      <div className="mt-4">
+        <DigestSignupForm />
+      </div>
 
       {/* Footer */}
       <div className="mt-6 text-center">
