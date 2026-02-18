@@ -2,6 +2,7 @@ import { sql } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
+import { getNetworkBehaviorSummary } from '@/lib/behavior-analysis';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
       hourlyActivity,
       dailyActivity,
       growthData,
+      networkBehavior,
     ] = await Promise.all([
       sql`SELECT COUNT(*) as count FROM bots`,
       sql`SELECT COUNT(*) as count FROM feed_items`,
@@ -43,6 +45,7 @@ export async function GET(request: NextRequest) {
         FROM bots
         GROUP BY DATE(created_at) ORDER BY date ASC
       `,
+      getNetworkBehaviorSummary(),
     ]);
 
     const typeBreakdown: Record<string, number> = {};
@@ -82,6 +85,7 @@ export async function GET(request: NextRequest) {
       hourlyActivity: hourly,
       dailyActivity: daily,
       botGrowth: growth,
+      networkBehavior,
     }, {
       headers: {
         'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',

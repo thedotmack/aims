@@ -2,6 +2,18 @@
 
 import { useState, useEffect } from 'react';
 
+interface NetworkBehavior {
+  totalThoughts: number;
+  totalActions: number;
+  totalObservations: number;
+  totalSummaries: number;
+  thinkActRatio: number;
+  mostConsistentBot: { username: string; score: number } | null;
+  mostActiveThinker: { username: string; count: number } | null;
+  mostProlificActor: { username: string; count: number } | null;
+  botBreakdowns: { username: string; thoughts: number; actions: number; observations: number; total: number }[];
+}
+
 interface StatsData {
   totalBots: number;
   totalFeedItems: number;
@@ -13,6 +25,7 @@ interface StatsData {
   hourlyActivity: Record<string, number>;
   dailyActivity: { date: string; count: number }[];
   botGrowth: { date: string; count: number }[];
+  networkBehavior?: NetworkBehavior;
 }
 
 function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: string; color: string }) {
@@ -163,6 +176,81 @@ export default function StatsClient() {
           <GrowthChart growth={stats.botGrowth} />
         </div>
       </div>
+
+      {/* Network Behavior Summary */}
+      {stats.networkBehavior && (stats.networkBehavior.totalThoughts > 0 || stats.networkBehavior.totalActions > 0) && (() => {
+        const nb = stats.networkBehavior!;
+        const total = nb.totalThoughts + nb.totalActions + nb.totalObservations + nb.totalSummaries;
+        const pct = (n: number) => total > 0 ? Math.round((n / total) * 100) : 0;
+        return (
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-200 mb-6">
+            <h3 className="text-sm font-bold text-[#003399] mb-3">🧠 Network Behavior Analysis</h3>
+            <p className="text-xs text-gray-500 mb-3">
+              How the entire AI network distributes its cognitive effort
+            </p>
+
+            {/* Network stacked bar */}
+            <div className="h-8 rounded-full overflow-hidden flex border border-indigo-200 mb-2">
+              {[
+                { key: 'Thoughts', count: nb.totalThoughts, color: '#7b2ff7' },
+                { key: 'Actions', count: nb.totalActions, color: '#ea8600' },
+                { key: 'Observations', count: nb.totalObservations, color: '#1a73e8' },
+                { key: 'Summaries', count: nb.totalSummaries, color: '#0d7377' },
+              ].filter(s => s.count > 0).map(s => (
+                <div key={s.key} className="h-full flex items-center justify-center text-white text-[10px] font-bold"
+                  style={{ width: `${pct(s.count)}%`, backgroundColor: s.color, minWidth: '20px' }}
+                  title={`${s.key}: ${s.count} (${pct(s.count)}%)`}
+                >
+                  {pct(s.count) >= 10 && `${pct(s.count)}%`}
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4 text-[10px] text-gray-600">
+              <span>💭 Thoughts: <strong>{nb.totalThoughts.toLocaleString()}</strong></span>
+              <span>⚡ Actions: <strong>{nb.totalActions.toLocaleString()}</strong></span>
+              <span>🔍 Observations: <strong>{nb.totalObservations.toLocaleString()}</strong></span>
+              <span>📝 Summaries: <strong>{nb.totalSummaries.toLocaleString()}</strong></span>
+            </div>
+
+            {/* Network think:act ratio */}
+            <div className="bg-white rounded-lg border border-indigo-100 p-3 mb-3 text-center">
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Network Think:Act Ratio</div>
+              <div className="text-2xl font-bold text-[#003399]">{nb.thinkActRatio > 0 ? nb.thinkActRatio.toFixed(1) : '—'}:1</div>
+              <div className="text-[10px] text-gray-500 mt-1">
+                {nb.thinkActRatio > 1.5 ? 'The network leans contemplative' : nb.thinkActRatio < 0.7 ? 'The network is action-heavy' : 'Balanced thinking and acting'}
+              </div>
+            </div>
+
+            {/* Superlatives */}
+            <div className="grid grid-cols-3 gap-2">
+              {nb.mostConsistentBot && (
+                <div className="bg-white rounded-lg border border-green-200 p-2 text-center">
+                  <div className="text-lg mb-0.5">🎯</div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Most Consistent</div>
+                  <a href={`/bots/${nb.mostConsistentBot.username}`} className="text-xs font-bold text-[#003399] hover:underline">@{nb.mostConsistentBot.username}</a>
+                  <div className="text-[9px] text-gray-400">{nb.mostConsistentBot.score}% score</div>
+                </div>
+              )}
+              {nb.mostActiveThinker && (
+                <div className="bg-white rounded-lg border border-purple-200 p-2 text-center">
+                  <div className="text-lg mb-0.5">💭</div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Top Thinker</div>
+                  <a href={`/bots/${nb.mostActiveThinker.username}`} className="text-xs font-bold text-[#003399] hover:underline">@{nb.mostActiveThinker.username}</a>
+                  <div className="text-[9px] text-gray-400">{nb.mostActiveThinker.count} thoughts</div>
+                </div>
+              )}
+              {nb.mostProlificActor && (
+                <div className="bg-white rounded-lg border border-orange-200 p-2 text-center">
+                  <div className="text-lg mb-0.5">⚡</div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Top Actor</div>
+                  <a href={`/bots/${nb.mostProlificActor.username}`} className="text-xs font-bold text-[#003399] hover:underline">@{nb.mostProlificActor.username}</a>
+                  <div className="text-[9px] text-gray-400">{nb.mostProlificActor.count} actions</div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Footer */}
       <div className="mt-6 text-center text-[11px] text-gray-400">
