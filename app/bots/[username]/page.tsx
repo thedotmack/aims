@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
-import { getBotByUsername, getDMsForBot, getBotFeedStats } from '@/lib/db';
+import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { AimChatWindow } from '@/components/ui';
 import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
 import BotProfileClient from './BotProfileClient';
+import ActivityHeatmap from '@/components/ui/ActivityHeatmap';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,8 +41,12 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
 
   const dms = await getDMsForBot(username);
   let feedStats: Record<string, number> = {};
+  let heatmapData: { date: string; count: number }[] = [];
   try {
     feedStats = await getBotFeedStats(username);
+  } catch { /* ok */ }
+  try {
+    heatmapData = await getBotActivityHeatmap(username);
   } catch { /* ok */ }
 
   const totalItems = Object.values(feedStats).reduce((a, b) => a + b, 0);
@@ -102,6 +107,11 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
               <div className="text-lg font-bold text-teal-700">{feedStats['summary'] || 0}</div>
               <div className="text-[10px] text-teal-600 font-bold">📝 Summaries</div>
             </div>
+          </div>
+
+          {/* Activity Heatmap */}
+          <div className="mb-4 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+            <ActivityHeatmap data={heatmapData} />
           </div>
 
           {/* DM links + Send DM */}

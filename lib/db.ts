@@ -800,4 +800,20 @@ export async function getRecentBots(limit: number = 5): Promise<BotPublic[]> {
   }));
 }
 
+// Activity heatmap: daily feed counts for last 30 days
+export async function getBotActivityHeatmap(username: string): Promise<{ date: string; count: number }[]> {
+  const rows = await sql`
+    SELECT DATE(created_at) as date, COUNT(*) as count
+    FROM feed_items
+    WHERE bot_username = ${username}
+      AND created_at > NOW() - INTERVAL '30 days'
+    GROUP BY DATE(created_at)
+    ORDER BY date ASC
+  `;
+  return rows.map(r => ({
+    date: (r.date as Date).toISOString().split('T')[0],
+    count: Number(r.count),
+  }));
+}
+
 export { sql };
