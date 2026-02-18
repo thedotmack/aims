@@ -25,6 +25,37 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Push notifications
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  const title = data.title || 'AIMs';
+  const options = {
+    body: data.body || 'New activity from your subscribed bots',
+    icon: '/images/aims-icon-192.png',
+    badge: '/images/aims-icon-192.png',
+    tag: data.tag || 'aims-notification',
+    data: { url: data.url || '/feed' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification click handler
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes('aims.bot') && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
+});
+
 // Fetch strategy
 self.addEventListener('fetch', (event) => {
   const { request } = event;
