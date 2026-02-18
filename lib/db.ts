@@ -122,6 +122,8 @@ export async function initDB() {
       status_message TEXT DEFAULT '',
       is_online BOOLEAN DEFAULT FALSE,
       api_key TEXT UNIQUE NOT NULL,
+      webhook_url TEXT,
+      key_created_at TIMESTAMPTZ DEFAULT NOW(),
       ip_address TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       last_seen TIMESTAMPTZ DEFAULT NOW()
@@ -392,6 +394,8 @@ export interface Bot {
   statusMessage: string;
   isOnline: boolean;
   apiKey: string;
+  webhookUrl: string | null;
+  keyCreatedAt: string;
   createdAt: string;
   lastSeen: string;
 }
@@ -414,6 +418,8 @@ function rowToBot(row: Record<string, unknown>): Bot {
     statusMessage: (row.status_message as string) || '',
     isOnline: (row.is_online as boolean) || false,
     apiKey: (row.api_key as string) || '',
+    webhookUrl: (row.webhook_url as string) || null,
+    keyCreatedAt: (row.key_created_at as Date)?.toISOString() || '',
     createdAt: (row.created_at as Date)?.toISOString() || '',
     lastSeen: (row.last_seen as Date)?.toISOString() || '',
   };
@@ -972,6 +978,92 @@ export async function getTopBotUsername(): Promise<string | null> {
     GROUP BY bot_username ORDER BY total DESC LIMIT 1
   `;
   return rows[0] ? (rows[0].bot_username as string) : null;
+}
+
+// Webhook outbound
+export async function updateBotWebhookUrl(username: string, webhookUrl: string | null): Promise<void> {
+  await sql`UPDATE bots SET webhook_url = ${webhookUrl} WHERE username = ${username}`;
+}
+
+export async function getSubscribersWithWebhooks(targetUsername: string): Promise<{ subscriberUsername: string; webhookUrl: string }[]> {
+  const rows = await sql`
+    SELECT s.subscriber_username, b.webhook_url
+    FROM subscribers s
+    JOIN bots b ON b.username = s.subscriber_username
+    WHERE s.target_username = ${targetUsername} AND b.webhook_url IS NOT NULL AND b.webhook_url != ''
+  `;
+  return rows.map(r => ({
+    subscriberUsername: r.subscriber_username as string,
+    webhookUrl: r.webhook_url as string,
+  }));
+}
+
+// Fire webhooks (fire-and-forget)
+export function fireWebhooks(botUsername: string, item: FeedItem): void {
+  getSubscribersWithWebhooks(botUsername).then(subs => {
+    for (const sub of subs) {
+      fetch(sub.webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'new_feed_item', bot: botUsername, item }),
+      }).catch(() => { /* fire and forget */ });
+    }
+  }).catch(() => { /* ignore */ });
+}
+
+// Rotate API key
+export async function rotateApiKey(username: string, newApiKey: string): Promise<void> {
+  await sql`UPDATE bots SET api_key = ${newApiKey}, key_created_at = NOW() WHERE username = ${username}`;
+}
+
+// Analytics queries
+export async function getBotAnalytics(username: string): Promise<{
+  totalByType: Record<string, number>;
+  itemsPerDay: { date: string; count: number }[];
+  subscriberGrowth: { date: string; count: number }[];
+  peakHours: { hour: number; count: number }[];
+}> {
+  const [typeRows, dailyRows, subRows, hourRows] = await Promise.all([
+    sql`SELECT feed_type, COUNT(*) as count FROM feed_items WHERE bot_username = ${username} GROUP BY feed_type`,
+    sql`SELECT DATE(created_at) as date, COUNT(*) as count FROM feed_items WHERE bot_username = ${username} AND created_at > NOW() - INTERVAL '30 days' GROUP BY DATE(created_at) ORDER BY date`,
+    sql`SELECT DATE(created_at) as date, COUNT(*) as count FROM subscribers WHERE target_username = ${username} GROUP BY DATE(created_at) ORDER BY date`,
+    sql`SELECT EXTRACT(HOUR FROM created_at)::int as hour, COUNT(*) as count FROM feed_items WHERE bot_username = ${username} GROUP BY hour ORDER BY hour`,
+  ]);
+
+  const totalByType: Record<string, number> = {};
+  for (const r of typeRows) totalByType[r.feed_type as string] = Number(r.count);
+
+  return {
+    totalByType,
+    itemsPerDay: dailyRows.map(r => ({ date: (r.date as Date).toISOString().split('T')[0], count: Number(r.count) })),
+    subscriberGrowth: subRows.map(r => ({ date: (r.date as Date).toISOString().split('T')[0], count: Number(r.count) })),
+    peakHours: hourRows.map(r => ({ hour: Number(r.hour), count: Number(r.count) })),
+  };
+}
+
+// Bulk create feed items
+export async function bulkCreateFeedItems(
+  botUsername: string,
+  items: { type: string; title: string; content: string; metadata?: Record<string, unknown>; created_at?: string }[]
+): Promise<FeedItem[]> {
+  const results: FeedItem[] = [];
+  for (const item of items) {
+    const id = generateId('feed');
+    if (item.created_at) {
+      await sql`
+        INSERT INTO feed_items (id, bot_username, feed_type, title, content, metadata, created_at)
+        VALUES (${id}, ${botUsername}, ${item.type}, ${item.title || ''}, ${item.content}, ${JSON.stringify(item.metadata || {})}, ${item.created_at})
+      `;
+    } else {
+      await sql`
+        INSERT INTO feed_items (id, bot_username, feed_type, title, content, metadata)
+        VALUES (${id}, ${botUsername}, ${item.type}, ${item.title || ''}, ${item.content}, ${JSON.stringify(item.metadata || {})})
+      `;
+    }
+    const rows = await sql`SELECT * FROM feed_items WHERE id = ${id}`;
+    results.push(rowToFeedItem(rows[0]));
+  }
+  return results;
 }
 
 export { sql };

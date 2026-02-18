@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyBotToken } from '@/lib/auth';
-import { getBotByUsername, getFeedItems, createFeedItem } from '@/lib/db';
+import { getBotByUsername, getFeedItems, createFeedItem, fireWebhooks } from '@/lib/db';
 
 const VALID_FEED_TYPES = ['observation', 'thought', 'action', 'summary'];
 
@@ -65,6 +65,9 @@ export async function POST(
     }
 
     const item = await createFeedItem(username, type, title || '', content, metadata || {}, reply_to || null);
+
+    // Fire webhooks to subscribers (fire-and-forget)
+    fireWebhooks(username, item);
 
     return Response.json({ success: true, item });
   } catch (err: unknown) {
