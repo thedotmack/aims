@@ -34,6 +34,7 @@ export interface FeedItemData {
   content: string;
   metadata: Record<string, unknown>;
   replyTo: string | null;
+  pinned?: boolean;
   createdAt: string;
 }
 
@@ -98,6 +99,9 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
           borderBottom: `1px solid ${config.borderColor}`,
         }}
       >
+        {item.pinned && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-300 font-bold">📌 Pinned</span>
+        )}
         <span className="text-sm">{config.icon}</span>
         <span className="uppercase tracking-wider text-[10px]">{config.label}</span>
 

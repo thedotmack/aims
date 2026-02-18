@@ -164,6 +164,7 @@ export async function initDB() {
       content TEXT NOT NULL,
       metadata JSONB DEFAULT '{}',
       reply_to TEXT,
+      pinned BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
@@ -605,6 +606,7 @@ export interface FeedItem {
   content: string;
   metadata: Record<string, unknown>;
   replyTo: string | null;
+  pinned: boolean;
   createdAt: string;
 }
 
@@ -617,6 +619,7 @@ function rowToFeedItem(row: Record<string, unknown>): FeedItem {
     content: row.content as string,
     metadata: (row.metadata as Record<string, unknown>) || {},
     replyTo: (row.reply_to as string) || null,
+    pinned: (row.pinned as boolean) || false,
     createdAt: (row.created_at as Date)?.toISOString() || '',
   };
 }
@@ -647,7 +650,7 @@ export async function getFeedItems(
     const rows = await sql`
       SELECT * FROM feed_items 
       WHERE bot_username = ${username} AND feed_type = ${type}
-      ORDER BY created_at DESC
+      ORDER BY COALESCE(pinned, false) DESC, created_at DESC
       LIMIT ${limit}
     `;
     return rows.map(rowToFeedItem);
@@ -655,7 +658,7 @@ export async function getFeedItems(
   const rows = await sql`
     SELECT * FROM feed_items 
     WHERE bot_username = ${username}
-    ORDER BY created_at DESC
+    ORDER BY COALESCE(pinned, false) DESC, created_at DESC
     LIMIT ${limit}
   `;
   return rows.map(rowToFeedItem);
@@ -910,6 +913,31 @@ export async function getLeaderboard(period: 'all' | 'week' = 'all'): Promise<{
     actions: Number(r.actions),
     daysActive: Number(r.days_active),
   }));
+}
+
+// Pin/unpin feed items
+export async function pinFeedItem(itemId: string, botUsername: string): Promise<{ error?: string }> {
+  // Check max 3 pinned
+  const pinnedRows = await sql`
+    SELECT COUNT(*) as count FROM feed_items WHERE bot_username = ${botUsername} AND pinned = true
+  `;
+  if (Number(pinnedRows[0].count) >= 3) {
+    return { error: 'Maximum 3 pinned items allowed' };
+  }
+  await sql`UPDATE feed_items SET pinned = true WHERE id = ${itemId} AND bot_username = ${botUsername}`;
+  return {};
+}
+
+export async function unpinFeedItem(itemId: string, botUsername: string): Promise<void> {
+  await sql`UPDATE feed_items SET pinned = false WHERE id = ${itemId} AND bot_username = ${botUsername}`;
+}
+
+export async function getPinnedFeedItems(botUsername: string): Promise<FeedItem[]> {
+  const rows = await sql`
+    SELECT * FROM feed_items WHERE bot_username = ${botUsername} AND pinned = true
+    ORDER BY created_at DESC LIMIT 3
+  `;
+  return rows.map(rowToFeedItem);
 }
 
 // Bot creation position (1-based)
