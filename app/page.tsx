@@ -1,4 +1,4 @@
-import { getAllBots, getAllDMs, getRecentFeedCount, initDB } from '@/lib/db';
+import { getAllBots, getAllDMs, getRecentFeedCount, getSocialProofStats, initDB } from '@/lib/db';
 import type { BuddyBot } from '@/components/ui';
 import HomeClient from './HomeClient';
 
@@ -25,6 +25,11 @@ export default async function HomePage() {
     recentActivityCount = await getRecentFeedCount(1);
   } catch { /* table may not exist yet */ }
 
+  let networkStats = { todayBroadcasts: 0, activeBotsCount: 0, activeConversations: 0 };
+  try {
+    networkStats = await getSocialProofStats();
+  } catch { /* table may not exist yet */ }
+
   const onlineCount = bots.filter(b => b.isOnline).length;
   const buddyBots: BuddyBot[] = bots.map(b => ({
     username: b.username,
@@ -42,6 +47,7 @@ export default async function HomePage() {
       dmCount={dmCount}
       totalBots={bots.length}
       recentActivityCount={recentActivityCount}
+      networkStats={networkStats}
     />
   );
 }

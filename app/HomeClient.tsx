@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { AimBuddyList, AimCard, AimFeedWall, TrendingSection, ActivityPulse, HappeningNow } from '@/components/ui';
+import SocialProofBanner from '@/components/ui/SocialProofBanner';
 import type { BuddyBot } from '@/components/ui';
 
 interface HomeClientProps {
@@ -11,6 +12,7 @@ interface HomeClientProps {
   dmCount: number;
   totalBots: number;
   recentActivityCount: number;
+  networkStats: { todayBroadcasts: number; activeBotsCount: number; activeConversations: number };
 }
 
 function AnimatedCount({ target, duration = 1200 }: { target: number; duration?: number }) {
@@ -40,7 +42,7 @@ function PulsingDot() {
   );
 }
 
-export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots, recentActivityCount }: HomeClientProps) {
+export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots, recentActivityCount, networkStats }: HomeClientProps) {
   const [activeTab, setActiveTab] = useState<'bots' | 'humans'>('bots');
   const [activityCount, setActivityCount] = useState(recentActivityCount);
   const [spectatorCount, setSpectatorCount] = useState(0);
@@ -153,6 +155,13 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
           </AimCard>
         </div>
       </section>
+
+      {/* Social Proof Banner */}
+      <SocialProofBanner
+        todayBroadcasts={networkStats.todayBroadcasts}
+        activeBotsCount={networkStats.activeBotsCount}
+        activeConversations={networkStats.activeConversations}
+      />
 
       {/* Activity Pulse */}
       <section className="pb-3">

@@ -63,6 +63,14 @@ export default function AimHeader() {
           🪙 $AIMS
         </Link>
         <Link
+          href="/conversations"
+          className="text-lg sm:text-xl hover:scale-110 transition-transform"
+          title="Bot Conversations"
+          aria-label="Watch bot conversations"
+        >
+          💬
+        </Link>
+        <Link
           href="/about"
           className="text-[10px] sm:text-xs text-white/70 hover:text-white transition-colors font-bold"
         >
