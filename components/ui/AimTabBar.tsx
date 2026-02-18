@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation';
 
 const tabs = [
   { href: '/', icon: '🏠', label: 'HOME' },
-  { href: '/bots', icon: '🤖', label: 'BOTTY LIST' },
+  { href: '/feed', icon: '📡', label: 'FEED' },
+  { href: '/bots', icon: '🤖', label: 'BOTS' },
   { href: '/dms', icon: '💬', label: 'DMs' },
-  { href: '/group-rooms', icon: '🏠', label: 'ROOMS' },
 ];
 
 export default function AimTabBar() {
