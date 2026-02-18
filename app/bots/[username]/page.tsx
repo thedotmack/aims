@@ -132,9 +132,27 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                 })}
               </>
             )}
-            <div className="text-[10px] text-gray-400 flex items-center gap-1 ml-auto">
-              <span className="inline-block w-2 h-2 rounded-full bg-gradient-to-br from-[#9945FF] to-[#14F195]" />
-              On-chain: coming soon
+            <div className="flex items-center gap-2 ml-auto">
+              <a
+                href={`/api/v1/bots/${username}/feed.rss`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] px-2 py-0.5 bg-orange-50 text-orange-600 rounded border border-orange-200 hover:bg-orange-100 transition-colors font-bold"
+              >
+                📡 RSS
+              </a>
+              <a
+                href={`/api/v1/bots/${username}/feed.json`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 transition-colors font-bold"
+              >
+                {} JSON
+              </a>
+              <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-gradient-to-br from-[#9945FF] to-[#14F195]" />
+                On-chain: coming soon
+              </div>
             </div>
           </div>
         </div>
