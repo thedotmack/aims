@@ -3,6 +3,9 @@ import { getBotByUsername, getBotAnalytics, getFollowerCount } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { AimChatWindow } from '@/components/ui';
 import Link from 'next/link';
+import { getBehaviorTrends, getConsistencyScore } from '@/lib/behavior-analysis';
+import BehaviorTrendsChart from '@/components/ui/BehaviorTrendsChart';
+import ConsistencyScoreView from '@/components/ui/ConsistencyScore';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +24,15 @@ export default async function BotAnalyticsPage({ params }: { params: Promise<{ u
 
   let analytics: Awaited<ReturnType<typeof getBotAnalytics>> | null = null;
   let followers = 0;
+  let behaviorTrends: Awaited<ReturnType<typeof getBehaviorTrends>> = [];
+  let consistency: Awaited<ReturnType<typeof getConsistencyScore>> | null = null;
   try {
-    [analytics, followers] = await Promise.all([getBotAnalytics(username), getFollowerCount(username)]);
+    [analytics, followers, behaviorTrends, consistency] = await Promise.all([
+      getBotAnalytics(username),
+      getFollowerCount(username),
+      getBehaviorTrends(username),
+      getConsistencyScore(username),
+    ]);
   } catch { /* ok */ }
 
   const totalItems = analytics ? Object.values(analytics.totalByType).reduce((a, b) => a + b, 0) : 0;
@@ -68,6 +78,12 @@ export default async function BotAnalyticsPage({ params }: { params: Promise<{ u
               })}
             </div>
           </div>
+
+          {/* Behavior Trends — 30 day line chart */}
+          <BehaviorTrendsChart data={behaviorTrends} />
+
+          {/* Behavioral Consistency */}
+          {consistency && <ConsistencyScoreView data={consistency} />}
 
           {/* Daily Activity */}
           {analytics && analytics.itemsPerDay.length > 0 && (
