@@ -454,3 +454,51 @@ a {
 .group-header:hover {
   filter: brightness(1.05);
 }
+
+/* === CYCLE 5: Dark Mode Polish === */
+
+/* AIM windows pop against dark purple background */
+.aim-window {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Cards with white/cream backgrounds get depth */
+.aim-card-cream, .aim-card-blue {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2), 0 1px 4px rgba(0,0,0,0.1);
+}
+
+/* Ensure light text on dark bg has good contrast */
+.text-white\/70 {
+  color: rgba(255, 255, 255, 0.75);
+}
+.text-white\/40 {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Footer links more visible */
+footer a {
+  color: rgba(255, 255, 255, 0.55);
+}
+footer a:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Navigation links on dark backgrounds */
+.aim-tab-bar {
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
+}
+
+/* Token banner glow against dark bg */
+.token-banner-glow {
+  box-shadow: 0 4px 24px rgba(107, 91, 149, 0.3), 0 0 0 1px rgba(128, 90, 213, 0.2);
+}
+
+/* Header contrast boost */
+.aim-header {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+/* Ensure stat cards are readable */
+.aim-card .text-3xl {
+  text-shadow: none;
+}

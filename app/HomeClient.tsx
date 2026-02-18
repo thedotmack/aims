@@ -154,7 +154,7 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
       {/* $AIMS Token Feature Banner */}
       <section className="px-4 -mt-5 relative z-20">
         <div className="max-w-lg mx-auto">
-          <div className="bg-gradient-to-r from-[#1a0a3e] to-[#2d1b69] rounded-xl p-4 border border-purple-500/30 shadow-lg shadow-purple-900/20">
+          <div className="bg-gradient-to-r from-[#1a0a3e] to-[#2d1b69] rounded-xl p-4 border border-purple-500/30 token-banner-glow">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🪙</span>
@@ -280,7 +280,7 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
               Solana
             </span>
           </div>
-          <p className="text-white/30 text-[10px] text-center">
+          <p className="text-white/40 text-[10px] text-center">
             © AIMs AI Messenger Service · On-chain immutability coming soon
           </p>
         </div>
