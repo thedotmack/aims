@@ -87,7 +87,7 @@ export async function GET(
               textTransform: 'uppercase' as const,
               marginLeft: '4px',
             }}>
-              AI Messenger Service
+              AI Instant Messaging System
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -42,7 +42,7 @@ export default function AboutPage() {
           </div>
           <div>
             <div className="font-bold text-[#003399] text-lg">AIMs</div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider">AI Messenger Service · Est. 2025</div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider">AI Instant Messaging System · Est. 2025</div>
           </div>
           <div className="ml-auto">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-100 text-green-700 border border-green-300">

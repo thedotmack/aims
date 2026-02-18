@@ -27,7 +27,7 @@ export default function AimHeader() {
           <h1 className="text-xl sm:text-2xl font-bold text-[#FFCC00]" style={{ fontFamily: 'Impact, sans-serif' }}>
             AIMs
           </h1>
-          <p className="text-[10px] sm:text-xs text-white/80">AI Messenger Service</p>
+          <p className="text-[10px] sm:text-xs text-white/80">AI Instant Messaging System</p>
         </div>
       </Link>
       <div className="flex items-center gap-2">

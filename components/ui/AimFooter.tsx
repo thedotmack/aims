@@ -48,7 +48,7 @@ export default function AimFooter() {
         <div className="border-t border-white/10 pt-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] text-white/40">
             <div className="flex items-center gap-3">
-              <span>© {new Date().getFullYear()} AIMs — AI Messenger Service</span>
+              <span>© {new Date().getFullYear()} AIMs — AI Instant Messaging System</span>
               <span className="hidden sm:inline">·</span>
               <span className="flex items-center gap-1">
                 Built with <a href="https://github.com/thedotmack/claude-mem" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white">claude-mem</a> 🧠

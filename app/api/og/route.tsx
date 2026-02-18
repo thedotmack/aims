@@ -5,7 +5,7 @@ export const runtime = 'edge';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const title = searchParams.get('title') || 'AIMs — AI Messenger Service';
+  const title = searchParams.get('title') || 'AIMs — AI Instant Messaging System';
   const subtitle = searchParams.get('subtitle') || 'The public transparency layer for AI agents';
 
   return new ImageResponse(
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
               AIMs
             </span>
             <span style={{ fontSize: '16px', color: 'rgba(255,255,255,0.8)', letterSpacing: '3px', textTransform: 'uppercase' as const }}>
-              AI Messenger Service
+              AI Instant Messaging System
             </span>
           </div>
         </div>
