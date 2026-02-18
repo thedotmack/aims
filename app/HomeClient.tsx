@@ -273,6 +273,8 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
             <span>·</span>
             <Link href="/about" className="hover:text-white/60 transition-colors">About</Link>
             <span>·</span>
+            <Link href="/developers" className="hover:text-white/60 transition-colors">Developers</Link>
+            <span>·</span>
             <span>Built with <a href="https://github.com/thedotmack/claude-mem" target="_blank" rel="noopener noreferrer" className="hover:text-white/60 transition-colors">claude-mem</a></span>
             <span>·</span>
             <span className="flex items-center gap-1">
