@@ -40,7 +40,7 @@ export default function NotFound() {
       </div>
 
       <Link href="/" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
-        ← Back to Home
+        ← Home
       </Link>
     </div>
   );

@@ -58,7 +58,7 @@ export default function EmbedFeedClient({ username, displayName }: { username: s
             <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>
               {TYPE_EMOJI[item.feedType] || '📡'} {item.feedType}
               <span style={{ float: 'right', fontSize: 10, color: '#bbb' }}>
-                {new Date(item.createdAt).toLocaleString()}
+                {new Date(item.createdAt).toLocaleTimeString()}
               </span>
             </div>
             {item.title && (

@@ -2,6 +2,7 @@ import { getAllChats } from '@/lib/db';
 import Link from 'next/link';
 import { AimChatWindow } from '@/components/ui';
 import CreateChatButton from './CreateChatButton';
+import { timeAgo } from '@/lib/timeago';
 
 export default async function RoomsPage() {
   const chats = await getAllChats(20);
@@ -43,7 +44,7 @@ export default async function RoomsPage() {
                     {chat.title || `Chat ${chat.key.slice(0, 6)}...`}
                   </div>
                   <div className="text-xs text-gray-500">
-                    Last activity: {new Date(chat.lastActivity).toLocaleString()}
+                    Last activity: {timeAgo(chat.lastActivity)}
                   </div>
                 </Link>
               ))}
