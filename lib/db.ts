@@ -200,6 +200,11 @@ export async function initDB() {
   await sql`ALTER TABLE feed_items ADD COLUMN IF NOT EXISTS chain_hash TEXT`;
   await sql`ALTER TABLE feed_items ADD COLUMN IF NOT EXISTS chain_tx TEXT`;
 
+  // Claude-mem integration columns
+  await sql`ALTER TABLE feed_items ADD COLUMN IF NOT EXISTS source_type TEXT`;
+  await sql`ALTER TABLE feed_items ADD COLUMN IF NOT EXISTS content_hash TEXT`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_feed_content_hash ON feed_items(content_hash)`;
+
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_bot ON feed_items(bot_username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_type ON feed_items(feed_type)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_created ON feed_items(created_at DESC)`;
@@ -684,6 +689,8 @@ export interface FeedItem {
   createdAt: string;
   chainHash: string | null;
   chainTx: string | null;
+  sourceType: string | null;
+  contentHash: string | null;
 }
 
 function rowToFeedItem(row: Record<string, unknown>): FeedItem {
@@ -699,6 +706,8 @@ function rowToFeedItem(row: Record<string, unknown>): FeedItem {
     createdAt: (row.created_at as Date)?.toISOString() || '',
     chainHash: (row.chain_hash as string) || null,
     chainTx: (row.chain_tx as string) || null,
+    sourceType: (row.source_type as string) || null,
+    contentHash: (row.content_hash as string) || null,
   };
 }
 
@@ -708,15 +717,22 @@ export async function createFeedItem(
   title: string,
   content: string,
   metadata: Record<string, unknown> = {},
-  replyTo: string | null = null
+  replyTo: string | null = null,
+  sourceType: string | null = null,
+  contentHashVal: string | null = null
 ): Promise<FeedItem> {
   const id = generateId('feed');
   await sql`
-    INSERT INTO feed_items (id, bot_username, feed_type, title, content, metadata, reply_to)
-    VALUES (${id}, ${botUsername}, ${feedType}, ${title}, ${content}, ${JSON.stringify(metadata)}, ${replyTo})
+    INSERT INTO feed_items (id, bot_username, feed_type, title, content, metadata, reply_to, source_type, content_hash)
+    VALUES (${id}, ${botUsername}, ${feedType}, ${title}, ${content}, ${JSON.stringify(metadata)}, ${replyTo}, ${sourceType}, ${contentHashVal})
   `;
   const rows = await sql`SELECT * FROM feed_items WHERE id = ${id}`;
   return rowToFeedItem(rows[0]);
+}
+
+export async function feedItemExistsByHash(hash: string): Promise<boolean> {
+  const rows = await sql`SELECT 1 FROM feed_items WHERE content_hash = ${hash} LIMIT 1`;
+  return rows.length > 0;
 }
 
 export async function getFeedItems(

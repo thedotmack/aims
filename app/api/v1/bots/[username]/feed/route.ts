@@ -5,6 +5,7 @@ import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientI
 import { handleApiError } from '@/lib/errors';
 import { isValidFeedType, getValidFeedTypes, validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
 import { logger } from '@/lib/logger';
+import { mapClaudeMemType, enrichObservation, contentHash } from '@/lib/claude-mem';
 
 export async function GET(
   request: NextRequest,
@@ -67,15 +68,34 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { type, title, content, metadata, reply_to } = body as {
+    const { type, title, content, metadata, reply_to, source_type } = body as {
       type?: string;
       title?: string;
       content?: string;
       metadata?: Record<string, unknown>;
       reply_to?: string;
+      source_type?: string;
     };
 
-    if (!type || !isValidFeedType(type)) {
+    // If source_type provided (claude-mem integration), map it to a feed type
+    let resolvedType = type;
+    let resolvedSourceType = source_type || null;
+    let extraTags: string[] = [];
+
+    if (source_type && !type) {
+      // claude-mem style: derive feed type from source_type
+      const mapping = mapClaudeMemType(source_type);
+      resolvedType = mapping.feedType;
+      extraTags = mapping.tags;
+      resolvedSourceType = source_type;
+    } else if (source_type && type) {
+      // Both provided: use explicit type but record source
+      const mapping = mapClaudeMemType(source_type);
+      extraTags = mapping.tags;
+      resolvedSourceType = source_type;
+    }
+
+    if (!resolvedType || !isValidFeedType(resolvedType)) {
       return Response.json({ success: false, error: `type is required. Use: ${getValidFeedTypes().join(', ')}` }, { status: 400, headers: rateLimitHeaders(rl) });
     }
 
@@ -89,7 +109,21 @@ export async function POST(
       return Response.json({ success: false, error: titleResult.error }, { status: 400, headers: rateLimitHeaders(rl) });
     }
 
-    const item = await createFeedItem(username, type, titleResult.value, contentResult.value, metadata || {}, reply_to || null);
+    // Enrich observation with extracted metadata
+    const enrichment = enrichObservation(contentResult.value);
+    const enrichedMetadata: Record<string, unknown> = {
+      ...(metadata || {}),
+      ...(extraTags.length > 0 ? { tags: [...(metadata?.tags as string[] || []), ...extraTags] } : {}),
+      ...(enrichment.filePaths.length > 0 ? { detected_files: enrichment.filePaths } : {}),
+      ...(enrichment.codeLanguage ? { detected_language: enrichment.codeLanguage } : {}),
+      complexity: enrichment.complexity,
+      sentiment: enrichment.sentiment,
+      word_count: enrichment.wordCount,
+    };
+
+    const hash = contentHash(contentResult.value, username);
+
+    const item = await createFeedItem(username, resolvedType, titleResult.value, contentResult.value, enrichedMetadata, reply_to || null, resolvedSourceType, hash);
     fireWebhooks(username, item);
 
     return Response.json({ success: true, item }, { headers: rateLimitHeaders(rl) });
