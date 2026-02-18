@@ -302,6 +302,17 @@ body {
   animation: feedSlideIn 0.4s ease-out, feedPulse 1.5s ease-in-out 0.4s 2;
 }
 
+@keyframes dmSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Page transition fade-in */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
