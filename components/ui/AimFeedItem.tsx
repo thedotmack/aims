@@ -38,15 +38,39 @@ interface AimFeedItemProps {
   isNew?: boolean;
 }
 
+function MetadataTag({ icon, label, onClick }: { icon: string; label: string; onClick?: () => void }) {
+  return (
+    <span
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono ${onClick ? 'cursor-pointer hover:bg-gray-200' : ''}`}
+      style={{ background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb' }}
+    >
+      {icon} {label}
+    </span>
+  );
+}
+
 export default function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps) {
   const config = TYPE_CONFIG[item.feedType] || TYPE_CONFIG.observation;
   const [expanded, setExpanded] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const isLong = item.content.length > 300;
   const displayContent = isLong && !expanded ? item.content.slice(0, 300) + '…' : item.content;
 
-  // Extract metadata hints
-  const files = (item.metadata?.files as string[]) || [];
+  // Extract rich metadata
+  const filesRead = (item.metadata?.files_read as string[]) || (item.metadata?.files as string[]) || [];
+  const filesModified = (item.metadata?.files_modified as string[]) || [];
   const source = item.metadata?.source as string | undefined;
+  const tool = item.metadata?.tool as string | undefined;
+  const command = item.metadata?.command as string | undefined;
+  const project = item.metadata?.project as string | undefined;
+  const promptNumber = item.metadata?.prompt_number as number | undefined;
+  const sessionId = item.metadata?.session_id as string | undefined;
+
+  const hasMetadata = filesRead.length > 0 || filesModified.length > 0 || tool || command || project || promptNumber || sessionId;
+
+  // Summary type is collapsible
+  const isSummary = item.feedType === 'summary';
 
   return (
     <div
@@ -77,6 +101,15 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
           </span>
         )}
 
+        {tool && (
+          <span
+            className="px-1.5 py-0.5 rounded text-[9px] font-mono font-normal"
+            style={{ background: `${config.color}15`, color: config.color }}
+          >
+            🔧 {tool}
+          </span>
+        )}
+
         {showBot && (
           <a
             href={`/bots/${item.botUsername}`}
@@ -93,55 +126,98 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
 
       {/* Content body */}
       <div className="px-3 py-2.5 bg-white">
-        {item.title && (
-          <div className="font-bold text-sm text-[#1a1a1a] mb-1.5">{item.title}</div>
-        )}
-
-        {/* Thought-specific styling: italic, indented */}
-        {item.feedType === 'thought' ? (
-          <div
-            className="text-sm text-purple-900/80 italic leading-relaxed whitespace-pre-wrap"
-            style={{
-              borderLeft: '3px solid #c9a8fa',
-              paddingLeft: '12px',
-            }}
-          >
-            {displayContent}
-          </div>
-        ) : item.feedType === 'action' ? (
-          <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-400 mr-1.5 animate-pulse" style={{ verticalAlign: 'middle' }} />
-            {displayContent}
+        {/* Summary: collapsible */}
+        {isSummary ? (
+          <div>
+            <button
+              onClick={() => setSummaryOpen(!summaryOpen)}
+              className="flex items-center gap-2 w-full text-left"
+            >
+              <span className="text-[10px] text-teal-600">{summaryOpen ? '▼' : '►'}</span>
+              {item.title && (
+                <span className="font-bold text-sm text-[#1a1a1a]">{item.title}</span>
+              )}
+              {!item.title && (
+                <span className="font-bold text-sm text-[#1a1a1a]">Summary</span>
+              )}
+              <span className="text-[10px] text-gray-400 ml-auto">
+                {summaryOpen ? 'collapse' : `${item.content.length} chars`}
+              </span>
+            </button>
+            {summaryOpen && (
+              <div className="mt-2 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap border-t border-gray-100 pt-2">
+                {item.content}
+              </div>
+            )}
           </div>
         ) : (
-          <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {displayContent}
-          </div>
-        )}
+          <>
+            {item.title && (
+              <div className="font-bold text-sm text-[#1a1a1a] mb-1.5">{item.title}</div>
+            )}
 
-        {/* Expand/collapse for long content */}
-        {isLong && (
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="mt-1.5 text-xs font-bold hover:underline"
-            style={{ color: config.color }}
-          >
-            {expanded ? '▲ Show less' : '▼ Show more'}
-          </button>
-        )}
-
-        {/* File badges */}
-        {files.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {files.map((f, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono"
-                style={{ background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb' }}
+            {/* Thought: journal/quote style */}
+            {item.feedType === 'thought' ? (
+              <div
+                className="text-sm text-purple-900/80 italic leading-relaxed whitespace-pre-wrap"
+                style={{
+                  borderLeft: '3px solid #c9a8fa',
+                  paddingLeft: '12px',
+                  background: 'linear-gradient(90deg, rgba(243,232,255,0.3) 0%, transparent 100%)',
+                  padding: '8px 12px',
+                  borderRadius: '0 4px 4px 0',
+                }}
               >
-                📄 {f}
-              </span>
-            ))}
+                &ldquo;{displayContent}&rdquo;
+              </div>
+            ) : item.feedType === 'action' ? (
+              <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-400 mr-1.5 animate-pulse" style={{ verticalAlign: 'middle' }} />
+                {command && (
+                  <code className="bg-gray-900 text-green-400 text-[11px] px-1.5 py-0.5 rounded font-mono mr-1.5">
+                    $ {command}
+                  </code>
+                )}
+                {displayContent}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {displayContent}
+              </div>
+            )}
+
+            {/* Expand/collapse for long content */}
+            {isLong && (
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="mt-1.5 text-xs font-bold hover:underline btn-press"
+                style={{ color: config.color }}
+              >
+                {expanded ? '▲ Show less' : '▼ Show more'}
+              </button>
+            )}
+          </>
+        )}
+
+        {/* Rich metadata section */}
+        {hasMetadata && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <div className="flex flex-wrap gap-1">
+              {/* Files read */}
+              {filesRead.map((f, i) => (
+                <MetadataTag key={`r-${i}`} icon="📄" label={f} />
+              ))}
+              {/* Files modified */}
+              {filesModified.map((f, i) => (
+                <MetadataTag key={`m-${i}`} icon="✏️" label={f} />
+              ))}
+              {/* Project */}
+              {project && <MetadataTag icon="📁" label={project} />}
+              {/* Prompt number */}
+              {promptNumber && <MetadataTag icon="#" label={`prompt ${promptNumber}`} />}
+              {/* Session */}
+              {sessionId && <MetadataTag icon="🔗" label={sessionId.slice(0, 8)} />}
+            </div>
           </div>
         )}
       </div>
