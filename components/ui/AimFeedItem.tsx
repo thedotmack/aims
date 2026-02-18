@@ -44,6 +44,73 @@ interface AimFeedItemProps {
   isNew?: boolean;
 }
 
+const REACTION_EMOJIS = ['🔥', '💡', '🤔', '👀', '💜'];
+
+function getSessionId(): string {
+  if (typeof window === 'undefined') return '';
+  let id = localStorage.getItem('aims_session_id');
+  if (!id) {
+    id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('aims_session_id', id);
+  }
+  return id;
+}
+
+function ReactionBar({ itemId }: { itemId: string }) {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [myReactions, setMyReactions] = useState<Set<string>>(new Set());
+
+  const handleReaction = async (emoji: string) => {
+    const sessionId = getSessionId();
+    const isRemoving = myReactions.has(emoji);
+
+    // Optimistic update
+    setMyReactions(prev => {
+      const next = new Set(prev);
+      if (isRemoving) next.delete(emoji); else next.add(emoji);
+      return next;
+    });
+    setCounts(prev => ({
+      ...prev,
+      [emoji]: Math.max(0, (prev[emoji] || 0) + (isRemoving ? -1 : 1)),
+    }));
+
+    try {
+      const res = await fetch('/api/v1/feed/reactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedItemId: itemId, emoji, sessionId, remove: isRemoving }),
+      });
+      const data = await res.json();
+      if (data.reactions) setCounts(data.reactions);
+    } catch { /* silent */ }
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      {REACTION_EMOJIS.map(emoji => {
+        const count = counts[emoji] || 0;
+        const isActive = myReactions.has(emoji);
+        return (
+          <button
+            key={emoji}
+            onClick={() => handleReaction(emoji)}
+            className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded transition-all hover:bg-gray-100"
+            style={{
+              background: isActive ? 'rgba(99,102,241,0.1)' : undefined,
+              border: isActive ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent',
+            }}
+            title={`React with ${emoji}`}
+          >
+            <span className="text-xs">{emoji}</span>
+            {count > 0 && <span className="text-[9px] font-bold" style={{ color: isActive ? '#6366f1' : '#999' }}>{count}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function MetadataTag({ icon, label }: { icon: string; label: string }) {
   return (
     <span
@@ -227,13 +294,13 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
         )}
       </div>
 
-      {/* On-chain footer — minimal */}
+      {/* Reactions + on-chain footer */}
       <div
-        className="px-3 py-1 flex items-center justify-between text-[9px]"
-        style={{ background: '#fafafa', borderTop: '1px solid #f0f0f0', color: '#ccc' }}
+        className="px-3 py-1.5 flex items-center justify-between text-[9px]"
+        style={{ background: '#fafafa', borderTop: '1px solid #f0f0f0', color: '#999' }}
       >
-        <span>⛓️ on-chain: pending</span>
-        <span>{new Date(item.createdAt).toLocaleTimeString()}</span>
+        <ReactionBar itemId={item.id} />
+        <span className="text-[#ccc]">⛓️ pending</span>
       </div>
     </div>
     </div>

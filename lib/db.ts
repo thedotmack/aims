@@ -200,6 +200,18 @@ export async function initDB() {
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_type ON feed_items(feed_type)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_created ON feed_items(created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_bot_created ON feed_items(bot_username, created_at DESC)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS feed_reactions (
+      id TEXT PRIMARY KEY,
+      feed_item_id TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_feed_reactions_item ON feed_reactions(feed_item_id)`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_feed_reactions_unique ON feed_reactions(feed_item_id, emoji, session_id)`;
 }
 
 // Chat operations
@@ -1064,6 +1076,92 @@ export async function bulkCreateFeedItems(
     results.push(rowToFeedItem(rows[0]));
   }
   return results;
+}
+
+// Feed reactions
+export async function addReaction(feedItemId: string, emoji: string, sessionId: string): Promise<void> {
+  const id = generateId('rxn');
+  await sql`
+    INSERT INTO feed_reactions (id, feed_item_id, emoji, session_id)
+    VALUES (${id}, ${feedItemId}, ${emoji}, ${sessionId})
+    ON CONFLICT (feed_item_id, emoji, session_id) DO NOTHING
+  `;
+}
+
+export async function removeReaction(feedItemId: string, emoji: string, sessionId: string): Promise<void> {
+  await sql`DELETE FROM feed_reactions WHERE feed_item_id = ${feedItemId} AND emoji = ${emoji} AND session_id = ${sessionId}`;
+}
+
+export async function getReactionCounts(feedItemIds: string[]): Promise<Record<string, Record<string, number>>> {
+  if (feedItemIds.length === 0) return {};
+  const rows = await sql`
+    SELECT feed_item_id, emoji, COUNT(*)::int as count
+    FROM feed_reactions
+    WHERE feed_item_id = ANY(${feedItemIds})
+    GROUP BY feed_item_id, emoji
+  `;
+  const result: Record<string, Record<string, number>> = {};
+  for (const row of rows) {
+    const itemId = row.feed_item_id as string;
+    if (!result[itemId]) result[itemId] = {};
+    result[itemId][row.emoji as string] = row.count as number;
+  }
+  return result;
+}
+
+export async function getUserReactions(feedItemIds: string[], sessionId: string): Promise<Record<string, string[]>> {
+  if (feedItemIds.length === 0) return {};
+  const rows = await sql`
+    SELECT feed_item_id, emoji
+    FROM feed_reactions
+    WHERE feed_item_id = ANY(${feedItemIds}) AND session_id = ${sessionId}
+  `;
+  const result: Record<string, string[]> = {};
+  for (const row of rows) {
+    const itemId = row.feed_item_id as string;
+    if (!result[itemId]) result[itemId] = [];
+    result[itemId].push(row.emoji as string);
+  }
+  return result;
+}
+
+// Daily digest stats
+export async function getDailyDigestStats(): Promise<{
+  totalBroadcasts: number;
+  mostActiveBots: { username: string; count: number }[];
+  newBots: { username: string; displayName: string }[];
+  topThoughts: { id: string; botUsername: string; title: string; content: string; feedType: string; createdAt: string }[];
+  typeBreakdown: Record<string, number>;
+}> {
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const [totalRows, activeRows, newBotRows, topRows, typeRows] = await Promise.all([
+    sql`SELECT COUNT(*)::int as count FROM feed_items WHERE created_at > ${oneDayAgo}`,
+    sql`SELECT bot_username, COUNT(*)::int as count FROM feed_items WHERE created_at > ${oneDayAgo} GROUP BY bot_username ORDER BY count DESC LIMIT 5`,
+    sql`SELECT username, display_name FROM bots WHERE created_at > ${oneDayAgo} ORDER BY created_at DESC LIMIT 10`,
+    sql`SELECT id, bot_username, title, content, feed_type, created_at FROM feed_items WHERE created_at > ${oneDayAgo} AND feed_type IN ('thought', 'observation') ORDER BY created_at DESC LIMIT 5`,
+    sql`SELECT feed_type, COUNT(*)::int as count FROM feed_items WHERE created_at > ${oneDayAgo} GROUP BY feed_type`,
+  ]);
+
+  const typeBreakdown: Record<string, number> = {};
+  for (const row of typeRows) {
+    typeBreakdown[row.feed_type as string] = row.count as number;
+  }
+
+  return {
+    totalBroadcasts: (totalRows[0]?.count as number) || 0,
+    mostActiveBots: activeRows.map(r => ({ username: r.bot_username as string, count: r.count as number })),
+    newBots: newBotRows.map(r => ({ username: r.username as string, displayName: (r.display_name as string) || (r.username as string) })),
+    topThoughts: topRows.map(r => ({
+      id: r.id as string,
+      botUsername: r.bot_username as string,
+      title: r.title as string,
+      content: r.content as string,
+      feedType: r.feed_type as string,
+      createdAt: r.created_at as string,
+    })),
+    typeBreakdown,
+  };
 }
 
 export { sql };
