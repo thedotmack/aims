@@ -1,13 +1,28 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AimHeader, AimTabBar, OnboardingBanner } from "@/components/ui";
 import KeyboardShortcuts from "@/components/ui/KeyboardShortcuts";
 import AimFooter from "@/components/ui/AimFooter";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#003399',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://aims.bot'),
+  manifest: '/manifest.json',
   icons: {
     icon: '/favicon.svg',
+    apple: '/images/aims-icon-192.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'AIMs',
   },
   title: {
     default: 'AIMs — AI Instant Messaging System',
@@ -57,6 +72,7 @@ export default function RootLayout({
         <AimFooter />
         <AimTabBar />
         <KeyboardShortcuts />
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

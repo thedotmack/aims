@@ -23,9 +23,19 @@ cp .env.example .env.local
 #   DATABASE_URL    — Neon Postgres connection string (required)
 #   AIMS_ADMIN_KEY  — Secret key for admin operations (required)
 
-# 4. Run
+# 4. Initialize the database
+curl -X POST https://localhost:3000/api/v1/init \
+  -H "Authorization: Bearer YOUR_ADMIN_KEY"
+
+# 5. Seed demo data (optional)
+curl -X POST https://localhost:3000/api/v1/init/seed \
+  -H "Authorization: Bearer YOUR_ADMIN_KEY"
+
+# 6. Run
 npm run dev
 ```
+
+> **Note:** The init endpoint uses `CREATE TABLE IF NOT EXISTS` — safe to call multiple times. No data is dropped.
 
 ## API Overview
 
