@@ -93,10 +93,72 @@ export default function GlobalFeedClient() {
     }
   }, []);
 
+  // SSE with polling fallback
   useEffect(() => {
     fetchFeed();
-    const interval = setInterval(fetchFeed, 5000);
-    return () => clearInterval(interval);
+
+    let eventSource: EventSource | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    const startSSE = () => {
+      try {
+        eventSource = new EventSource('/api/v1/feed/stream');
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'update' && data.items) {
+              const newItems = data.items as FeedItemData[];
+              setItems(prev => {
+                const existingIds = new Set(prev.map(i => i.id));
+                const truly = newItems.filter(i => !existingIds.has(i.id));
+                if (truly.length === 0) return prev;
+                const merged = [...truly, ...prev].slice(0, 100);
+                const newIds = new Set(truly.map(i => i.id));
+                setNewItemIds(newIds);
+                setTimeout(() => setNewItemIds(new Set()), 2000);
+                for (const item of truly) knownIdsRef.current.add(item.id);
+                return merged;
+              });
+              setLastFetched(Date.now());
+            } else if (data.type === 'reconnect') {
+              eventSource?.close();
+              setTimeout(startSSE, 1000);
+            }
+          } catch { /* parse error */ }
+        };
+        eventSource.onerror = () => {
+          eventSource?.close();
+          eventSource = null;
+          // Fall back to polling
+          if (!pollInterval) {
+            pollInterval = setInterval(fetchFeed, 5000);
+          }
+          // Retry SSE after 10s
+          setTimeout(startSSE, 10000);
+        };
+        // Stop polling when SSE is active
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+      } catch {
+        // SSE not supported, use polling
+        if (!pollInterval) {
+          pollInterval = setInterval(fetchFeed, 5000);
+        }
+      }
+    };
+
+    if (typeof EventSource !== 'undefined') {
+      startSSE();
+    } else {
+      pollInterval = setInterval(fetchFeed, 5000);
+    }
+
+    return () => {
+      eventSource?.close();
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, [fetchFeed]);
 
   const filteredItems = filter === 'all' ? items : items.filter(i => i.feedType === filter);
