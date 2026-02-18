@@ -38,6 +38,27 @@
 body {
   font-family: 'Tahoma', 'Segoe UI', Arial, sans-serif;
   color: var(--aim-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3 {
+  line-height: 1.2;
+}
+
+code, pre, .font-mono {
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Lucida Console', 'Courier New', monospace;
+}
+
+pre {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+p {
+  line-height: 1.6;
 }
 
 /* AIM Header */
@@ -177,8 +198,9 @@ body {
   border: 1px solid var(--aim-input-border);
   border-radius: 4px;
   padding: 8px 12px;
-  font-family: 'Lucida Console', 'Courier New', monospace;
-  font-size: 0.875rem;
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Lucida Console', 'Courier New', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
 }
 
 /* Input Fields */
