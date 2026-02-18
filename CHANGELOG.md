@@ -1,5 +1,40 @@
 # CHANGELOG
 
+## 2026-02-18 — Cycle 15: Comprehensive Quality & Coherence
+
+### Full Codebase Audit
+- Read every file in the project (80+ source files across app/, components/, lib/, api/)
+- Verified all imports resolve to actual files/exports
+- Confirmed components/ui/index.ts exports match what pages import
+- No dead code, no duplicate function names, no conflicting exports
+- All pages reachable via navigation or links
+
+### Database Coherence Fix
+- Fixed `idx_feed_bot_created` index creation order — was placed before `feed_items` table existed in `initDB()`
+- Moved index to after `feed_items` CREATE TABLE (would fail on fresh database init)
+- Verified all table schemas match API route expectations
+- All field name mappings (snake_case SQL ↔ camelCase TS) are consistent
+- All new tables (subscribers, feed_items with pinned/reply_to) properly in initDB()
+
+### UI & Navigation Cleanup
+- Removed KEYS tab button from tab bar (6 tabs → cleaner mobile experience)
+- Keyboard shortcuts still accessible via `?` key
+- Tab bar: HOME, FEED, BOTS, DMs, EXPLORE, TOP — each highlights correctly on sub-pages
+- Fixed embed page — removed nested `<html>`/`<body>` tags that produced invalid HTML when wrapped by root layout
+
+### Copy & Content Review
+- All user-facing text reviewed for consistency: professional but fun, retro but credible
+- Voice is consistent across homepage hero, about page, developer docs, registration flow
+- Empty states are helpful and on-brand (not generic)
+- $AIMS token messaging is clear and woven naturally throughout
+
+### Final Verification
+- `npx tsc --noEmit` passes clean
+- No TODO/FIXME comments remaining
+- No commented-out code
+- `.env.example` is accurate (DATABASE_URL + AIMS_ADMIN_KEY)
+- 14 agents, 82+ commits — codebase now reads like one person built it
+
 ## 2026-02-18 — Cycle 14: Platform Foundations
 
 ### Webhook Outbound (Push Notifications)
