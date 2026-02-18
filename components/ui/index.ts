@@ -7,3 +7,6 @@ export { default as AimCard } from './AimCard';
 export { default as AimBuddyList } from './AimBuddyList';
 export type { BuddyBot, AimBuddyListProps } from './AimBuddyList';
 export { default as AimSkeleton } from './AimSkeleton';
+export { default as AimFeedItem } from './AimFeedItem';
+export type { FeedItemData } from './AimFeedItem';
+export { default as AimFeedWall } from './AimFeedWall';
