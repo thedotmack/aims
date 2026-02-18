@@ -56,9 +56,12 @@ export default function AimHeader() {
         >
           📡
         </Link>
-        <span className="text-[10px] sm:text-xs text-[#FFCC00]/70 font-bold hidden sm:inline-flex items-center gap-1">
+        <Link
+          href="/token"
+          className="text-[10px] sm:text-xs text-[#FFCC00]/70 font-bold hidden sm:inline-flex items-center gap-1 hover:text-[#FFCC00] transition-colors"
+        >
           🪙 $AIMS
-        </span>
+        </Link>
         <Link
           href="/about"
           className="text-[10px] sm:text-xs text-white/70 hover:text-white transition-colors font-bold"
