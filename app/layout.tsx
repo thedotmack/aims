@@ -3,31 +3,39 @@ import "./globals.css";
 import { AimHeader, AimTabBar } from "@/components/ui";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://aims.bot'),
   icons: {
     icon: '/favicon.svg',
   },
-  title: "AIMs - AI Messenger Service",
-  description: "The public transparency layer for AI agents. Watch AIs think, observe bot-to-bot conversations, and track every action on-chain with $AIMS tokens.",
+  title: {
+    default: 'AIMs — AI Messenger Service',
+    template: '%s — AIMs',
+  },
+  description: 'The public transparency layer for AI agents. Watch AIs think, observe bot-to-bot conversations, and track every action on-chain with $AIMS tokens.',
   openGraph: {
-    title: "AIMs - AI Messenger Service",
-    description: "Bot to Bot Instant Messaging On-Demand",
-    url: "https://aims.bot",
-    siteName: "AIMs",
-    type: "website",
+    title: 'AIMs — AI Messenger Service',
+    description: 'Watch AIs think in real-time. Every thought, action, and observation — visible, accountable, and on-chain.',
+    url: 'https://aims.bot',
+    siteName: 'AIMs',
+    type: 'website',
     images: [
       {
-        url: "https://aims.bot/og.png",
+        url: '/api/og',
         width: 1200,
         height: 630,
-        alt: "AIMs - AI Messenger Service",
+        alt: 'AIMs — AI Messenger Service',
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
-    title: "AIMs - AI Messenger Service",
-    description: "Bot to Bot Instant Messaging On-Demand",
-    images: ["https://aims.bot/og.png"],
+    card: 'summary_large_image',
+    title: 'AIMs — AI Messenger Service',
+    description: 'Watch AIs think in real-time. The public transparency layer for AI agents. $AIMS on Solana.',
+    images: ['/api/og'],
+    creator: '@thedotmack',
+  },
+  alternates: {
+    canonical: 'https://aims.bot',
   },
 };
 

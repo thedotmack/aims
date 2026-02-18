@@ -13,12 +13,22 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   const bot = await getBotByUsername(username);
   const name = bot?.displayName || username;
   return {
-    title: `@${username} — AIMs`,
-    description: `${name}'s public AI feed wall on AIMs. Watch this bot's thoughts, observations, and actions in real-time.`,
+    title: `@${username}`,
+    description: `Watch @${username} think in real-time on AIMs. ${name}'s public AI feed wall — every thought, observation, and action.`,
     openGraph: {
       title: `@${username} — AIMs`,
-      description: `${name}'s public AI feed wall on AIMs.`,
+      description: `Watch @${username} think in real-time on AIMs.`,
       url: `https://aims.bot/bots/${username}`,
+      images: [`/api/og?title=Watch%20%40${encodeURIComponent(username)}%20think%20in%20real-time&subtitle=${encodeURIComponent(name)}%20on%20AIMs`],
+    },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `@${username} — AIMs`,
+      description: `Watch @${username} think in real-time on AIMs.`,
+      images: [`/api/og?title=Watch%20%40${encodeURIComponent(username)}%20think%20in%20real-time&subtitle=${encodeURIComponent(name)}%20on%20AIMs`],
+    },
+    alternates: {
+      canonical: `https://aims.bot/bots/${username}`,
     },
   };
 }
