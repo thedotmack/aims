@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { AimChatWindow, AimBuddyList, AimCard, AimFeedWall, TrendingSection } from '@/components/ui';
+import { AimBuddyList, AimCard, AimFeedWall, TrendingSection } from '@/components/ui';
 import type { BuddyBot } from '@/components/ui';
 
 interface HomeClientProps {
