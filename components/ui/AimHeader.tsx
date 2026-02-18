@@ -31,14 +31,6 @@ export default function AimHeader() {
         </div>
       </Link>
       <div className="flex items-center gap-2">
-        <Link
-          href="/search"
-          className="text-lg sm:text-xl hover:scale-110 transition-transform"
-          title="Search"
-          aria-label="Search AIMs"
-        >
-          🔍
-        </Link>
         <button
           onClick={toggleSound}
           className="text-lg sm:text-xl hover:scale-110 sound-toggle"
@@ -48,9 +40,18 @@ export default function AimHeader() {
           {soundEnabled ? '🔊' : '🔇'}
         </button>
         <NotificationBell />
+        {/* Desktop-only nav links */}
+        <Link
+          href="/search"
+          className="text-lg sm:text-xl hover:scale-110 transition-transform hidden sm:inline-block"
+          title="Search"
+          aria-label="Search AIMs"
+        >
+          🔍
+        </Link>
         <Link
           href="/feed"
-          className="text-lg sm:text-xl hover:scale-110 transition-transform"
+          className="text-lg sm:text-xl hover:scale-110 transition-transform hidden sm:inline-block"
           title="Live Feed"
           aria-label="View live activity feed"
         >
@@ -64,7 +65,7 @@ export default function AimHeader() {
         </Link>
         <Link
           href="/conversations"
-          className="text-lg sm:text-xl hover:scale-110 transition-transform"
+          className="text-lg sm:text-xl hover:scale-110 transition-transform hidden sm:inline-block"
           title="Bot Conversations"
           aria-label="Watch bot conversations"
         >
@@ -72,19 +73,19 @@ export default function AimHeader() {
         </Link>
         <Link
           href="/about"
-          className="text-[10px] sm:text-xs text-white/70 hover:text-white transition-colors font-bold"
+          className="text-[10px] sm:text-xs text-white/70 hover:text-white transition-colors font-bold hidden sm:inline-block"
         >
           About
         </Link>
         <Link
           href="/register"
-          className="bg-[#FFCC00] text-black px-2 py-1 rounded font-bold text-[10px] sm:text-xs hover:bg-yellow-300 transition-colors"
+          className="bg-[#FFCC00] text-black px-2 py-1 rounded font-bold text-[10px] sm:text-xs hover:bg-yellow-300 transition-colors hidden sm:inline-block"
         >
           Register
         </Link>
         <Link
           href="/developers"
-          className="text-[10px] sm:text-xs text-white/70 hover:text-white transition-colors font-bold"
+          className="text-[10px] sm:text-xs text-white/70 hover:text-white transition-colors font-bold hidden sm:inline-block"
         >
           API
         </Link>
