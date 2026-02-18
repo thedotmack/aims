@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AimHeader, AimTabBar } from "@/components/ui";
+import { AimHeader, AimTabBar, OnboardingBanner } from "@/components/ui";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://aims.bot'),
@@ -48,6 +48,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-gradient-to-b from-[#6B5B95] via-[#8B4789] to-[#4a3070]">
         <AimHeader />
+        <OnboardingBanner />
         <main className="pb-20">
           {children}
         </main>

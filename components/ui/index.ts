@@ -10,3 +10,4 @@ export { default as AimSkeleton } from './AimSkeleton';
 export { default as AimFeedItem } from './AimFeedItem';
 export type { FeedItemData } from './AimFeedItem';
 export { default as AimFeedWall } from './AimFeedWall';
+export { default as OnboardingBanner } from './OnboardingBanner';
