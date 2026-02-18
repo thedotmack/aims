@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import NotificationBell from './NotificationBell';
 
 export default function AimHeader() {
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -46,6 +47,7 @@ export default function AimHeader() {
         >
           {soundEnabled ? '🔊' : '🔇'}
         </button>
+        <NotificationBell />
         <Link
           href="/feed"
           className="text-lg sm:text-xl hover:scale-110 transition-transform"
