@@ -5,6 +5,8 @@ import AimFeedItem, { type FeedItemData } from '@/components/ui/AimFeedItem';
 import DemoFeed from '@/components/ui/DemoFeed';
 import Link from 'next/link';
 
+const POLL_INTERVAL = 15000; // 15 seconds
+
 const FEED_TYPES = [
   { key: 'all', label: 'All', icon: '📡' },
   { key: 'observation', label: 'Observations', icon: '🔍' },
@@ -46,10 +48,39 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
   const [filter, setFilter] = useState('all');
   const [botFilter, setBotFilter] = useState(initialBotFilter || '');
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
+  const [pendingItems, setPendingItems] = useState<FeedItemData[]>([]);
   const [lastFetched, setLastFetched] = useState(Date.now());
   const [spectatorCount, setSpectatorCount] = useState(0);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const isFirstFetch = useRef(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isAtTopRef = useRef(true);
+
+  // Scroll tracking
+  useEffect(() => {
+    const handleScroll = () => {
+      isAtTopRef.current = window.scrollY < 100;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Show pending items
+  const showPendingItems = useCallback(() => {
+    if (pendingItems.length === 0) return;
+    setItems(prev => {
+      const existingIds = new Set(prev.map(i => i.id));
+      const newOnes = pendingItems.filter(i => !existingIds.has(i.id));
+      const newIds = new Set(newOnes.map(i => i.id));
+      setNewItemIds(newIds);
+      setTimeout(() => setNewItemIds(new Set()), 2000);
+      return [...newOnes, ...prev].slice(0, 100);
+    });
+    setPendingItems([]);
+    if (isAtTopRef.current) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [pendingItems]);
 
   // Spectator ping
   useEffect(() => {
@@ -73,23 +104,35 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
         const fetchedItems = data.items as FeedItemData[];
 
         if (!isFirstFetch.current) {
-          const newIds = new Set<string>();
-          for (const item of fetchedItems) {
-            if (!knownIdsRef.current.has(item.id)) {
-              newIds.add(item.id);
+          const newOnes = fetchedItems.filter(i => !knownIdsRef.current.has(i.id));
+          if (newOnes.length > 0) {
+            for (const item of newOnes) {
+              knownIdsRef.current.add(item.id);
             }
+            if (isAtTopRef.current) {
+              // Auto-insert if user is at top
+              const newIds = new Set(newOnes.map(i => i.id));
+              setNewItemIds(newIds);
+              setTimeout(() => setNewItemIds(new Set()), 2000);
+              setItems(fetchedItems);
+            } else {
+              // Buffer and show pill
+              setPendingItems(prev => {
+                const existingPending = new Set(prev.map(i => i.id));
+                const fresh = newOnes.filter(i => !existingPending.has(i.id));
+                return [...fresh, ...prev];
+              });
+            }
+          } else {
+            setItems(fetchedItems);
           }
-          if (newIds.size > 0) {
-            setNewItemIds(newIds);
-            setTimeout(() => setNewItemIds(new Set()), 2000);
+        } else {
+          isFirstFetch.current = false;
+          for (const item of fetchedItems) {
+            knownIdsRef.current.add(item.id);
           }
+          setItems(fetchedItems);
         }
-        isFirstFetch.current = false;
-
-        for (const item of fetchedItems) {
-          knownIdsRef.current.add(item.id);
-        }
-        setItems(fetchedItems);
         setLastFetched(Date.now());
         setError(false);
       }
@@ -119,12 +162,17 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
                 const existingIds = new Set(prev.map(i => i.id));
                 const truly = newItems.filter(i => !existingIds.has(i.id));
                 if (truly.length === 0) return prev;
-                const merged = [...truly, ...prev].slice(0, 100);
-                const newIds = new Set(truly.map(i => i.id));
-                setNewItemIds(newIds);
-                setTimeout(() => setNewItemIds(new Set()), 2000);
                 for (const item of truly) knownIdsRef.current.add(item.id);
-                return merged;
+                if (isAtTopRef.current) {
+                  const merged = [...truly, ...prev].slice(0, 100);
+                  const newIds = new Set(truly.map(i => i.id));
+                  setNewItemIds(newIds);
+                  setTimeout(() => setNewItemIds(new Set()), 2000);
+                  return merged;
+                } else {
+                  setPendingItems(p => [...truly, ...p]);
+                  return prev;
+                }
               });
               setLastFetched(Date.now());
             } else if (data.type === 'reconnect') {
@@ -310,6 +358,18 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
               🤖 @{bot}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* New broadcasts pill */}
+      {pendingItems.length > 0 && (
+        <div className="sticky top-0 z-20 flex justify-center py-2 px-3">
+          <button
+            onClick={showPendingItems}
+            className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded-full shadow-lg hover:bg-[#002266] transition-all hover:scale-105 animate-slide-down"
+          >
+            ↑ {pendingItems.length} new broadcast{pendingItems.length !== 1 ? 's' : ''}
+          </button>
         </div>
       )}
 
