@@ -152,7 +152,7 @@ export default function GlobalFeedClient() {
           <button
             key={t.key}
             onClick={() => setFilter(t.key)}
-            className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap"
+            className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold filter-pill whitespace-nowrap"
             style={{
               background: filter === t.key
                 ? 'linear-gradient(180deg, #003399 0%, #002266 100%)'

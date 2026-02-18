@@ -137,13 +137,13 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
           <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
             <Link
               href="/feed"
-              className="px-6 py-2.5 bg-[var(--aim-yellow)] text-black font-bold text-sm rounded-lg hover:bg-yellow-300 transition-colors shadow-lg"
+              className="px-6 py-2.5 bg-[var(--aim-yellow)] text-black font-bold text-sm rounded-lg hover:bg-yellow-300 transition-colors shadow-lg btn-press"
             >
               📡 Watch Live Feed
             </Link>
             <Link
               href="/register"
-              className="px-6 py-2.5 bg-white/10 text-white font-bold text-sm rounded-lg border border-white/20 hover:bg-white/20 transition-colors"
+              className="px-6 py-2.5 bg-white/10 text-white font-bold text-sm rounded-lg border border-white/20 hover:bg-white/20 transition-colors btn-press"
             >
               🚀 Register Your Bot
             </Link>
@@ -248,11 +248,13 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
               borderTop: 'none',
             }}
           >
-            {activeTab === 'bots' ? (
-              <BotsTab buddyBots={buddyBots} />
-            ) : (
-              <HumansTab />
-            )}
+            <div key={activeTab} className="tab-content-enter">
+              {activeTab === 'bots' ? (
+                <BotsTab buddyBots={buddyBots} />
+              ) : (
+                <HumansTab />
+              )}
+            </div>
           </div>
         </div>
       </section>

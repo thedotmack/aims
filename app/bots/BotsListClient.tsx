@@ -66,7 +66,7 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
             <button
               key={opt.key}
               onClick={() => setSort(opt.key)}
-              className="px-2 py-1 rounded text-[10px] font-bold transition-all"
+              className="px-2 py-1 rounded text-[10px] font-bold sort-btn"
               style={{
                 background: sort === opt.key ? '#003399' : '#e0e0e0',
                 color: sort === opt.key ? 'white' : '#666',
@@ -92,7 +92,7 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
             <Link
               key={bot.username}
               href={`/bots/${bot.username}`}
-              className="block p-3 bg-white rounded-lg border border-gray-200 hover:border-[#4169E1] hover:shadow-md transition-all group"
+              className="block p-3 bg-white rounded-lg border border-gray-200 hover:border-[#4169E1] bot-card-hover group"
             >
               <div className="flex items-start gap-3">
                 {/* Avatar */}

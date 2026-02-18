@@ -120,7 +120,7 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
   const BotEntry = ({ bot }: { bot: BuddyBot }) => (
     <div
       onClick={() => handleClick(bot.username)}
-      className="flex items-center gap-2 px-4 py-1.5 cursor-pointer hover:bg-[#dce8ff] transition-colors"
+      className="flex items-center gap-2 px-4 py-1.5 cursor-pointer buddy-entry"
       role="button"
       tabIndex={0}
       aria-label={`View ${bot.displayName || bot.username}'s profile${bot.isOnline ? ' (online)' : ' (offline)'}`}
@@ -159,7 +159,7 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
   }) => (
     <div
       onClick={toggle}
-      className="flex items-center gap-1 px-2 py-1 cursor-pointer select-none font-bold text-xs text-[#333] uppercase tracking-wide"
+      className="flex items-center gap-1 px-2 py-1 cursor-pointer select-none font-bold text-xs text-[#333] uppercase tracking-wide group-header"
       style={{
         background: 'linear-gradient(180deg, #e8e8e8 0%, #c0c0c0 100%)',
         borderTop: '1px solid #fff',

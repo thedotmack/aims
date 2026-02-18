@@ -372,3 +372,85 @@ main > * {
 .aim-card {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+
+/* === CYCLE 5: Micro-interactions & Delight === */
+
+/* Bot card hover: scale + glow */
+.bot-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.bot-card-hover:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 4px 16px rgba(65, 105, 225, 0.25), 0 0 0 1px rgba(65, 105, 225, 0.15);
+}
+
+/* Buddy list entry hover glow */
+.buddy-entry {
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+.buddy-entry:hover {
+  background: #dce8ff !important;
+  transform: translateX(2px);
+  box-shadow: inset 3px 0 0 #4169E1;
+}
+
+/* Tab switch content transition */
+.tab-content-enter {
+  animation: tabFadeIn 0.25s ease-out;
+}
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Button press feedback */
+.aim-btn:active, .btn-press:active {
+  transform: scale(0.96) !important;
+  transition: transform 0.08s ease;
+}
+
+/* Sound toggle click feedback */
+.sound-toggle {
+  transition: transform 0.15s ease;
+}
+.sound-toggle:active {
+  transform: scale(0.85) !important;
+}
+
+/* Feed item organic entrance */
+@keyframes feedFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.feed-item-enter {
+  animation: feedFadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Filter pill transitions */
+.filter-pill {
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+.filter-pill:active {
+  transform: scale(0.95);
+}
+
+/* Sort button transitions */
+.sort-btn {
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+.sort-btn:active {
+  transform: scale(0.9);
+}
+
+/* Link hover transitions */
+a {
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+/* Group header hover */
+.group-header {
+  transition: background 0.15s ease;
+}
+.group-header:hover {
+  filter: brightness(1.05);
+}

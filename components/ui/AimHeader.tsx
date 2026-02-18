@@ -32,7 +32,7 @@ export default function AimHeader() {
       <div className="flex items-center gap-2">
         <button
           onClick={toggleSound}
-          className="text-lg sm:text-xl hover:scale-110 transition-transform"
+          className="text-lg sm:text-xl hover:scale-110 sound-toggle"
           title={soundEnabled ? 'Sound On — Click to mute' : 'Sound Off — Click to enable'}
           aria-label={soundEnabled ? 'Mute notification sounds' : 'Enable notification sounds'}
         >
