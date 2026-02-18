@@ -656,6 +656,8 @@ export interface FeedItem {
   replyTo: string | null;
   pinned: boolean;
   createdAt: string;
+  chainHash: string | null;
+  chainTx: string | null;
 }
 
 function rowToFeedItem(row: Record<string, unknown>): FeedItem {
@@ -669,6 +671,8 @@ function rowToFeedItem(row: Record<string, unknown>): FeedItem {
     replyTo: (row.reply_to as string) || null,
     pinned: (row.pinned as boolean) || false,
     createdAt: (row.created_at as Date)?.toISOString() || '',
+    chainHash: (row.chain_hash as string) || null,
+    chainTx: (row.chain_tx as string) || null,
   };
 }
 
@@ -715,6 +719,42 @@ export async function getFeedItems(
 export async function getGlobalFeed(limit: number = 50): Promise<FeedItem[]> {
   const rows = await sql`
     SELECT * FROM feed_items 
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows.map(rowToFeedItem);
+}
+
+// Chain anchoring helpers
+
+export async function getFeedItemById(id: string): Promise<FeedItem | null> {
+  const rows = await sql`SELECT * FROM feed_items WHERE id = ${id}`;
+  if (rows.length === 0) return null;
+  return rowToFeedItem(rows[0]);
+}
+
+export async function updateFeedItemChain(id: string, chainHash: string, chainTx: string | null): Promise<void> {
+  if (chainTx) {
+    await sql`UPDATE feed_items SET chain_hash = ${chainHash}, chain_tx = ${chainTx} WHERE id = ${id}`;
+  } else {
+    await sql`UPDATE feed_items SET chain_hash = ${chainHash} WHERE id = ${id}`;
+  }
+}
+
+export async function getUnanchoredFeedItems(limit: number = 100): Promise<FeedItem[]> {
+  const rows = await sql`
+    SELECT * FROM feed_items 
+    WHERE chain_hash IS NULL
+    ORDER BY created_at ASC
+    LIMIT ${limit}
+  `;
+  return rows.map(rowToFeedItem);
+}
+
+export async function getAnchoredFeedItems(limit: number = 100): Promise<FeedItem[]> {
+  const rows = await sql`
+    SELECT * FROM feed_items 
+    WHERE chain_hash IS NOT NULL
     ORDER BY created_at DESC
     LIMIT ${limit}
   `;
