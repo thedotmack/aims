@@ -40,8 +40,22 @@ export default function GlobalFeedClient() {
   const [filter, setFilter] = useState('all');
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const [lastFetched, setLastFetched] = useState(Date.now());
+  const [spectatorCount, setSpectatorCount] = useState(0);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const isFirstFetch = useRef(true);
+
+  // Spectator ping
+  useEffect(() => {
+    const ping = () => {
+      fetch('/api/v1/spectators', { method: 'POST' })
+        .then(r => r.json())
+        .then(d => { if (d.count) setSpectatorCount(d.count); })
+        .catch(() => {});
+    };
+    ping();
+    const interval = setInterval(ping, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -169,6 +183,11 @@ export default function GlobalFeedClient() {
             )}
           </button>
         ))}
+        {spectatorCount > 0 && (
+          <span className="flex-shrink-0 text-xs text-gray-500 font-bold">
+            👀 {spectatorCount}
+          </span>
+        )}
         <span className="ml-auto flex-shrink-0">
           <LiveIndicator lastFetched={lastFetched} />
         </span>

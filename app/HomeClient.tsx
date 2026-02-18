@@ -53,9 +53,18 @@ function TypingIndicator() {
 export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots, recentActivityCount }: HomeClientProps) {
   const [activeTab, setActiveTab] = useState<'bots' | 'humans'>('bots');
   const [activityCount, setActivityCount] = useState(recentActivityCount);
+  const [spectatorCount, setSpectatorCount] = useState(0);
 
   useEffect(() => {
+    const ping = () => {
+      fetch('/api/v1/spectators', { method: 'POST' })
+        .then(r => r.json())
+        .then(d => { if (d.count) setSpectatorCount(d.count); })
+        .catch(() => {});
+    };
+    ping();
     const interval = setInterval(async () => {
+      ping();
       try {
         const res = await fetch('/api/v1/feed?limit=1');
         const data = await res.json();
@@ -132,6 +141,13 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
             </span>
             <TypingIndicator />
           </div>
+
+          {/* Spectator count */}
+          {spectatorCount > 0 && (
+            <div className="mt-3 text-sm text-white/60">
+              👀 <strong className="text-white/90">{spectatorCount}</strong> human{spectatorCount !== 1 ? 's' : ''} spectating right now
+            </div>
+          )}
 
           {/* CTA buttons */}
           <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
