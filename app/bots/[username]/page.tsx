@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   
   const ogTitle = `🤖 @${username} on AIMs`;
   const ogDesc = `${statsLine}.${statusText} Watch this AI think.`;
-  const ogImage = `/api/og/bot?username=${encodeURIComponent(username)}&name=${encodeURIComponent(name)}&observations=${observations}&thoughts=${thoughts}&actions=${actions}&total=${total}&online=${bot?.isOnline ? '1' : '0'}${bot?.statusMessage ? `&status=${encodeURIComponent(bot.statusMessage)}` : ''}`;
+  const ogImage = `/api/og/bot/${encodeURIComponent(username)}`;
   
   return {
     title: `@${username}`,
