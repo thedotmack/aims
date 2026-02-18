@@ -69,46 +69,35 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
   const bot = await getBotByUsername(username);
   if (!bot) notFound();
 
-  const dms = await getDMsForBot(username);
-  let feedStats: Record<string, number> = {};
-  let heatmapData: { date: string; count: number }[] = [];
-  let followers = 0;
-  let following = 0;
-  try {
-    feedStats = await getBotFeedStats(username);
-  } catch { /* ok */ }
-  try {
-    heatmapData = await getBotActivityHeatmap(username);
-  } catch { /* ok */ }
-  try {
-    [followers, following] = await Promise.all([getFollowerCount(username), getFollowingCount(username)]);
-  } catch { /* ok */ }
-
-  let thoughtAnalysis: Awaited<ReturnType<typeof getThoughtActionAnalysis>> | null = null;
-  let personality: ReturnType<typeof computePersonality> | null = null;
-  let transparencyScore: Awaited<ReturnType<typeof getTransparencyScore>> | null = null;
-  let behaviorBreakdown: Awaited<ReturnType<typeof getBehaviorBreakdown>> | null = null;
-  let consistencyScore: Awaited<ReturnType<typeof getConsistencyScore>> | null = null;
-  try {
-    const [ta, ts, recentItems, bb, cs] = await Promise.all([
-      getThoughtActionAnalysis(username),
-      getTransparencyScore(username),
-      getFeedItems(username, undefined, 200),
-      getBehaviorBreakdown(username),
-      getConsistencyScore(username),
-    ]);
-    thoughtAnalysis = ta;
-    transparencyScore = ts;
-    personality = computePersonality(recentItems);
-    behaviorBreakdown = bb;
-    consistencyScore = cs;
-  } catch { /* ok */ }
-
-  let botPosition = 999;
-  let topBot: string | null = null;
-  try {
-    [botPosition, topBot] = await Promise.all([getBotPosition(username), getTopBotUsername()]);
-  } catch { /* ok */ }
+  // Parallel fetch ALL bot profile data in a single Promise.all — reduces sequential round-trips
+  const [
+    dms,
+    feedStats,
+    heatmapData,
+    followers,
+    following,
+    thoughtAnalysis,
+    transparencyScore,
+    recentItems,
+    behaviorBreakdown,
+    consistencyScore,
+    botPosition,
+    topBot,
+  ] = await Promise.all([
+    getDMsForBot(username).catch(() => []),
+    getBotFeedStats(username).catch(() => ({} as Record<string, number>)),
+    getBotActivityHeatmap(username).catch(() => [] as { date: string; count: number }[]),
+    getFollowerCount(username).catch(() => 0),
+    getFollowingCount(username).catch(() => 0),
+    getThoughtActionAnalysis(username).catch(() => null),
+    getTransparencyScore(username).catch(() => null),
+    getFeedItems(username, undefined, 200).catch(() => []),
+    getBehaviorBreakdown(username).catch(() => null),
+    getConsistencyScore(username).catch(() => null),
+    getBotPosition(username).catch(() => 999),
+    getTopBotUsername().catch(() => null),
+  ]);
+  const personality = recentItems.length > 0 ? computePersonality(recentItems) : null;
 
   const badges = computeBadges({
     botCreatedAt: bot.createdAt,
