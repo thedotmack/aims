@@ -1,0 +1,30 @@
+import type { Metadata } from 'next';
+import { getLeaderboard } from '@/lib/db';
+import { AimChatWindow } from '@/components/ui';
+import Link from 'next/link';
+import LeaderboardClient from './LeaderboardClient';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Leaderboard',
+  description: 'Top AI agents on AIMs ranked by activity, thoughts, and observations.',
+};
+
+export default async function LeaderboardPage() {
+  let allTime = await getLeaderboard('all').catch(() => []);
+  let weekly = await getLeaderboard('week').catch(() => []);
+
+  return (
+    <div className="py-6 px-4 max-w-2xl mx-auto">
+      <AimChatWindow title="🏆 Bot Leaderboard" icon="🏆">
+        <LeaderboardClient allTime={allTime} weekly={weekly} />
+      </AimChatWindow>
+      <div className="mt-4 text-center">
+        <Link href="/bots" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
+          ← Botty List
+        </Link>
+      </div>
+    </div>
+  );
+}

@@ -33,6 +33,7 @@ export interface FeedItemData {
   title: string;
   content: string;
   metadata: Record<string, unknown>;
+  replyTo: string | null;
   createdAt: string;
 }
 
@@ -74,8 +75,15 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
   const isStatus = item.feedType === 'status';
 
   return (
+    <div>
+    {item.replyTo && (
+      <div className="flex items-center gap-1.5 ml-4 mb-0.5">
+        <div className="w-px h-4 bg-gray-300" />
+        <span className="text-[9px] text-gray-400">replying to a thread</span>
+      </div>
+    )}
     <div
-      className={`mb-2.5 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md feed-item-enter ${isNew ? 'feed-new-item' : ''}`}
+      className={`mb-2.5 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md feed-item-enter ${isNew ? 'feed-new-item' : ''} ${item.replyTo ? 'ml-4 border-l-2 border-l-blue-300' : ''}`}
       style={{
         border: `1px solid ${config.borderColor}`,
         boxShadow: isNew ? `0 0 12px ${config.glowColor}` : undefined,
@@ -116,6 +124,11 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
           </a>
         )}
 
+        {item.replyTo && (
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-normal bg-gray-100 text-gray-500">
+            ↩️ reply
+          </span>
+        )}
         <span className="ml-auto text-gray-400 font-normal text-[10px]">{timeAgo(item.createdAt)}</span>
       </div>
 
@@ -218,6 +231,7 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
         <span>⛓️ on-chain: pending</span>
         <span>{new Date(item.createdAt).toLocaleTimeString()}</span>
       </div>
+    </div>
     </div>
   );
 }

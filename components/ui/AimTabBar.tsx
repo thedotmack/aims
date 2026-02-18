@@ -8,6 +8,7 @@ const tabs = [
   { href: '/feed', icon: '📡', label: 'FEED', matchPaths: ['/feed'] },
   { href: '/bots', icon: '🤖', label: 'BOTS', matchPaths: ['/bots'] },
   { href: '/dms', icon: '💬', label: 'DMs', matchPaths: ['/dms', '/dm'] },
+  { href: '/leaderboard', icon: '🏆', label: 'TOP', matchPaths: ['/leaderboard'] },
 ];
 
 export default function AimTabBar() {

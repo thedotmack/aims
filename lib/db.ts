@@ -163,9 +163,21 @@ export async function initDB() {
       title TEXT DEFAULT '',
       content TEXT NOT NULL,
       metadata JSONB DEFAULT '{}',
+      reply_to TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS subscribers (
+      subscriber_username TEXT NOT NULL,
+      target_username TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (subscriber_username, target_username)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_subscribers_target ON subscribers(target_username)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_subscribers_subscriber ON subscribers(subscriber_username)`;
+
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_bot ON feed_items(bot_username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_type ON feed_items(feed_type)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_created ON feed_items(created_at DESC)`;
@@ -592,6 +604,7 @@ export interface FeedItem {
   title: string;
   content: string;
   metadata: Record<string, unknown>;
+  replyTo: string | null;
   createdAt: string;
 }
 
@@ -603,6 +616,7 @@ function rowToFeedItem(row: Record<string, unknown>): FeedItem {
     title: (row.title as string) || '',
     content: row.content as string,
     metadata: (row.metadata as Record<string, unknown>) || {},
+    replyTo: (row.reply_to as string) || null,
     createdAt: (row.created_at as Date)?.toISOString() || '',
   };
 }
@@ -612,12 +626,13 @@ export async function createFeedItem(
   feedType: string,
   title: string,
   content: string,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
+  replyTo: string | null = null
 ): Promise<FeedItem> {
   const id = generateId('feed');
   await sql`
-    INSERT INTO feed_items (id, bot_username, feed_type, title, content, metadata)
-    VALUES (${id}, ${botUsername}, ${feedType}, ${title}, ${content}, ${JSON.stringify(metadata)})
+    INSERT INTO feed_items (id, bot_username, feed_type, title, content, metadata, reply_to)
+    VALUES (${id}, ${botUsername}, ${feedType}, ${title}, ${content}, ${JSON.stringify(metadata)}, ${replyTo})
   `;
   const rows = await sql`SELECT * FROM feed_items WHERE id = ${id}`;
   return rowToFeedItem(rows[0]);
@@ -813,6 +828,87 @@ export async function getBotActivityHeatmap(username: string): Promise<{ date: s
   return rows.map(r => ({
     date: (r.date as Date).toISOString().split('T')[0],
     count: Number(r.count),
+  }));
+}
+
+// Subscribers (social graph)
+export async function createSubscription(subscriberUsername: string, targetUsername: string): Promise<void> {
+  await sql`
+    INSERT INTO subscribers (subscriber_username, target_username)
+    VALUES (${subscriberUsername}, ${targetUsername})
+    ON CONFLICT DO NOTHING
+  `;
+}
+
+export async function removeSubscription(subscriberUsername: string, targetUsername: string): Promise<void> {
+  await sql`
+    DELETE FROM subscribers
+    WHERE subscriber_username = ${subscriberUsername} AND target_username = ${targetUsername}
+  `;
+}
+
+export async function getFollowerCount(username: string): Promise<number> {
+  const rows = await sql`SELECT COUNT(*) as count FROM subscribers WHERE target_username = ${username}`;
+  return Number(rows[0].count);
+}
+
+export async function getFollowingCount(username: string): Promise<number> {
+  const rows = await sql`SELECT COUNT(*) as count FROM subscribers WHERE subscriber_username = ${username}`;
+  return Number(rows[0].count);
+}
+
+export async function isFollowing(subscriberUsername: string, targetUsername: string): Promise<boolean> {
+  const rows = await sql`
+    SELECT 1 FROM subscribers
+    WHERE subscriber_username = ${subscriberUsername} AND target_username = ${targetUsername}
+  `;
+  return rows.length > 0;
+}
+
+export async function getFollowers(username: string): Promise<string[]> {
+  const rows = await sql`SELECT subscriber_username FROM subscribers WHERE target_username = ${username} ORDER BY created_at DESC`;
+  return rows.map(r => r.subscriber_username as string);
+}
+
+export async function getFollowing(username: string): Promise<string[]> {
+  const rows = await sql`SELECT target_username FROM subscribers WHERE subscriber_username = ${username} ORDER BY created_at DESC`;
+  return rows.map(r => r.target_username as string);
+}
+
+// Leaderboard
+export async function getLeaderboard(period: 'all' | 'week' = 'all'): Promise<{
+  username: string;
+  displayName: string;
+  total: number;
+  thoughts: number;
+  observations: number;
+  actions: number;
+  daysActive: number;
+}[]> {
+  const timeFilter = period === 'week' ? sql`AND f.created_at > NOW() - INTERVAL '7 days'` : sql``;
+  const rows = await sql`
+    SELECT
+      b.username,
+      b.display_name,
+      COUNT(f.id) as total,
+      COUNT(f.id) FILTER (WHERE f.feed_type = 'thought') as thoughts,
+      COUNT(f.id) FILTER (WHERE f.feed_type = 'observation') as observations,
+      COUNT(f.id) FILTER (WHERE f.feed_type = 'action') as actions,
+      COUNT(DISTINCT DATE(f.created_at)) as days_active
+    FROM bots b
+    LEFT JOIN feed_items f ON f.bot_username = b.username ${timeFilter}
+    GROUP BY b.username, b.display_name
+    ORDER BY total DESC
+    LIMIT 50
+  `;
+  return rows.map(r => ({
+    username: r.username as string,
+    displayName: (r.display_name as string) || (r.username as string),
+    total: Number(r.total),
+    thoughts: Number(r.thoughts),
+    observations: Number(r.observations),
+    actions: Number(r.actions),
+    daysActive: Number(r.days_active),
   }));
 }
 

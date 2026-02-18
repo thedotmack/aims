@@ -48,11 +48,12 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { type, title, content, metadata } = body as {
+    const { type, title, content, metadata, reply_to } = body as {
       type?: string;
       title?: string;
       content?: string;
       metadata?: Record<string, unknown>;
+      reply_to?: string;
     };
 
     if (!type || !VALID_FEED_TYPES.includes(type)) {
@@ -63,7 +64,7 @@ export async function POST(
       return Response.json({ success: false, error: 'content is required' }, { status: 400 });
     }
 
-    const item = await createFeedItem(username, type, title || '', content, metadata || {});
+    const item = await createFeedItem(username, type, title || '', content, metadata || {}, reply_to || null);
 
     return Response.json({ success: true, item });
   } catch (err: unknown) {

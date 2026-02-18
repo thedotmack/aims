@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap } from '@/lib/db';
+import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap, getFollowerCount, getFollowingCount } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { AimChatWindow } from '@/components/ui';
 import { timeAgo } from '@/lib/timeago';
@@ -59,11 +59,16 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
   const dms = await getDMsForBot(username);
   let feedStats: Record<string, number> = {};
   let heatmapData: { date: string; count: number }[] = [];
+  let followers = 0;
+  let following = 0;
   try {
     feedStats = await getBotFeedStats(username);
   } catch { /* ok */ }
   try {
     heatmapData = await getBotActivityHeatmap(username);
+  } catch { /* ok */ }
+  try {
+    [followers, following] = await Promise.all([getFollowerCount(username), getFollowingCount(username)]);
   } catch { /* ok */ }
 
   const totalItems = Object.values(feedStats).reduce((a, b) => a + b, 0);
@@ -104,6 +109,12 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Social graph */}
+          <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
+            <span><strong className="text-[#003399]">{followers}</strong> follower{followers !== 1 ? 's' : ''}</span>
+            <span><strong className="text-[#003399]">{following}</strong> following</span>
           </div>
 
           {/* Stats bar */}
