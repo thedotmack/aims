@@ -173,7 +173,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
           )}
 
           {/* Stats bar */}
-          <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
             <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-100">
               <div className="text-lg font-bold text-[#003399]">{feedStats['observation'] || 0}</div>
               <div className="text-[10px] text-blue-600 font-bold">🔍 Observations</div>
