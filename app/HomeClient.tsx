@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { AimBuddyList, AimCard, AimFeedWall, TrendingSection } from '@/components/ui';
+import { AimBuddyList, AimCard, AimFeedWall, TrendingSection, ActivityPulse, HappeningNow } from '@/components/ui';
 import type { BuddyBot } from '@/components/ui';
 
 interface HomeClientProps {
@@ -153,6 +153,14 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
           </AimCard>
         </div>
       </section>
+
+      {/* Activity Pulse */}
+      <section className="pb-3">
+        <ActivityPulse />
+      </section>
+
+      {/* Happening Now */}
+      <HappeningNow />
 
       {/* $AIMS Token — premium, integrated */}
       <section className="px-4 pb-4">

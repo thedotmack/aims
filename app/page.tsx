@@ -32,6 +32,7 @@ export default async function HomePage() {
     isOnline: b.isOnline,
     statusMessage: b.statusMessage,
     avatarUrl: b.avatarUrl || undefined,
+    lastActivity: b.lastSeen,
   }));
 
   return (

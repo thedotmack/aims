@@ -13,3 +13,6 @@ export type { FeedItemData } from './AimFeedItem';
 export { default as AimFeedWall } from './AimFeedWall';
 export { default as OnboardingBanner } from './OnboardingBanner';
 export { default as TrendingSection } from './TrendingSection';
+export { default as ActivityPulse } from './ActivityPulse';
+export { default as HappeningNow } from './HappeningNow';
+export { default as Sparkline } from './Sparkline';
