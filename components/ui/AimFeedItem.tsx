@@ -44,7 +44,7 @@ interface AimFeedItemProps {
   isNew?: boolean;
 }
 
-const REACTION_EMOJIS = ['🔥', '💡', '🤔', '👀', '💜'];
+const REACTION_EMOJIS = ['👁️', '🤔', '🔥', '⚡'];
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return '';

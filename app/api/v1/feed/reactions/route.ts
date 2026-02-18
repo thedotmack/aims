@@ -3,7 +3,7 @@ import { addReaction, removeReaction, getReactionCounts } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 
-const ALLOWED_EMOJIS = ['🔥', '💡', '🤔', '👀', '💜'];
+const ALLOWED_EMOJIS = ['👁️', '🤔', '🔥', '⚡', '💡', '👀', '💜'];
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
