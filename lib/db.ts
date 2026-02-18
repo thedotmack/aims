@@ -1164,4 +1164,101 @@ export async function getDailyDigestStats(): Promise<{
   };
 }
 
+// Get recent conversations with preview messages for /conversations page
+export async function getConversationsWithPreviews(limit: number = 20): Promise<{
+  id: string;
+  bot1Username: string;
+  bot2Username: string;
+  lastActivity: string;
+  messageCount: number;
+  previewMessages: { fromUsername: string; content: string; timestamp: string }[];
+}[]> {
+  try {
+    const rows = await sql`
+      SELECT d.id, d.bot1_username, d.bot2_username, d.last_activity,
+             (SELECT COUNT(*)::int FROM messages m WHERE m.dm_id = d.id) as message_count
+      FROM dms d
+      ORDER BY d.last_activity DESC
+      LIMIT ${limit}
+    `;
+    
+    const conversations = [];
+    for (const row of rows) {
+      const msgRows = await sql`
+        SELECT from_username, content, timestamp
+        FROM messages
+        WHERE dm_id = ${row.id as string}
+        ORDER BY timestamp DESC
+        LIMIT 3
+      `;
+      conversations.push({
+        id: row.id as string,
+        bot1Username: row.bot1_username as string,
+        bot2Username: row.bot2_username as string,
+        lastActivity: (row.last_activity as Date)?.toISOString() || '',
+        messageCount: Number(row.message_count),
+        previewMessages: msgRows.map(m => ({
+          fromUsername: m.from_username as string,
+          content: m.content as string,
+          timestamp: (m.timestamp as Date)?.toISOString() || '',
+        })).reverse(),
+      });
+    }
+    return conversations;
+  } catch {
+    return [];
+  }
+}
+
+// Get bot interaction stats with preview snippets for network graph
+export async function getBotInteractionStats(): Promise<{
+  bot1: string;
+  bot2: string;
+  messageCount: number;
+  lastSnippet: string;
+}[]> {
+  try {
+    const rows = await sql`
+      SELECT d.bot1_username as bot1, d.bot2_username as bot2,
+             COUNT(m.id)::int as message_count,
+             (SELECT content FROM messages WHERE dm_id = d.id ORDER BY timestamp DESC LIMIT 1) as last_snippet
+      FROM dms d
+      LEFT JOIN messages m ON m.dm_id = d.id
+      GROUP BY d.id, d.bot1_username, d.bot2_username
+      ORDER BY message_count DESC
+      LIMIT 50
+    `;
+    return rows.map(r => ({
+      bot1: r.bot1 as string,
+      bot2: r.bot2 as string,
+      messageCount: Number(r.message_count),
+      lastSnippet: (r.last_snippet as string) || '',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// Get social proof stats for homepage banner
+export async function getSocialProofStats(): Promise<{
+  todayBroadcasts: number;
+  activeBotsCount: number;
+  activeConversations: number;
+}> {
+  try {
+    const [broadcasts, activeBots, convos] = await Promise.all([
+      sql`SELECT COUNT(*)::int as c FROM feed_items WHERE created_at > NOW() - INTERVAL '24 hours'`,
+      sql`SELECT COUNT(DISTINCT bot_username)::int as c FROM feed_items WHERE created_at > NOW() - INTERVAL '24 hours'`,
+      sql`SELECT COUNT(*)::int as c FROM dms WHERE last_activity > NOW() - INTERVAL '24 hours'`,
+    ]);
+    return {
+      todayBroadcasts: Number(broadcasts[0].c),
+      activeBotsCount: Number(activeBots[0].c),
+      activeConversations: Number(convos[0].c),
+    };
+  } catch {
+    return { todayBroadcasts: 0, activeBotsCount: 0, activeConversations: 0 };
+  }
+}
+
 export { sql };
