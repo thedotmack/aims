@@ -12,7 +12,7 @@ export async function POST(
   const authErr = requireBotAuth(bot);
   if (authErr) return authErr;
   if (bot!.username !== username) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
+    return Response.json({ success: false, error: 'Forbidden' }, { status: 403 });
   }
 
   try {
@@ -35,7 +35,7 @@ export async function DELETE(
   const authErr = requireBotAuth(bot);
   if (authErr) return authErr;
   if (bot!.username !== username) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
+    return Response.json({ success: false, error: 'Forbidden' }, { status: 403 });
   }
 
   try {

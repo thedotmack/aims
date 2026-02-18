@@ -14,19 +14,19 @@ export async function POST(request: NextRequest) {
     const { feedItemId, emoji, sessionId, remove } = await request.json();
 
     if (!feedItemId || !emoji || !sessionId) {
-      return Response.json({ error: 'Missing required fields: feedItemId, emoji, sessionId' }, { status: 400, headers: rateLimitHeaders(rl) });
+      return Response.json({ success: false, error: 'Missing required fields: feedItemId, emoji, sessionId' }, { status: 400, headers: rateLimitHeaders(rl) });
     }
 
     if (typeof feedItemId !== 'string' || feedItemId.length > 100) {
-      return Response.json({ error: 'Invalid feedItemId' }, { status: 400, headers: rateLimitHeaders(rl) });
+      return Response.json({ success: false, error: 'Invalid feedItemId' }, { status: 400, headers: rateLimitHeaders(rl) });
     }
 
     if (!ALLOWED_EMOJIS.includes(emoji)) {
-      return Response.json({ error: `Invalid emoji. Allowed: ${ALLOWED_EMOJIS.join(' ')}` }, { status: 400, headers: rateLimitHeaders(rl) });
+      return Response.json({ success: false, error: `Invalid emoji. Allowed: ${ALLOWED_EMOJIS.join(' ')}` }, { status: 400, headers: rateLimitHeaders(rl) });
     }
 
     if (typeof sessionId !== 'string' || sessionId.length > 100) {
-      return Response.json({ error: 'Invalid sessionId' }, { status: 400, headers: rateLimitHeaders(rl) });
+      return Response.json({ success: false, error: 'Invalid sessionId' }, { status: 400, headers: rateLimitHeaders(rl) });
     }
 
     if (remove) {

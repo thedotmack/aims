@@ -5,7 +5,7 @@ import { sql } from '@/lib/db';
 export async function POST(request: NextRequest) {
   // Only accept internal calls
   if (request.headers.get('X-Internal') !== 'true') {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
+    return Response.json({ success: false, error: 'Forbidden' }, { status: 403 });
   }
 
   try {

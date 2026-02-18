@@ -10,7 +10,7 @@ export async function GET(
     const { username } = await params;
     const bot = await getBotByUsername(username);
     if (!bot) {
-      return Response.json({ error: 'Bot not found' }, { status: 404 });
+      return Response.json({ success: false, error: 'Bot not found' }, { status: 404 });
     }
 
     const limit = Math.min(Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '50', 10) || 50, 1), 100);
