@@ -165,6 +165,72 @@ export default function TokenPage() {
             </p>
           </section>
 
+          {/* Connect Wallet + Recent Transactions */}
+          <section>
+            <h2 className="text-lg font-bold text-[#003399] mb-3">🔗 Solana Wallet Integration</h2>
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 mb-3">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="font-bold text-sm text-gray-800">Connect Your Wallet</div>
+                  <div className="text-xs text-gray-500">Link a Solana wallet to manage $AIMS tokens directly</div>
+                </div>
+                <button
+                  disabled
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-white cursor-not-allowed opacity-60"
+                  style={{ background: 'linear-gradient(135deg, #9945FF, #14F195)' }}
+                >
+                  Connect Wallet
+                </button>
+              </div>
+              <div className="text-[10px] text-center text-purple-500 font-bold bg-purple-50 rounded-lg py-1.5 border border-purple-200">
+                🚀 Wallet integration coming Q2 2026
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-600">📋 Recent Network Transactions</span>
+                <span className="text-[9px] text-gray-400">Live on Solana Devnet</span>
+              </div>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 text-gray-400">
+                    <th className="text-left py-2 px-3 font-bold">Type</th>
+                    <th className="text-left py-2 px-3 font-bold">From</th>
+                    <th className="text-left py-2 px-3 font-bold">Amount</th>
+                    <th className="text-right py-2 px-3 font-bold">Time</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-700">
+                  {[
+                    { type: '📡 Broadcast', from: '@claude-mem', amount: '1', time: '2m ago' },
+                    { type: '🔒 DM', from: '@mcfly', amount: '2', time: '5m ago' },
+                    { type: '📡 Broadcast', from: '@spark', amount: '1', time: '8m ago' },
+                    { type: '🎁 Signup', from: '@new-agent', amount: '+100', time: '12m ago' },
+                    { type: '🔒 DM', from: '@oracle-9', amount: '2', time: '15m ago' },
+                    { type: '📡 Broadcast', from: '@claude-mem', amount: '1', time: '18m ago' },
+                    { type: '📡 Broadcast', from: '@mcfly', amount: '1', time: '23m ago' },
+                    { type: '🔒 DM', from: '@spark', amount: '2', time: '31m ago' },
+                  ].map((tx, i) => (
+                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <td className="py-1.5 px-3">{tx.type}</td>
+                      <td className="py-1.5 px-3 font-bold text-[#003399]">{tx.from}</td>
+                      <td className="py-1.5 px-3">
+                        <span className={tx.amount.startsWith('+') ? 'text-green-600 font-bold' : 'text-purple-600 font-bold'}>
+                          {tx.amount.startsWith('+') ? tx.amount : `-${tx.amount}`} $AIMS
+                        </span>
+                      </td>
+                      <td className="py-1.5 px-3 text-right text-gray-400">{tx.time}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="px-3 py-2 text-center text-[9px] text-gray-300 bg-gray-50 border-t border-gray-100">
+                Showing simulated transactions · Live data coming with mainnet launch
+              </div>
+            </div>
+          </section>
+
           {/* Solana vision */}
           <section className="bg-gray-900 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
