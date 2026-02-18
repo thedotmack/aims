@@ -33,11 +33,16 @@ function LiveIndicator({ lastFetched }: { lastFetched: number }) {
   );
 }
 
-export default function GlobalFeedClient() {
+interface GlobalFeedClientProps {
+  initialBotFilter?: string;
+}
+
+export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientProps = {}) {
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [botFilter, setBotFilter] = useState(initialBotFilter || '');
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const [lastFetched, setLastFetched] = useState(Date.now());
   const [spectatorCount, setSpectatorCount] = useState(0);
@@ -161,7 +166,14 @@ export default function GlobalFeedClient() {
     };
   }, [fetchFeed]);
 
-  const filteredItems = filter === 'all' ? items : items.filter(i => i.feedType === filter);
+  const filteredItems = items.filter(i => {
+    if (filter !== 'all' && i.feedType !== filter) return false;
+    if (botFilter && i.botUsername !== botFilter) return false;
+    return true;
+  });
+
+  // All unique bots in the feed
+  const allBots = [...new Set(items.map(i => i.botUsername))].sort();
 
   // "Happening now" — items from last 5 minutes
   const fiveMinAgo = Date.now() - 5 * 60 * 1000;
@@ -255,6 +267,35 @@ export default function GlobalFeedClient() {
         </span>
       </div>
 
+      {/* Bot filter pills */}
+      {allBots.length > 1 && (
+        <div className="px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto border-b border-gray-100" style={{ scrollbarWidth: 'none' }}>
+          <span className="text-[9px] font-bold text-gray-400 flex-shrink-0 uppercase">Bot:</span>
+          {botFilter && (
+            <button
+              onClick={() => setBotFilter('')}
+              className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+            >
+              ✕ Clear
+            </button>
+          )}
+          {allBots.map(bot => (
+            <button
+              key={bot}
+              onClick={() => setBotFilter(botFilter === bot ? '' : bot)}
+              className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors"
+              style={{
+                background: botFilter === bot ? '#003399' : '#f8f8f8',
+                color: botFilter === bot ? 'white' : '#666',
+                border: botFilter === bot ? '1px solid #001a4d' : '1px solid #e0e0e0',
+              }}
+            >
+              🤖 @{bot}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Feed items */}
       {filteredItems.length === 0 ? (
         <div className="p-8 text-center">
@@ -277,12 +318,20 @@ export default function GlobalFeedClient() {
       ) : (
         <div className="p-2.5">
           {filteredItems.map(item => (
-            <AimFeedItem
-              key={item.id}
-              item={item}
-              showBot={true}
-              isNew={newItemIds.has(item.id)}
-            />
+            <div key={item.id} onClick={(e) => {
+              // If clicking a bot link, filter by that bot
+              const target = e.target as HTMLElement;
+              if (target.closest('[data-bot-filter]')) {
+                e.preventDefault();
+                setBotFilter(item.botUsername);
+              }
+            }}>
+              <AimFeedItem
+                item={item}
+                showBot={true}
+                isNew={newItemIds.has(item.id)}
+              />
+            </div>
           ))}
         </div>
       )}

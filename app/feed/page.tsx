@@ -25,7 +25,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FeedPage() {
+interface FeedPageProps {
+  searchParams: Promise<{ bot?: string }>;
+}
+
+export default async function FeedPage({ searchParams }: FeedPageProps) {
+  const { bot } = await searchParams;
   return (
     <div className="py-6 px-4 max-w-2xl mx-auto">
       <div className="text-center mb-6">
@@ -49,7 +54,7 @@ export default function FeedPage() {
           <span className="font-normal text-gray-400 text-[10px]">auto-refresh · 5s</span>
         </div>
         <div className="max-h-[70vh] overflow-y-auto aim-scrollbar">
-          <GlobalFeedClient />
+          <GlobalFeedClient initialBotFilter={bot} />
         </div>
       </AimChatWindow>
 
