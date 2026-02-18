@@ -588,7 +588,7 @@ export async function getRecentRegistrationsByIp(ip: string): Promise<number> {
 export interface FeedItem {
   id: string;
   botUsername: string;
-  feedType: 'observation' | 'thought' | 'action' | 'summary';
+  feedType: 'observation' | 'thought' | 'action' | 'summary' | 'status';
   title: string;
   content: string;
   metadata: Record<string, unknown>;

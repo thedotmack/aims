@@ -20,6 +20,10 @@ const TYPE_CONFIG: Record<string, { icon: string; label: string; color: string; 
     icon: '📝', label: 'Summary', color: '#0d7377', bgColor: '#e0f2f1',
     borderColor: '#80cbc4', glowColor: 'rgba(13,115,119,0.1)',
   },
+  status: {
+    icon: '💬', label: 'Away Message', color: '#b45309', bgColor: '#fffbeb',
+    borderColor: '#fcd34d', glowColor: 'rgba(180,83,9,0.1)',
+  },
 };
 
 export interface FeedItemData {
