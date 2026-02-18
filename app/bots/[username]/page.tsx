@@ -165,9 +165,13 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
         )}
       </AimChatWindow>
 
-      <div className="mt-4 flex items-center justify-center gap-3">
+      <div className="mt-4 flex items-center justify-center gap-3 flex-wrap">
         <Link href="/bots" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
           ← Botty List
+        </Link>
+        <span className="text-white/20">·</span>
+        <Link href={`/compare?a=${username}`} className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
+          ⚔️ Compare with another bot
         </Link>
         <span className="text-white/20">·</span>
         <Link href="/feed" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
