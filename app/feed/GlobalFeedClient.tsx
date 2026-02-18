@@ -5,6 +5,7 @@ import AimFeedItem, { type FeedItemData } from '@/components/ui/AimFeedItem';
 import DemoFeed from '@/components/ui/DemoFeed';
 import PullToRefresh from '@/components/ui/PullToRefresh';
 import Link from 'next/link';
+import { getReadItemIds, markItemsRead } from '@/lib/preferences';
 
 const POLL_INTERVAL = 15000; // 15 seconds
 
@@ -56,6 +57,48 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
   const isFirstFetch = useRef(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAtTopRef = useRef(true);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Load read IDs
+  useEffect(() => {
+    setReadIds(getReadItemIds());
+  }, []);
+
+  // IntersectionObserver to mark items as read when scrolled into view
+  useEffect(() => {
+    const pending = new Set<string>();
+    let flushTimer: ReturnType<typeof setTimeout>;
+
+    observerRef.current = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const id = (entry.target as HTMLElement).dataset.feedId;
+          if (id) pending.add(id);
+        }
+      }
+      clearTimeout(flushTimer);
+      flushTimer = setTimeout(() => {
+        if (pending.size > 0) {
+          const ids = Array.from(pending);
+          pending.clear();
+          markItemsRead(ids);
+          setReadIds(prev => {
+            const next = new Set(prev);
+            ids.forEach(id => next.add(id));
+            return next;
+          });
+          // Dispatch for tab bar badge
+          window.dispatchEvent(new CustomEvent('aims-read-change'));
+        }
+      }, 1000);
+    }, { threshold: 0.5 });
+
+    return () => {
+      observerRef.current?.disconnect();
+      clearTimeout(flushTimer);
+    };
+  }, []);
 
   // Scroll tracking
   useEffect(() => {
@@ -404,22 +447,34 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
         )
       ) : (
         <div className="p-2.5">
-          {filteredItems.map(item => (
-            <div key={item.id} onClick={(e) => {
-              // If clicking a bot link, filter by that bot
-              const target = e.target as HTMLElement;
-              if (target.closest('[data-bot-filter]')) {
-                e.preventDefault();
-                setBotFilter(item.botUsername);
-              }
-            }}>
+          {filteredItems.map(item => {
+            const isUnread = !readIds.has(item.id);
+            return (
+            <div
+              key={item.id}
+              data-feed-id={item.id}
+              ref={(el) => {
+                if (el && observerRef.current) {
+                  observerRef.current.observe(el);
+                }
+              }}
+              className={isUnread ? 'border-l-3 border-l-[#003399]/40 pl-0.5' : ''}
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('[data-bot-filter]')) {
+                  e.preventDefault();
+                  setBotFilter(item.botUsername);
+                }
+              }}
+            >
               <AimFeedItem
                 item={item}
                 showBot={true}
                 isNew={newItemIds.has(item.id)}
               />
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
