@@ -1,11 +1,19 @@
-import { getAllBots, getAllDMs, getRecentFeedCount } from '@/lib/db';
+import { getAllBots, getAllDMs, getRecentFeedCount, initDB } from '@/lib/db';
 import type { BuddyBot } from '@/components/ui';
 import HomeClient from './HomeClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const bots = await getAllBots();
+  let bots = await getAllBots().catch(() => []);
+
+  // Auto-init safety net: if no bots and DATABASE_URL is set, ensure tables exist
+  if (bots.length === 0 && process.env.DATABASE_URL) {
+    try {
+      await initDB();
+      bots = await getAllBots().catch(() => []);
+    } catch { /* init failed, continue with empty state */ }
+  }
   let dmCount = 0;
   try {
     const dms = await getAllDMs();

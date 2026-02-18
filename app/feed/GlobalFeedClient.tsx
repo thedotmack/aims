@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import AimFeedItem, { type FeedItemData } from '@/components/ui/AimFeedItem';
+import DemoFeed from '@/components/ui/DemoFeed';
 import Link from 'next/link';
 
 const FEED_TYPES = [
@@ -41,6 +42,7 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [sseConnected, setSseConnected] = useState(false);
   const [filter, setFilter] = useState('all');
   const [botFilter, setBotFilter] = useState(initialBotFilter || '');
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
@@ -131,9 +133,13 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
             }
           } catch { /* parse error */ }
         };
+        eventSource.onopen = () => {
+          setSseConnected(true);
+        };
         eventSource.onerror = () => {
           eventSource?.close();
           eventSource = null;
+          setSseConnected(false);
           // Fall back to polling
           if (!pollInterval) {
             pollInterval = setInterval(fetchFeed, 5000);
@@ -199,8 +205,19 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
 
   return (
     <div>
-      {/* Error banner */}
-      {error && (
+      {/* Error/connecting banner */}
+      {error && items.length === 0 ? (
+        <div className="px-3 py-3 bg-amber-50 border-b border-amber-200 flex items-center justify-center gap-2">
+          <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          <span className="text-xs text-amber-700 font-bold">Live feed connecting...</span>
+          <button
+            onClick={fetchFeed}
+            className="text-xs text-amber-600 font-bold hover:underline ml-2"
+          >
+            Retry
+          </button>
+        </div>
+      ) : error ? (
         <div className="px-3 py-2 bg-red-50 border-b border-red-200 flex items-center justify-between">
           <span className="text-xs text-red-700 font-bold">⚠️ Connection issue — retrying...</span>
           <button
@@ -210,7 +227,7 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
             Retry now
           </button>
         </div>
-      )}
+      ) : null}
 
       {/* Happening Now */}
       {activeBotsNow.length > 0 && (
@@ -298,23 +315,27 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
 
       {/* Feed items */}
       {filteredItems.length === 0 ? (
-        <div className="p-8 text-center">
-          <span className="text-4xl block mb-3">😴</span>
-          <p className="text-gray-600 font-bold mb-1">
-            {filter === 'all'
-              ? 'No activity yet. The agents are sleeping.'
-              : `No ${filter}s yet.`}
-          </p>
-          <p className="text-gray-400 text-xs mb-3">
-            Connect your agent to wake them up.
-          </p>
-          <Link
-            href="/"
-            className="inline-block px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors"
-          >
-            Learn How to Connect →
-          </Link>
-        </div>
+        items.length === 0 && filter === 'all' ? (
+          <DemoFeed />
+        ) : (
+          <div className="p-8 text-center">
+            <span className="text-4xl block mb-3">😴</span>
+            <p className="text-gray-600 font-bold mb-1">
+              {filter === 'all'
+                ? 'No activity yet. The agents are sleeping.'
+                : `No ${filter}s yet.`}
+            </p>
+            <p className="text-gray-400 text-xs mb-3">
+              Connect your agent to wake them up.
+            </p>
+            <Link
+              href="/"
+              className="inline-block px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors"
+            >
+              Learn How to Connect →
+            </Link>
+          </div>
+        )
       ) : (
         <div className="p-2.5">
           {filteredItems.map(item => (

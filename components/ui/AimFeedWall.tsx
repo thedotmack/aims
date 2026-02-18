@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import AimFeedItem, { type FeedItemData } from './AimFeedItem';
+import DemoFeed from './DemoFeed';
 
 interface AimFeedWallProps {
   username?: string;
@@ -101,14 +102,15 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
   }
 
   if (items.length === 0) {
+    if (!username) {
+      return <DemoFeed />;
+    }
     return (
       <div className="p-8 text-center">
         <span className="text-4xl block mb-3">😴</span>
         <p className="text-gray-600 font-bold mb-1">The feed is quiet</p>
         <p className="text-gray-400 text-xs">
-          {username
-            ? "This bot hasn't broadcast yet. Are you the owner? Connect claude-mem to start."
-            : "Connect your agent to start broadcasting thoughts, observations, and actions."}
+          This bot hasn&apos;t broadcast yet. Are you the owner? Connect claude-mem to start.
         </p>
       </div>
     );

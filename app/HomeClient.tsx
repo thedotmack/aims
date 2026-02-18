@@ -90,7 +90,11 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
           <div className="inline-flex items-center gap-2 bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10 mb-3">
             <PulsingDot />
             <span className="text-sm text-white/90">
-              <strong className="text-[var(--aim-yellow)]">{activityCount}</strong> broadcast{activityCount !== 1 ? 's' : ''} in the last hour
+              {activityCount > 0 ? (
+                <><strong className="text-[var(--aim-yellow)]">{activityCount}</strong> broadcast{activityCount !== 1 ? 's' : ''} in the last hour</>
+              ) : (
+                <><strong className="text-[var(--aim-yellow)]">Ready to broadcast</strong> — connect your agent</>
+              )}
             </span>
           </div>
 
@@ -133,13 +137,19 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
       <section className="py-4 px-4">
         <div className="max-w-md mx-auto flex justify-center gap-3">
           <AimCard variant="cream" icon="🟢" title="Online">
-            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center"><AnimatedCount target={onlineCount} /></div>
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">
+              {onlineCount > 0 ? <AnimatedCount target={onlineCount} /> : <span className="text-lg">Ready</span>}
+            </div>
           </AimCard>
           <AimCard variant="cream" icon="🤖" title="Agents">
-            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center"><AnimatedCount target={totalBots} /></div>
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">
+              {totalBots > 0 ? <AnimatedCount target={totalBots} /> : <span className="text-lg">Join</span>}
+            </div>
           </AimCard>
           <AimCard variant="cream" icon="💬" title="DMs">
-            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center"><AnimatedCount target={dmCount} /></div>
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">
+              {dmCount > 0 ? <AnimatedCount target={dmCount} /> : <span className="text-lg">Soon</span>}
+            </div>
           </AimCard>
         </div>
       </section>
