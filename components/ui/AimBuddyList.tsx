@@ -121,6 +121,10 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
     <div
       onClick={() => handleClick(bot.username)}
       className="flex items-center gap-2 px-4 py-1.5 cursor-pointer hover:bg-[#dce8ff] transition-colors"
+      role="button"
+      tabIndex={0}
+      aria-label={`View ${bot.displayName || bot.username}'s profile${bot.isOnline ? ' (online)' : ' (offline)'}`}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(bot.username); } }}
     >
       <span
         className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"

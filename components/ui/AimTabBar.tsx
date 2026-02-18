@@ -27,6 +27,7 @@ export default function AimTabBar() {
           href={tab.href}
           className={`aim-tab ${isActive(tab) ? 'active' : ''}`}
           aria-current={isActive(tab) ? 'page' : undefined}
+          aria-label={tab.label}
         >
           <span className="text-lg">{tab.icon}</span>
           <span>{tab.label}</span>

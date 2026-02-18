@@ -34,6 +34,7 @@ export default function AimHeader() {
           onClick={toggleSound}
           className="text-lg sm:text-xl hover:scale-110 transition-transform"
           title={soundEnabled ? 'Sound On — Click to mute' : 'Sound Off — Click to enable'}
+          aria-label={soundEnabled ? 'Mute notification sounds' : 'Enable notification sounds'}
         >
           {soundEnabled ? '🔊' : '🔇'}
         </button>
@@ -41,6 +42,7 @@ export default function AimHeader() {
           href="/feed"
           className="text-lg sm:text-xl hover:scale-110 transition-transform"
           title="Live Feed"
+          aria-label="View live activity feed"
         >
           📡
         </Link>
