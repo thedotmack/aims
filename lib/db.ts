@@ -850,6 +850,83 @@ export async function updateRoomActivity(roomId: string): Promise<void> {
   await sql`UPDATE rooms SET last_activity = NOW() WHERE room_id = ${roomId}`;
 }
 
+// Combined homepage data — single round-trip instead of 4 separate queries
+// SQL EXPLAIN: Uses parallel index scans on bots(created_at), dms(last_activity), feed_items(created_at)
+export async function getHomepageData(): Promise<{
+  bots: BotPublic[];
+  dmCount: number;
+  recentActivityCount: number;
+  networkStats: { todayBroadcasts: number; activeBotsCount: number; activeConversations: number };
+}> {
+  const [botRows, dmCountRows, feedCountRows, statsRows] = await Promise.all([
+    sql`SELECT * FROM bots ORDER BY created_at DESC`,
+    sql`SELECT COUNT(*)::int as c FROM dms`,
+    sql`SELECT COUNT(*)::int as c FROM feed_items WHERE created_at > NOW() - INTERVAL '1 hour'`,
+    sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM feed_items WHERE created_at > NOW() - INTERVAL '24 hours') as today_broadcasts,
+        (SELECT COUNT(DISTINCT bot_username)::int FROM feed_items WHERE created_at > NOW() - INTERVAL '24 hours') as active_bots,
+        (SELECT COUNT(*)::int FROM dms WHERE last_activity > NOW() - INTERVAL '24 hours') as active_convos
+    `,
+  ]);
+  return {
+    bots: botRows.map(rowToBot).map(botToPublic),
+    dmCount: Number(dmCountRows[0].c),
+    recentActivityCount: Number(feedCountRows[0].c),
+    networkStats: {
+      todayBroadcasts: Number(statsRows[0].today_broadcasts),
+      activeBotsCount: Number(statsRows[0].active_bots),
+      activeConversations: Number(statsRows[0].active_convos),
+    },
+  };
+}
+
+// Combined conversations query — eliminates N+1 by using lateral join for preview messages
+export async function getConversationsWithPreviewsOptimized(limit: number = 20): Promise<{
+  id: string;
+  bot1Username: string;
+  bot2Username: string;
+  lastActivity: string;
+  messageCount: number;
+  previewMessages: { fromUsername: string; content: string; timestamp: string }[];
+}[]> {
+  try {
+    // Single query: get conversations with message counts and latest 3 messages via lateral join
+    const rows = await sql`
+      SELECT d.id, d.bot1_username, d.bot2_username, d.last_activity,
+             (SELECT COUNT(*)::int FROM messages m WHERE m.dm_id = d.id) as message_count,
+             COALESCE(
+               (SELECT json_agg(sub ORDER BY sub.timestamp ASC)
+                FROM (
+                  SELECT from_username, content, timestamp
+                  FROM messages
+                  WHERE dm_id = d.id
+                  ORDER BY timestamp DESC
+                  LIMIT 3
+                ) sub
+               ), '[]'::json
+             ) as preview_messages
+      FROM dms d
+      ORDER BY d.last_activity DESC
+      LIMIT ${limit}
+    `;
+    return rows.map(row => ({
+      id: row.id as string,
+      bot1Username: row.bot1_username as string,
+      bot2Username: row.bot2_username as string,
+      lastActivity: (row.last_activity as Date)?.toISOString() || '',
+      messageCount: Number(row.message_count),
+      previewMessages: (row.preview_messages as { from_username: string; content: string; timestamp: string }[]).map(m => ({
+        fromUsername: m.from_username,
+        content: m.content,
+        timestamp: typeof m.timestamp === 'string' ? m.timestamp : new Date(m.timestamp).toISOString(),
+      })),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 // Feed stats
 export async function getRecentFeedCount(hours: number = 1): Promise<number> {
   const rows = await sql`

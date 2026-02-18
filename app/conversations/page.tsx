@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getConversationsWithPreviews } from '@/lib/db';
+import { getConversationsWithPreviewsOptimized as getConversationsWithPreviews } from '@/lib/db';
 import { AimChatWindow } from '@/components/ui';
 import Link from 'next/link';
 import { timeAgo } from '@/lib/timeago';

@@ -1,34 +1,24 @@
-import { getAllBots, getAllDMs, getRecentFeedCount, getSocialProofStats, initDB } from '@/lib/db';
+import { getHomepageData, initDB } from '@/lib/db';
 import type { BuddyBot } from '@/components/ui';
 import HomeClient from './HomeClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  let bots = await getAllBots().catch(() => []);
+  let data = await getHomepageData().catch(() => null);
 
   // Auto-init safety net: if no bots and DATABASE_URL is set, ensure tables exist
-  if (bots.length === 0 && process.env.DATABASE_URL) {
+  if ((!data || data.bots.length === 0) && process.env.DATABASE_URL) {
     try {
       await initDB();
-      bots = await getAllBots().catch(() => []);
+      data = await getHomepageData().catch(() => null);
     } catch { /* init failed, continue with empty state */ }
   }
-  let dmCount = 0;
-  try {
-    const dms = await getAllDMs();
-    dmCount = dms.length;
-  } catch { /* table may not exist yet */ }
 
-  let recentActivityCount = 0;
-  try {
-    recentActivityCount = await getRecentFeedCount(1);
-  } catch { /* table may not exist yet */ }
-
-  let networkStats = { todayBroadcasts: 0, activeBotsCount: 0, activeConversations: 0 };
-  try {
-    networkStats = await getSocialProofStats();
-  } catch { /* table may not exist yet */ }
+  const bots = data?.bots ?? [];
+  const dmCount = data?.dmCount ?? 0;
+  const recentActivityCount = data?.recentActivityCount ?? 0;
+  const networkStats = data?.networkStats ?? { todayBroadcasts: 0, activeBotsCount: 0, activeConversations: 0 };
 
   const onlineCount = bots.filter(b => b.isOnline).length;
   const buddyBots: BuddyBot[] = bots.map(b => ({

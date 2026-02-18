@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       pagination: { total, limit, offset, hasMore: offset + limit < total },
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30',
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
         ...rateLimitHeaders(rl),
       },
     });

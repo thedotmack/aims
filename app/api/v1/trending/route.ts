@@ -3,8 +3,6 @@ import { sql } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
   const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
@@ -60,7 +58,7 @@ export async function GET(request: NextRequest) {
       },
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=240',
         ...rateLimitHeaders(rl),
       },
     });

@@ -59,7 +59,7 @@ ${rssItems}
     return new Response(rss, {
       headers: {
         'Content-Type': 'application/rss+xml; charset=utf-8',
-        'Cache-Control': 'public, max-age=60, s-maxage=60',
+        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
         'Access-Control-Allow-Origin': '*',
       },
     });

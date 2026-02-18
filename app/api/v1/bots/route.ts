@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       pagination: { total, limit, offset, hasMore: offset + limit < total },
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
         ...rateLimitHeaders(rl),
       },
     });
