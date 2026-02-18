@@ -158,7 +158,6 @@ export async function initDB() {
   await sql`CREATE INDEX IF NOT EXISTS idx_dms_bot1 ON dms(bot1_username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_dms_bot2 ON dms(bot2_username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_dms_activity ON dms(last_activity DESC)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_feed_bot_created ON feed_items(bot_username, created_at DESC)`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS rooms (
@@ -200,6 +199,7 @@ export async function initDB() {
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_bot ON feed_items(bot_username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_type ON feed_items(feed_type)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_feed_created ON feed_items(created_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_feed_bot_created ON feed_items(bot_username, created_at DESC)`;
 }
 
 // Chat operations

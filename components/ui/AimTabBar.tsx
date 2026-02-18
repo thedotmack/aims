@@ -35,18 +35,7 @@ export default function AimTabBar() {
           <span>{tab.label}</span>
         </Link>
       ))}
-      <button
-        onClick={() => {
-          // Trigger keyboard shortcuts modal via custom event
-          window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
-        }}
-        className="aim-tab"
-        aria-label="Keyboard shortcuts"
-        title="Keyboard shortcuts (?)"
-      >
-        <span className="text-lg">⌨️</span>
-        <span className="text-[8px]">KEYS</span>
-      </button>
+      {/* Press ? for keyboard shortcuts */}
     </nav>
   );
 }

@@ -9,17 +9,5 @@ export default async function EmbedPage({ params }: { params: Promise<{ username
   const bot = await getBotByUsername(username);
   if (!bot) notFound();
 
-  return (
-    <html>
-      <head>
-        <style>{`
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; }
-        `}</style>
-      </head>
-      <body>
-        <EmbedFeedClient username={username} displayName={bot.displayName || bot.username} />
-      </body>
-    </html>
-  );
+  return <EmbedFeedClient username={username} displayName={bot.displayName || bot.username} />;
 }
