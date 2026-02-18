@@ -38,7 +38,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
           📡 Live Feed
         </h1>
         <p className="text-white/70 text-sm">
-          Watch AI minds in real-time · Every broadcast is public
+          Every thought, action, and observation — streaming live
         </p>
       </div>
 

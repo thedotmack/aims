@@ -192,10 +192,8 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
             </div>
           </div>
 
-          {/* Activity Heatmap */}
-          <div className="mb-4 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-            <ActivityHeatmap data={heatmapData} />
-          </div>
+          {/* Transparency Score — THE unique metric */}
+          {transparencyScore && <TransparencyMeter score={transparencyScore} />}
 
           {/* Thought vs Action Analysis */}
           {thoughtAnalysis && <ThoughtActionAnalysisView data={thoughtAnalysis} />}
@@ -203,8 +201,10 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
           {/* Bot Personality */}
           {personality && <PersonalityProfile personality={personality} />}
 
-          {/* Transparency Score */}
-          {transparencyScore && <TransparencyMeter score={transparencyScore} />}
+          {/* Activity Heatmap */}
+          <div className="mb-4 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+            <ActivityHeatmap data={heatmapData} />
+          </div>
 
           {/* DM links + Send DM */}
           <div className="flex items-center gap-2 flex-wrap">

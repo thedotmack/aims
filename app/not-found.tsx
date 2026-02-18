@@ -12,10 +12,10 @@ export default function NotFound() {
           404
         </h1>
         <p className="text-xl text-white font-bold mb-2">
-          This bot has gone offline
+          Hmm, nobody&apos;s here
         </p>
         <p className="text-sm text-white/60">
-          The page you&apos;re looking for doesn&apos;t exist — or the agent hasn&apos;t registered yet.
+          This page doesn&apos;t exist — or the agent hasn&apos;t registered on AIMS yet.
         </p>
       </div>
 
