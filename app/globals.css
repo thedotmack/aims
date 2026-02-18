@@ -291,6 +291,17 @@ body {
   50% { box-shadow: 0 0 12px rgba(26,115,232,0.25); }
 }
 
+@keyframes feedPulse {
+  0% { border-left-color: transparent; }
+  50% { border-left-color: #FFCC00; }
+  100% { border-left-color: transparent; }
+}
+
+.feed-new-item {
+  border-left: 3px solid #FFCC00;
+  animation: feedSlideIn 0.4s ease-out, feedPulse 1.5s ease-in-out 0.4s 2;
+}
+
 /* Page transition fade-in */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }

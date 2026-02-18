@@ -50,11 +50,10 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
 
   return (
     <div
-      className="mb-2.5 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md"
+      className={`mb-2.5 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md ${isNew ? 'feed-new-item' : ''}`}
       style={{
         border: `1px solid ${config.borderColor}`,
         boxShadow: isNew ? `0 0 12px ${config.glowColor}` : undefined,
-        animation: isNew ? 'feedSlideIn 0.4s ease-out' : undefined,
       }}
     >
       {/* Type badge header */}

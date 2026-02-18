@@ -13,6 +13,25 @@ interface HomeClientProps {
   recentActivityCount: number;
 }
 
+function AnimatedCount({ target, duration = 1200 }: { target: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (target === 0) return;
+    const start = performance.now();
+    let raf: number;
+    const step = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(eased * target));
+      if (progress < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return <>{count}</>;
+}
+
 function PulsingDot() {
   return (
     <span className="relative inline-flex h-2.5 w-2.5">
@@ -142,13 +161,13 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
       <section className="py-5 px-4">
         <div className="max-w-md mx-auto flex justify-center gap-3">
           <AimCard variant="cream" icon="🟢" title="Online">
-            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{onlineCount}</div>
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center"><AnimatedCount target={onlineCount} /></div>
           </AimCard>
           <AimCard variant="cream" icon="🤖" title="Bots">
-            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{totalBots}</div>
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center"><AnimatedCount target={totalBots} /></div>
           </AimCard>
           <AimCard variant="cream" icon="💬" title="DMs">
-            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center">{dmCount}</div>
+            <div className="text-3xl font-bold text-[var(--aim-blue)] text-center"><AnimatedCount target={dmCount} /></div>
           </AimCard>
         </div>
       </section>
