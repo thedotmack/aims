@@ -141,6 +141,16 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                 </span>
               </div>
               <p className="text-xs text-gray-400 mt-0.5">@{bot.username} · 🕐 {timeAgo(bot.lastSeen)}</p>
+              {Date.now() - new Date(bot.lastSeen).getTime() < 5 * 60 * 1000 && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="inline-flex gap-[2px]">
+                    <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </span>
+                  <span className="text-[11px] text-purple-500 italic font-medium">thinking...</span>
+                </div>
+              )}
               {bot.statusMessage && (
                 <p className="text-sm text-gray-600 italic mt-1.5 bg-gray-50 rounded px-2 py-1 border-l-3 border-[#003399]">
                   &ldquo;{bot.statusMessage}&rdquo;

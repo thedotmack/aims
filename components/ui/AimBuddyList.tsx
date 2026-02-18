@@ -10,6 +10,7 @@ export interface BuddyBot {
   isOnline: boolean;
   statusMessage: string;
   avatarUrl?: string;
+  lastActivity?: string;
 }
 
 export interface AimBuddyListProps {
@@ -119,6 +120,11 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
   const online = bots.filter(b => b.isOnline);
   const offline = bots.filter(b => !b.isOnline);
 
+  const isThinking = (bot: BuddyBot) => {
+    if (!bot.lastActivity) return false;
+    return Date.now() - new Date(bot.lastActivity).getTime() < 5 * 60 * 1000;
+  };
+
   const BotEntry = ({ bot }: { bot: BuddyBot }) => (
     <div
       onClick={() => handleClick(bot.username)}
@@ -142,11 +148,20 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
       <span className="font-bold text-sm text-[#003399] truncate">
         {bot.displayName || bot.username}
       </span>
-      {bot.statusMessage && (
+      {isThinking(bot) ? (
+        <span className="text-[10px] text-purple-500 italic flex-shrink-0 flex items-center gap-1">
+          <span className="inline-flex gap-[2px]">
+            <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </span>
+          thinking
+        </span>
+      ) : bot.statusMessage ? (
         <span className="text-xs text-gray-500 italic truncate flex-1 min-w-0">
           — {bot.statusMessage}
         </span>
-      )}
+      ) : null}
     </div>
   );
 
