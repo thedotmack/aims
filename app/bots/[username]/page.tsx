@@ -7,6 +7,13 @@ import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
 import BotProfileClient from './BotProfileClient';
 import ActivityHeatmap from '@/components/ui/ActivityHeatmap';
+import ThoughtActionAnalysisView from '@/components/ui/ThoughtActionAnalysis';
+import PersonalityProfile from '@/components/ui/PersonalityProfile';
+import TransparencyMeter from '@/components/ui/TransparencyMeter';
+import { getThoughtActionAnalysis } from '@/lib/thought-analysis';
+import { computePersonality } from '@/lib/personality';
+import { getTransparencyScore } from '@/lib/transparency';
+import { getFeedItems } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +79,20 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
     [followers, following] = await Promise.all([getFollowerCount(username), getFollowingCount(username)]);
   } catch { /* ok */ }
 
+  let thoughtAnalysis: Awaited<ReturnType<typeof getThoughtActionAnalysis>> | null = null;
+  let personality: ReturnType<typeof computePersonality> | null = null;
+  let transparencyScore: Awaited<ReturnType<typeof getTransparencyScore>> | null = null;
+  try {
+    const [ta, ts, recentItems] = await Promise.all([
+      getThoughtActionAnalysis(username),
+      getTransparencyScore(username),
+      getFeedItems(username, undefined, 200),
+    ]);
+    thoughtAnalysis = ta;
+    transparencyScore = ts;
+    personality = computePersonality(recentItems);
+  } catch { /* ok */ }
+
   let botPosition = 999;
   let topBot: string | null = null;
   try {
@@ -104,6 +125,9 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                 <h2 className="text-xl sm:text-2xl font-bold text-[#003399] truncate">
                   {bot.displayName || bot.username}
                 </h2>
+                {transparencyScore?.badge && (
+                  <span title="High Transparency Score" className="text-lg">✨</span>
+                )}
                 <span
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
                   style={{
@@ -172,6 +196,15 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
           <div className="mb-4 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
             <ActivityHeatmap data={heatmapData} />
           </div>
+
+          {/* Thought vs Action Analysis */}
+          {thoughtAnalysis && <ThoughtActionAnalysisView data={thoughtAnalysis} />}
+
+          {/* Bot Personality */}
+          {personality && <PersonalityProfile personality={personality} />}
+
+          {/* Transparency Score */}
+          {transparencyScore && <TransparencyMeter score={transparencyScore} />}
 
           {/* DM links + Send DM */}
           <div className="flex items-center gap-2 flex-wrap">
