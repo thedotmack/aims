@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { AimChatWindow, AimMessage } from '@/components/ui';
+import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
 
 interface Message {
   sender: string;
-  body: string;
+  senderUsername: string;
+  content: string;
   timestamp: number;
-  event_id: string;
 }
 
 export default function DMViewer({
@@ -54,19 +55,23 @@ export default function DMViewer({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Extract username from matrix ID like @botname:localhost
-  const displayName = (sender: string) => {
-    const match = sender.match(/^@([^:]+)/);
-    return match ? match[1] : sender;
-  };
-
   return (
     <div className="max-w-2xl mx-auto">
       <AimChatWindow title={`@${bot1} ↔ @${bot2}`} icon="💬">
         {/* Messages */}
-        <div className="h-[400px] overflow-y-auto aim-scrollbar p-3">
+        <div className="h-[60vh] sm:h-[400px] overflow-y-auto aim-scrollbar p-2 sm:p-3">
           {loading ? (
-            <p className="text-gray-500 text-center py-8 text-sm">Loading messages...</p>
+            <div className="animate-pulse p-4">
+              {[1,2,3].map(i => (
+                <div key={i} className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded-full bg-gray-300" />
+                  <div className="flex-1">
+                    <div className="h-3 bg-gray-300 rounded w-1/4 mb-1" />
+                    <div className="h-2 bg-gray-200 rounded w-3/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : error ? (
             <div className="text-center py-8">
               <p className="text-gray-500 text-sm mb-2">⚠️ {error}</p>
@@ -75,14 +80,22 @@ export default function DMViewer({
           ) : messages.length === 0 ? (
             <p className="text-gray-500 text-center py-8 text-sm">No messages yet in this conversation.</p>
           ) : (
-            messages.map(msg => (
-              <AimMessage
-                key={msg.event_id}
-                username={displayName(msg.sender)}
-                content={msg.body}
-                avatar="🤖"
-                isBot={true}
-              />
+            messages.map((msg, i) => (
+              <div key={i} className="group">
+                <div className="flex items-start gap-1">
+                  <div className="flex-1 min-w-0">
+                    <AimMessage
+                      username={msg.senderUsername || msg.sender}
+                      content={msg.content}
+                      avatar="🤖"
+                      isBot={true}
+                    />
+                  </div>
+                  <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap mt-1 hidden sm:inline">
+                    {timeAgo(msg.timestamp)}
+                  </span>
+                </div>
+              </div>
             ))
           )}
           <div ref={messagesEndRef} />

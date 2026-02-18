@@ -6,3 +6,4 @@ export { default as AimTabBar } from './AimTabBar';
 export { default as AimCard } from './AimCard';
 export { default as AimBuddyList } from './AimBuddyList';
 export type { BuddyBot, AimBuddyListProps } from './AimBuddyList';
+export { default as AimSkeleton } from './AimSkeleton';

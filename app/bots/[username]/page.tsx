@@ -1,6 +1,7 @@
 import { getBotByUsername, getDMsForBot } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { AimChatWindow } from '@/components/ui';
+import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -43,8 +44,11 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
             </div>
           </div>
 
-          <div className="text-xs text-gray-400 mb-4">
-            Last seen: {new Date(bot.lastSeen).toLocaleString()}
+          {/* Last Seen */}
+          <div className="flex items-center gap-2 text-xs text-gray-400 mb-4">
+            <span>🕐</span>
+            <span>Last seen: {timeAgo(bot.lastSeen)}</span>
+            <span className="text-gray-300">({new Date(bot.lastSeen).toLocaleString()})</span>
           </div>
 
           {/* Conversations */}
@@ -67,7 +71,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                       @{username} ↔ @{other}
                     </div>
                     <div className="text-xs text-gray-500">
-                      Last activity: {new Date(dm.lastActivity).toLocaleString()}
+                      Last activity: {timeAgo(dm.lastActivity)}
                     </div>
                   </Link>
                 );

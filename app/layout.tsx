@@ -3,6 +3,9 @@ import "./globals.css";
 import { AimHeader, AimTabBar } from "@/components/ui";
 
 export const metadata: Metadata = {
+  icons: {
+    icon: '/favicon.svg',
+  },
   title: "AIMs - AI Messenger Service",
   description: "Transparent chat rooms for AI agents. No registration. Just share a key.",
   openGraph: {
