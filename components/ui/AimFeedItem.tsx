@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { timeAgo } from '@/lib/timeago';
 
 const TYPE_CONFIG: Record<string, { icon: string; label: string; color: string; bgColor: string; borderColor: string; glowColor: string }> = {
@@ -42,11 +42,10 @@ interface AimFeedItemProps {
   isNew?: boolean;
 }
 
-function MetadataTag({ icon, label, onClick }: { icon: string; label: string; onClick?: () => void }) {
+function MetadataTag({ icon, label }: { icon: string; label: string }) {
   return (
     <span
-      onClick={onClick}
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono ${onClick ? 'cursor-pointer hover:bg-gray-200' : ''}`}
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono"
       style={{ background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb' }}
     >
       {icon} {label}
@@ -54,7 +53,7 @@ function MetadataTag({ icon, label, onClick }: { icon: string; label: string; on
   );
 }
 
-export default function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps) {
+function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps) {
   const config = TYPE_CONFIG[item.feedType] || TYPE_CONFIG.observation;
   const [expanded, setExpanded] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -68,13 +67,11 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
   const tool = item.metadata?.tool as string | undefined;
   const command = item.metadata?.command as string | undefined;
   const project = item.metadata?.project as string | undefined;
-  const promptNumber = item.metadata?.prompt_number as number | undefined;
-  const sessionId = item.metadata?.session_id as string | undefined;
 
-  const hasMetadata = filesRead.length > 0 || filesModified.length > 0 || tool || command || project || promptNumber || sessionId;
+  const hasMetadata = filesRead.length > 0 || filesModified.length > 0 || tool || command || project;
 
-  // Summary type is collapsible
   const isSummary = item.feedType === 'summary';
+  const isStatus = item.feedType === 'status';
 
   return (
     <div
@@ -97,19 +94,13 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
         <span className="uppercase tracking-wider text-[10px]">{config.label}</span>
 
         {source && (
-          <span
-            className="px-1.5 py-0.5 rounded text-[9px] font-normal"
-            style={{ background: `${config.color}15`, color: config.color }}
-          >
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-normal" style={{ background: `${config.color}15`, color: config.color }}>
             {source}
           </span>
         )}
 
         {tool && (
-          <span
-            className="px-1.5 py-0.5 rounded text-[9px] font-mono font-normal"
-            style={{ background: `${config.color}15`, color: config.color }}
-          >
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-normal" style={{ background: `${config.color}15`, color: config.color }}>
             🔧 {tool}
           </span>
         )}
@@ -130,22 +121,24 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
 
       {/* Content body */}
       <div className="px-3 py-2.5 bg-white">
-        {/* Summary: collapsible */}
-        {isSummary ? (
+        {/* Status: AIM away message style */}
+        {isStatus ? (
+          <div className="text-center py-1">
+            <div className="text-sm text-amber-800 italic">
+              &ldquo;{item.content}&rdquo;
+            </div>
+          </div>
+        ) : isSummary ? (
+          /* Summary: collapsible */
           <div>
             <button
               onClick={() => setSummaryOpen(!summaryOpen)}
               className="flex items-center gap-2 w-full text-left"
             >
               <span className="text-[10px] text-teal-600">{summaryOpen ? '▼' : '►'}</span>
-              {item.title && (
-                <span className="font-bold text-sm text-[#1a1a1a]">{item.title}</span>
-              )}
-              {!item.title && (
-                <span className="font-bold text-sm text-[#1a1a1a]">Summary</span>
-              )}
+              <span className="font-bold text-sm text-[#1a1a1a]">{item.title || 'Summary'}</span>
               <span className="text-[10px] text-gray-400 ml-auto">
-                {summaryOpen ? 'collapse' : `${item.content.length} chars`}
+                {summaryOpen ? 'collapse' : 'expand'}
               </span>
             </button>
             {summaryOpen && (
@@ -160,16 +153,15 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
               <div className="font-bold text-sm text-[#1a1a1a] mb-1.5">{item.title}</div>
             )}
 
-            {/* Thought: journal/quote style */}
+            {/* Thought: journal style */}
             {item.feedType === 'thought' ? (
               <div
                 className="text-sm text-purple-900/80 italic leading-relaxed whitespace-pre-wrap"
                 style={{
                   borderLeft: '3px solid #c9a8fa',
-                  paddingLeft: '12px',
-                  background: 'linear-gradient(90deg, rgba(243,232,255,0.3) 0%, transparent 100%)',
                   padding: '8px 12px',
                   borderRadius: '0 4px 4px 0',
+                  background: 'linear-gradient(90deg, rgba(243,232,255,0.3) 0%, transparent 100%)',
                 }}
               >
                 &ldquo;{displayContent}&rdquo;
@@ -190,7 +182,6 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
               </div>
             )}
 
-            {/* Expand/collapse for long content */}
             {isLong && (
               <button
                 onClick={() => setExpanded(!expanded)}
@@ -203,41 +194,32 @@ export default function AimFeedItem({ item, showBot = false, isNew = false }: Ai
           </>
         )}
 
-        {/* Rich metadata section */}
+        {/* Metadata tags */}
         {hasMetadata && (
           <div className="mt-2 pt-2 border-t border-gray-100">
             <div className="flex flex-wrap gap-1">
-              {/* Files read */}
               {filesRead.map((f, i) => (
                 <MetadataTag key={`r-${i}`} icon="📄" label={f} />
               ))}
-              {/* Files modified */}
               {filesModified.map((f, i) => (
                 <MetadataTag key={`m-${i}`} icon="✏️" label={f} />
               ))}
-              {/* Project */}
               {project && <MetadataTag icon="📁" label={project} />}
-              {/* Prompt number */}
-              {promptNumber && <MetadataTag icon="#" label={`prompt ${promptNumber}`} />}
-              {/* Session */}
-              {sessionId && <MetadataTag icon="🔗" label={sessionId.slice(0, 8)} />}
             </div>
           </div>
         )}
       </div>
 
-      {/* On-chain badge */}
+      {/* On-chain footer — minimal */}
       <div
         className="px-3 py-1 flex items-center justify-between text-[9px]"
-        style={{
-          background: '#fafafa',
-          borderTop: '1px solid #f0f0f0',
-          color: '#bbb',
-        }}
+        style={{ background: '#fafafa', borderTop: '1px solid #f0f0f0', color: '#ccc' }}
       >
-        <span>⛓️ on-chain: pending · 0 $AIMS <span style={{ color: '#9945FF' }}>(free beta)</span></span>
+        <span>⛓️ on-chain: pending</span>
         <span>{new Date(item.createdAt).toLocaleTimeString()}</span>
       </div>
     </div>
   );
 }
+
+export default React.memo(AimFeedItem);
