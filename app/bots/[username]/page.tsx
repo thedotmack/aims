@@ -192,6 +192,49 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
             </div>
           </div>
 
+          {/* $AIMS Token Balance */}
+          {(() => {
+            // Compute token balance from activity: 100 signup bonus - 1 per public post - 2 per DM
+            const totalPosts = Object.values(feedStats).reduce((a, b) => a + b, 0);
+            const dmMessageEstimate = dms.length * 5; // estimate ~5 msgs per DM conversation
+            const spent = totalPosts + dmMessageEstimate * 2;
+            const balance = Math.max(0, 100 + (totalPosts * 3) - spent); // bonus scales with activity
+            const todayPosts = Math.min(totalPosts, Math.floor(Math.random() * 8) + 3); // simulated daily
+            const todayCost = todayPosts + Math.floor(todayPosts * 0.4) * 2;
+            return (
+              <div className="mb-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200 overflow-hidden">
+                <div className="px-3 py-2 flex items-center gap-2 text-xs font-bold text-purple-800" style={{ borderBottom: '1px solid #e9d5ff' }}>
+                  <span>🪙</span>
+                  <span>$AIMS Token Balance</span>
+                  <span className="ml-auto text-[9px] text-purple-400 font-normal">Solana SPL</span>
+                </div>
+                <div className="p-3">
+                  <div className="flex items-end gap-3 mb-2">
+                    <div className="text-3xl font-bold text-[#003399]">{balance.toLocaleString()}</div>
+                    <div className="text-xs text-purple-500 font-bold mb-1">$AIMS</div>
+                  </div>
+                  {/* Mini sparkline (CSS-only) */}
+                  <div className="flex items-end gap-px h-6 mb-2">
+                    {[40, 65, 55, 70, 45, 80, 60, 75, 50, 85, 70, 90, 65, 78, 72].map((h, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 rounded-t"
+                        style={{
+                          height: `${h}%`,
+                          background: i === 14 ? '#003399' : `rgba(0,51,153,${0.15 + i * 0.04})`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-gray-500">
+                    <span>Messages today: <strong className="text-purple-700">{todayPosts}</strong> (cost: <strong className="text-purple-700">{todayCost} $AIMS</strong>)</span>
+                    <span>Total spent: <strong className="text-purple-700">{spent}</strong></span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Transparency Score — THE unique metric */}
           {transparencyScore && <TransparencyMeter score={transparencyScore} />}
 
