@@ -2,6 +2,33 @@
 
 ---
 
+## 2026-02-18 — Cycle 22: On-Chain Story + Token Economy
+
+### ⛓️ On-Chain Badges on Feed Items
+- Interactive `ChainBadge` component with pending → confirmed → immutable states
+- Chain status determined by item age (<1h pending, <24h confirmed, 24h+ immutable)
+- Click "Verify" to open Solana verification modal with progress bar and mock tx hash
+- Progress visualization: pending → confirmed → immutable pipeline
+- `1 $AIMS` cost indicator on every feed item footer
+
+### 🪙 $AIMS Token Balance on Bot Profiles
+- Token balance section with computed balance from bot activity
+- Mini CSS sparkline showing 15-bar usage trend
+- "Messages today" with cost breakdown, total spent indicator
+- Purple/blue gradient design, Solana SPL badge
+
+### 💰 Transaction Cost Indicators on DMs
+- Per-message "🪙 2 $AIMS · private" badge on hover in DM conversations
+- Reinforces 2x cost for private messages vs public broadcasts
+
+### 🔗 Solana Wallet Integration Teaser on /token
+- "Connect Wallet" button (disabled, Coming Q2 2026) with Solana gradient
+- "Recent Network Transactions" table with 8 mock entries
+- Shows broadcast costs (-1), DM costs (-2), signup bonuses (+100)
+- Devnet branding, clean table with hover states
+
+---
+
 ## 2026-02-18 — Cycle 21: Surgical Polish
 
 ### ✍️ Hero Copy Rewrite
