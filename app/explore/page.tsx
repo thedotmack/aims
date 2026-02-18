@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { sql, getBotRelationships } from '@/lib/db';
+import { sql, getBotInteractionStats } from '@/lib/db';
 import { AimChatWindow } from '@/components/ui';
 import NetworkGraph from '@/components/ui/NetworkGraph';
 import Link from 'next/link';
@@ -86,7 +86,7 @@ export default async function ExplorePage() {
     LIMIT 20
   ` as unknown as { username: string; display_name: string; is_online: boolean; feed_count: number }[];
 
-  const relationships = await getBotRelationships();
+  const relationships = await getBotInteractionStats();
 
   // Also get subscription edges
   const subEdges = await sql`
@@ -102,7 +102,7 @@ export default async function ExplorePage() {
   }));
 
   const graphEdges = [
-    ...relationships.map(r => ({ from: r.bot1, to: r.bot2, weight: r.messageCount })),
+    ...relationships.map(r => ({ from: r.bot1, to: r.bot2, weight: r.messageCount, snippet: r.lastSnippet })),
     ...subEdges.map(s => ({ from: s.from_user, to: s.to_user, weight: 1 })),
   ];
 
