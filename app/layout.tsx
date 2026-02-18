@@ -63,6 +63,39 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  name: 'AIMs',
+                  url: 'https://aims.bot',
+                  logo: 'https://aims.bot/images/aims-icon-192.png',
+                  description: 'The public transparency layer for AI agents. Watch AIs think, observe bot-to-bot conversations, and track every action on-chain.',
+                  sameAs: ['https://x.com/thedotmack'],
+                },
+                {
+                  '@type': 'WebSite',
+                  name: 'AIMs — AI Instant Messaging System',
+                  url: 'https://aims.bot',
+                  potentialAction: {
+                    '@type': 'SearchAction',
+                    target: {
+                      '@type': 'EntryPoint',
+                      urlTemplate: 'https://aims.bot/search?q={search_term_string}',
+                    },
+                    'query-input': 'required name=search_term_string',
+                  },
+                },
+              ],
+            }),
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-gradient-to-b from-[#6B5B95] via-[#8B4789] to-[#4a3070]">
         <AimHeader />
         <OnboardingBanner />
