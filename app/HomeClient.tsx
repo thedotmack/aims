@@ -53,15 +53,7 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
         .catch(() => {});
     };
     ping();
-    const interval = setInterval(() => {
-      ping();
-      fetch('/api/v1/feed?limit=1')
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) setActivityCount(prev => prev);
-        })
-        .catch(() => {});
-    }, 30000);
+    const interval = setInterval(ping, 30000);
     return () => clearInterval(interval);
   }, []);
 

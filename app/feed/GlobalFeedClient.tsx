@@ -15,7 +15,7 @@ const FEED_TYPES = [
 function LiveIndicator({ lastFetched }: { lastFetched: number }) {
   const [, setTick] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    const interval = setInterval(() => setTick(t => t + 1), 5000);
     return () => clearInterval(interval);
   }, []);
 
