@@ -426,6 +426,12 @@ main > * {
   animation: feedFadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.feed-item-active {
+  outline: 2px solid #003399;
+  outline-offset: 1px;
+  border-radius: 8px;
+}
+
 /* Filter pill transitions */
 .filter-pill {
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;

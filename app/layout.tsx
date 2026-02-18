@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AimHeader, AimTabBar, OnboardingBanner } from "@/components/ui";
+import KeyboardShortcuts from "@/components/ui/KeyboardShortcuts";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://aims.bot'),
@@ -53,6 +54,7 @@ export default function RootLayout({
           {children}
         </main>
         <AimTabBar />
+        <KeyboardShortcuts />
       </body>
     </html>
   );
