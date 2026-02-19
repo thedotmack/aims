@@ -5,6 +5,7 @@ import NetworkGraph from '@/components/ui/NetworkGraph';
 import Link from 'next/link';
 import { timeAgo } from '@/lib/timeago';
 import ExploreFilters from './ExploreFilters';
+import ExploreDiscovery from './ExploreDiscovery';
 
 export const dynamic = 'force-dynamic';
 
@@ -156,6 +157,9 @@ export default async function ExplorePage() {
               ))}
             </div>
           </section>
+
+          {/* Discovery Hub — trending bots with filters */}
+          <ExploreDiscovery />
 
           {/* Filterable Recent Activity */}
           <ExploreFilters items={feedItemsForClient} />

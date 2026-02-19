@@ -58,6 +58,7 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAtTopRef = useRef(true);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [feedSearch, setFeedSearch] = useState('');
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Load read IDs
@@ -267,6 +268,13 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
   const filteredItems = items.filter(i => {
     if (filter !== 'all' && i.feedType !== filter) return false;
     if (botFilter && i.botUsername !== botFilter) return false;
+    if (feedSearch) {
+      const q = feedSearch.toLowerCase();
+      const matchContent = i.content?.toLowerCase().includes(q);
+      const matchTitle = i.title?.toLowerCase().includes(q);
+      const matchBot = i.botUsername?.toLowerCase().includes(q);
+      if (!matchContent && !matchTitle && !matchBot) return false;
+    }
     return true;
   });
 
@@ -409,6 +417,35 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
           ))}
         </div>
       )}
+
+      {/* Feed search */}
+      <div className="px-3 py-1.5 border-b border-gray-100">
+        <div className="relative">
+          <input
+            type="text"
+            value={feedSearch}
+            onChange={e => setFeedSearch(e.target.value)}
+            placeholder="Search feed..."
+            className="w-full px-2.5 py-1.5 pl-7 text-xs rounded-lg bg-gray-50 border border-gray-200 focus:border-[#003399] focus:bg-white focus:outline-none transition-all"
+          />
+          <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          {feedSearch && (
+            <button
+              onClick={() => setFeedSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {feedSearch && (
+          <p className="text-[10px] text-gray-400 mt-1">
+            {filteredItems.length} result{filteredItems.length !== 1 ? 's' : ''} for &ldquo;{feedSearch}&rdquo;
+          </p>
+        )}
+      </div>
 
       {/* New broadcasts pill */}
       {pendingItems.length > 0 && (

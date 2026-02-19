@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import NotificationBell from './NotificationBell';
+import HeaderSearch from './HeaderSearch';
 import { usePreferences } from '@/components/PreferencesProvider';
 
 export default function AimHeader() {
@@ -32,6 +33,8 @@ export default function AimHeader() {
         </div>
       </Link>
       <div className="flex items-center gap-2">
+        {/* Search */}
+        <HeaderSearch />
         {/* Core actions: sound, notifications, settings + register CTA */}
         <button
           onClick={toggleSound}

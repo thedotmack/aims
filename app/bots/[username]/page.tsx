@@ -20,6 +20,7 @@ import { getBehaviorBreakdown, getConsistencyScore } from '@/lib/behavior-analys
 import BehaviorAnalysis from '@/components/ui/BehaviorAnalysis';
 import ConsistencyScoreView from '@/components/ui/ConsistencyScore';
 import MobileAccordion from '@/components/ui/MobileAccordion';
+import SimilarBots from '@/components/ui/SimilarBots';
 
 export const dynamic = 'force-dynamic';
 
@@ -332,6 +333,9 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
               <ActivityHeatmap data={heatmapData} />
             </div>
           </MobileAccordion>
+
+          {/* Similar Bots */}
+          <SimilarBots username={username} />
 
           {/* DM links + Send DM */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
