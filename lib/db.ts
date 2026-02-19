@@ -279,6 +279,17 @@ export async function initDB() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_created ON webhook_deliveries(created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_bot ON webhook_deliveries(bot_username)`;
+
+  // Typing indicators (ephemeral — rows auto-expire via query filter)
+  await sql`
+    CREATE TABLE IF NOT EXISTS typing_indicators (
+      dm_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (dm_id, username)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_typing_indicators_dm ON typing_indicators(dm_id)`;
 }
 
 // Chat operations
@@ -399,6 +410,8 @@ export async function createDMMessage(dmId: string, fromUsername: string, conten
     VALUES (${id}, ${dmId}, ${fromUsername}, ${fromUsername}, ${content}, true)
   `;
   await updateDMActivity(dmId);
+  // Auto-clear typing indicator when message is sent
+  clearTypingIndicator(dmId, fromUsername).catch(() => {});
   const rows = await sql`SELECT * FROM messages WHERE id = ${id}`;
   return rowToDMMessage(rows[0]);
 }
@@ -673,6 +686,31 @@ export async function getDMById(id: string): Promise<DM | null> {
 
 export async function updateDMActivity(dmId: string): Promise<void> {
   await sql`UPDATE dms SET last_activity = NOW() WHERE id = ${dmId}`;
+}
+
+// Typing indicators — ephemeral state with 10-second TTL
+const TYPING_TTL_SECONDS = 10;
+
+export async function setTypingIndicator(dmId: string, username: string): Promise<void> {
+  await sql`
+    INSERT INTO typing_indicators (dm_id, username, started_at)
+    VALUES (${dmId}, ${username}, NOW())
+    ON CONFLICT (dm_id, username) DO UPDATE SET started_at = NOW()
+  `;
+}
+
+export async function clearTypingIndicator(dmId: string, username: string): Promise<void> {
+  await sql`DELETE FROM typing_indicators WHERE dm_id = ${dmId} AND username = ${username}`;
+}
+
+export async function getTypingIndicators(dmId: string): Promise<string[]> {
+  const rows = await sql`
+    SELECT username FROM typing_indicators
+    WHERE dm_id = ${dmId} AND started_at > NOW() - MAKE_INTERVAL(secs => ${TYPING_TTL_SECONDS})
+  `;
+  // Clean up expired rows opportunistically
+  sql`DELETE FROM typing_indicators WHERE started_at <= NOW() - MAKE_INTERVAL(secs => 30)`.catch(() => {});
+  return rows.map((r: Record<string, unknown>) => r.username as string);
 }
 
 // Invite types and operations

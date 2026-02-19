@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { AimChatWindow } from '@/components/ui';
-import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
 
 interface Message {
@@ -52,13 +51,93 @@ export default function DMViewer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [newMsgIds, setNewMsgIds] = useState<Set<string>>(new Set());
-  const [showTyping, setShowTyping] = useState(false);
-  const [typingBot, setTypingBot] = useState(bot1);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [useSSE, setUseSSE] = useState(true);
   const knownIdsRef = useRef<Set<string>>(new Set());
-  const isFirstFetch = useRef(true);
+  const isFirstLoad = useRef(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectAttempts = useRef(0);
 
-  const fetchMessages = async () => {
+  const handleNewMessages = useCallback((newMsgs: Message[], isInit: boolean) => {
+    if (isInit) {
+      for (const msg of newMsgs) knownIdsRef.current.add(msg.id);
+      setMessages(newMsgs);
+      isFirstLoad.current = false;
+      setLoading(false);
+      return;
+    }
+
+    const truly = newMsgs.filter(m => !knownIdsRef.current.has(m.id));
+    if (truly.length === 0) return;
+
+    for (const msg of truly) knownIdsRef.current.add(msg.id);
+
+    const ids = new Set(truly.map(m => m.id));
+    setNewMsgIds(ids);
+    setTimeout(() => setNewMsgIds(new Set()), 1500);
+
+    setMessages(prev => [...prev, ...truly]);
+  }, []);
+
+  // SSE connection
+  const connectSSE = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+
+    const es = new EventSource(`/api/v1/dms/${encodeURIComponent(dmId)}/stream`);
+    eventSourceRef.current = es;
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        switch (data.type) {
+          case 'init':
+            handleNewMessages(data.messages || [], true);
+            reconnectAttempts.current = 0;
+            break;
+          case 'messages':
+            handleNewMessages(data.messages || [], false);
+            // Clear typing for senders of new messages
+            if (data.messages?.length > 0) {
+              const senders = new Set(data.messages.map((m: Message) => m.senderUsername));
+              setTypingUsers(prev => prev.filter(u => !senders.has(u)));
+            }
+            break;
+          case 'typing':
+            setTypingUsers(data.users || []);
+            break;
+          case 'reconnect':
+            es.close();
+            setTimeout(connectSSE, 1000);
+            break;
+          case 'error':
+            // Fall back to polling
+            es.close();
+            setUseSSE(false);
+            break;
+        }
+      } catch {
+        // Ignore parse errors (heartbeats etc)
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      reconnectAttempts.current++;
+      if (reconnectAttempts.current < 5) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 15000);
+        setTimeout(connectSSE, delay);
+      } else {
+        // Give up on SSE, fall back to polling
+        setUseSSE(false);
+      }
+    };
+  }, [dmId, handleNewMessages]);
+
+  // Polling fallback
+  const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch(`/api/v1/dms/${encodeURIComponent(dmId)}/messages`);
       if (!res.ok) {
@@ -67,63 +146,51 @@ export default function DMViewer({
       }
       const data = await res.json();
       if (data.success && data.messages) {
-        const fetched = data.messages as Message[];
-
-        if (!isFirstFetch.current) {
-          const newIds = new Set<string>();
-          for (const msg of fetched) {
-            if (!knownIdsRef.current.has(msg.id)) {
-              newIds.add(msg.id);
-            }
-          }
-          if (newIds.size > 0) {
-            setNewMsgIds(newIds);
-            setShowTyping(false);
-            setTimeout(() => setNewMsgIds(new Set()), 1500);
-          }
-        }
-        isFirstFetch.current = false;
-
-        for (const msg of fetched) {
-          knownIdsRef.current.add(msg.id);
-        }
-        setMessages(fetched);
-
-        if (fetched.length > 0) {
-          const lastSender = fetched[fetched.length - 1].senderUsername;
-          const nextBot = lastSender === bot1 ? bot2 : bot1;
-          setTypingBot(nextBot);
-        }
+        handleNewMessages(data.messages as Message[], isFirstLoad.current);
       }
     } catch {
       setError('Could not load messages.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [dmId, handleNewMessages]);
 
-  useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fetchTyping = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/v1/dms/${encodeURIComponent(dmId)}/typing`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) setTypingUsers(data.typing || []);
+      }
+    } catch {
+      // Ignore
+    }
   }, [dmId]);
 
-  // Show typing indicator periodically
   useEffect(() => {
-    if (messages.length === 0) return;
-    const interval = setInterval(() => {
-      setShowTyping(true);
-      setTimeout(() => setShowTyping(false), 3000);
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [messages.length]);
+    if (useSSE) {
+      connectSSE();
+      return () => {
+        eventSourceRef.current?.close();
+        eventSourceRef.current = null;
+      };
+    } else {
+      // Polling fallback
+      fetchMessages();
+      const msgInterval = setInterval(fetchMessages, 5000);
+      const typingInterval = setInterval(fetchTyping, 3000);
+      return () => {
+        clearInterval(msgInterval);
+        clearInterval(typingInterval);
+      };
+    }
+  }, [useSSE, connectSSE, fetchMessages, fetchTyping]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, showTyping]);
+  }, [messages, typingUsers]);
 
-  const totalCost = messages.length * 2; // 2 $AIMS per DM message
+  const totalCost = messages.length * 2;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -231,7 +298,6 @@ export default function DMViewer({
                 const isFirstInGroup = idx === 0 || messages[idx - 1].senderUsername !== msg.senderUsername;
                 const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                // Check if we need a date separator
                 const showDateSep = idx > 0 && new Date(msg.timestamp).toDateString() !== new Date(messages[idx - 1].timestamp).toDateString();
 
                 return (
@@ -250,7 +316,6 @@ export default function DMViewer({
                       className={`flex ${isBot1 ? 'justify-start' : 'justify-end'} ${isFirstInGroup ? 'mt-3' : 'mt-0.5'}`}
                       style={isNew ? { animation: 'dmSlideIn 0.3s ease-out' } : undefined}
                     >
-                      {/* Avatar (only show on first message in group) */}
                       {isBot1 && (
                         <div className={`flex-shrink-0 mr-2 ${isFirstInGroup ? 'visible' : 'invisible'}`}>
                           <Link href={`/bots/${msg.senderUsername}`}>
@@ -262,7 +327,6 @@ export default function DMViewer({
                       )}
 
                       <div className={`max-w-[70%] flex flex-col ${isBot1 ? 'items-start' : 'items-end'}`}>
-                        {/* Username on first message in group */}
                         {isFirstInGroup && (
                           <Link href={`/bots/${msg.senderUsername}`} className="flex items-center gap-1.5 mb-0.5 px-1">
                             <span className="text-[11px] font-bold text-[#003399] hover:underline">@{msg.senderUsername}</span>
@@ -284,7 +348,6 @@ export default function DMViewer({
                           </Link>
                         )}
 
-                        {/* Message bubble */}
                         <div
                           className={`group relative px-3 py-2 text-sm leading-relaxed shadow-sm transition-all duration-200 ${
                             isBot1
@@ -294,7 +357,6 @@ export default function DMViewer({
                         >
                           {msg.content}
 
-                          {/* Timestamp + read + cost (show on last in group or hover) */}
                           {isLastInGroup && (
                             <div className={`flex items-center gap-1 mt-1 ${isBot1 ? 'justify-start' : 'justify-end'}`}>
                               <span className={`text-[9px] ${isBot1 ? 'text-gray-400' : 'text-white/50'}`}>
@@ -309,7 +371,6 @@ export default function DMViewer({
                         </div>
                       </div>
 
-                      {/* Avatar for bot2 (right side) */}
                       {!isBot1 && (
                         <div className={`flex-shrink-0 ml-2 ${isFirstInGroup ? 'visible' : 'invisible'}`}>
                           <Link href={`/bots/${msg.senderUsername}`}>
@@ -323,7 +384,7 @@ export default function DMViewer({
                   </div>
                 );
               })}
-              {showTyping && <TypingIndicator bot={typingBot} />}
+              {typingUsers.map(user => <TypingIndicator key={user} bot={user} />)}
             </>
           )}
           <div ref={messagesEndRef} />

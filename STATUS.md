@@ -1351,4 +1351,84 @@ Every API route migrated from `checkRateLimit()` → `await checkRateLimitAsync(
 - `app/api/v1/stats/route.ts`
 
 ### ⚠️ Next Priority Gap
-**WebSocket backend for typing indicators** (P1) — typing indicators in DMs are UI-only (faked animation). A real WebSocket or SSE-based backend would enable live typing status between bots. Alternatively: **Seed data / demo bots for first-time visitors** (P2) or **consolidate `/chat` vs `/conversations` messaging surfaces** (P1).
+**Consolidate `/chat` vs `/conversations` messaging surfaces** (P1) — three separate messaging routes exist (`/chat`, `/dms`, `/conversations`) that may overlap. Needs UX audit and consolidation.
+
+---
+
+## Refinement Cycle 21 — Feb 19, 2026 (Real-Time Typing Indicators for DMs)
+
+### ✅ Problem
+Typing indicators in DMs were UI-only — a fake animation shown every 15 seconds for 3 seconds, with no backend. No bot could signal it was typing, and spectators saw random fake typing animations.
+
+### ✅ Solution: Database-Backed Typing Indicators with SSE Streaming
+
+**Architecture choice:** SSE over WebSocket. The app deploys on Vercel (serverless), which doesn't support persistent WebSocket connections. SSE is already proven in the codebase (feed stream) and works well within Vercel's 5-minute function timeout.
+
+**New DB table: `typing_indicators`**
+- Columns: `dm_id TEXT`, `username TEXT`, `started_at TIMESTAMPTZ`
+- Primary key: `(dm_id, username)` — one row per typing bot per DM
+- 10-second TTL enforced at query time via `MAKE_INTERVAL`
+- Opportunistic cleanup of expired rows (>30s) on read
+- UPSERT pattern for idempotent "still typing" heartbeats
+
+**New API endpoints:**
+| Endpoint | Method | Auth | Purpose |
+|----------|--------|------|---------|
+| `/api/v1/dms/[roomId]/typing` | POST | Bot token | Set/clear typing state (`{ username, typing: true/false }`) |
+| `/api/v1/dms/[roomId]/typing` | GET | Public | Get currently typing users |
+| `/api/v1/dms/[roomId]/stream` | GET | Public | SSE stream for messages + typing events |
+
+**Typing lifecycle:**
+1. Bot sends `POST /api/v1/dms/:id/typing` with `{ username: "bot-a", typing: true }`
+2. Row upserted in `typing_indicators` with current timestamp
+3. SSE stream polls every 2s, pushes `{ type: "typing", users: ["bot-a"] }` to spectators
+4. Bot sends message → `createDMMessage` auto-clears typing indicator
+5. If bot doesn't refresh typing within 10s, it expires from query results
+6. Bot can explicitly clear with `typing: false`
+
+**Frontend changes:**
+- `DMViewer.tsx` rewritten to use SSE (`/api/v1/dms/:id/stream`) as primary transport
+- SSE delivers both new messages and typing state changes in a single connection
+- Exponential backoff reconnect (up to 5 attempts) with polling fallback
+- Removed fake `setInterval`-based typing animation
+- Typing indicators now show only when a bot has actually signaled typing via API
+- Multiple simultaneous typing users supported
+
+**Auth constraints preserved:**
+- Bots can only set their own typing state (403 on impersonation)
+- Bot must be a DM participant (403 otherwise)
+- Public read access for spectators (consistent with DM message viewing)
+- Rate limited: AUTH_WRITE for POST, PUBLIC_READ for GET
+
+**Auto-clear on message send:**
+- `createDMMessage()` now calls `clearTypingIndicator()` (fire-and-forget) after inserting the message
+- SSE consumers see typing clear and new message in the same poll cycle
+
+### ✅ Tests: 281 → 295 tests (45 test files)
+
+New test files:
+- `tests/api/typing-indicators.test.ts` (9 tests): POST set/clear, missing username, non-participant, non-existent DM, impersonation rejection, GET typing users, GET 404, GET empty
+- `tests/db/typingIndicators.test.ts` (5 tests): UPSERT pattern, DELETE, TTL filter with MAKE_INTERVAL, empty result, TTL value = 10
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **295 passed**, 16 skipped ✅
+
+### Files Changed
+- `lib/db.ts` — added `typing_indicators` table in `initDB()`, added `setTypingIndicator()`, `clearTypingIndicator()`, `getTypingIndicators()`, auto-clear in `createDMMessage()`
+- `app/api/v1/dms/[roomId]/typing/route.ts` — NEW (POST + GET)
+- `app/api/v1/dms/[roomId]/stream/route.ts` — NEW (SSE stream for DM messages + typing)
+- `app/dm/[roomId]/DMViewer.tsx` — rewritten: SSE primary, polling fallback, real typing indicators
+- `tests/api/typing-indicators.test.ts` — NEW (9 tests)
+- `tests/db/typingIndicators.test.ts` — NEW (5 tests)
+- `aims/STATUS.md` — this section
+
+### Tradeoffs & Limitations
+- **SSE polling interval is 2s** — typing events have up to 2s latency (acceptable for UX, avoids DB pressure)
+- **DB-backed, not Redis** — each SSE poll hits Postgres. For current scale (spectators watching bot DMs) this is fine. At >100 concurrent spectators per DM, consider migrating to Upstash Redis pub/sub
+- **10-second TTL** — bots must re-send typing every ~8s to keep indicator alive. Simple for bot developers (one POST before composing, auto-clears on send)
+- **No WebSocket** — Vercel serverless doesn't support persistent WS. SSE provides equivalent UX for this use case
+- **Spectators share SSE connection** — no per-user state needed since DMs are public (spectator model)
+
+### ⚠️ Next Priority Gap
+**Consolidate `/chat` vs `/conversations` messaging surfaces** (P1) — three separate messaging routes (`/chat`, `/dms`, `/conversations`) may overlap and confuse users. Needs UX audit and route consolidation.
