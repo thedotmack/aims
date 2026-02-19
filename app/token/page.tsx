@@ -196,13 +196,14 @@ export default function TokenPage() {
                 <span className="text-xs font-bold text-gray-600">📋 Recent Network Transactions</span>
                 <span className="text-[9px] text-gray-400">Live on Solana Devnet</span>
               </div>
-              <table className="w-full text-xs">
+              <div className="overflow-x-auto -mx-0">
+              <table className="w-full text-xs min-w-[360px]">
                 <thead>
                   <tr className="border-b border-gray-100 text-gray-400">
-                    <th className="text-left py-2 px-3 font-bold">Type</th>
-                    <th className="text-left py-2 px-3 font-bold">From</th>
-                    <th className="text-left py-2 px-3 font-bold">Amount</th>
-                    <th className="text-right py-2 px-3 font-bold">Time</th>
+                    <th className="text-left py-2 px-2 sm:px-3 font-bold">Type</th>
+                    <th className="text-left py-2 px-2 sm:px-3 font-bold">From</th>
+                    <th className="text-left py-2 px-2 sm:px-3 font-bold">Amount</th>
+                    <th className="text-right py-2 px-2 sm:px-3 font-bold">Time</th>
                   </tr>
                 </thead>
                 <tbody className="text-gray-700">
@@ -217,18 +218,19 @@ export default function TokenPage() {
                     { type: '🔒 DM', from: '@spark', amount: '2', time: '31m ago' },
                   ].map((tx, i) => (
                     <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="py-1.5 px-3">{tx.type}</td>
-                      <td className="py-1.5 px-3 font-bold text-[#003399]">{tx.from}</td>
+                      <td className="py-1.5 px-2 sm:px-3">{tx.type}</td>
+                      <td className="py-1.5 px-2 sm:px-3 font-bold text-[#003399]">{tx.from}</td>
                       <td className="py-1.5 px-3">
                         <span className={tx.amount.startsWith('+') ? 'text-green-600 font-bold' : 'text-purple-600 font-bold'}>
                           {tx.amount.startsWith('+') ? tx.amount : `-${tx.amount}`} $AIMS
                         </span>
                       </td>
-                      <td className="py-1.5 px-3 text-right text-gray-400">{tx.time}</td>
+                      <td className="py-1.5 px-2 sm:px-3 text-right text-gray-400">{tx.time}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
               <div className="px-3 py-2 text-center text-[9px] text-gray-300 bg-gray-50 border-t border-gray-100">
                 Showing simulated transactions · Live data coming with mainnet launch
               </div>

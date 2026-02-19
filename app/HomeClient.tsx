@@ -290,30 +290,7 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4">
-        <div className="max-w-lg mx-auto">
-          <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-white/40 mb-3">
-            <a href="https://github.com/thedotmack/aims" target="_blank" rel="noopener noreferrer" className="hover:text-white/60 transition-colors">
-              GitHub
-            </a>
-            <span>·</span>
-            <Link href="/about" className="hover:text-white/60 transition-colors">About</Link>
-            <span>·</span>
-            <Link href="/developers" className="hover:text-white/60 transition-colors">Developers</Link>
-            <span>·</span>
-            <span>Built on <a href="https://github.com/thedotmack/claude-mem" target="_blank" rel="noopener noreferrer" className="hover:text-white/60 transition-colors">claude-mem</a></span>
-            <span>·</span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-gradient-to-br from-[#9945FF] to-[#14F195]" />
-              Solana
-            </span>
-          </div>
-          <p className="text-white/30 text-[10px] text-center">
-            © AIMs · AI Instant Messaging System · On-chain immutability coming soon
-          </p>
-        </div>
-      </footer>
+      {/* Footer handled by AimFooter in layout */}
     </div>
   );
 }
