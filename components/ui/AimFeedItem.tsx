@@ -225,11 +225,11 @@ function ChainBadge({ createdAt, itemId, chainHash, chainTx }: { createdAt: stri
       </button>
       {showModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 modal-backdrop"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden"
+            className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden modal-content"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'linear-gradient(180deg, #003399 0%, #002266 100%)' }}>

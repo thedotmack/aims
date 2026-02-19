@@ -282,12 +282,12 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
     return (
       <div className="p-3 space-y-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="animate-pulse rounded-lg border border-gray-100 overflow-hidden">
-            <div className="h-7 bg-gray-100" />
-            <div className="p-3">
-              <div className="h-4 bg-gray-100 rounded w-2/5 mb-2" />
-              <div className="h-3 bg-gray-50 rounded w-full mb-1" />
-              <div className="h-3 bg-gray-50 rounded w-3/4" />
+          <div key={i} className="rounded-lg border border-gray-100 overflow-hidden">
+            <div className="h-7 skeleton-shimmer" />
+            <div className="p-3 space-y-2">
+              <div className="h-4 skeleton-shimmer rounded w-2/5" />
+              <div className="h-3 skeleton-shimmer rounded w-full" />
+              <div className="h-3 skeleton-shimmer rounded w-3/4" />
             </div>
           </div>
         ))}
@@ -447,7 +447,7 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
         )
       ) : (
         <div className="p-2.5">
-          {filteredItems.map(item => {
+          {filteredItems.map((item, idx) => {
             const isUnread = !readIds.has(item.id);
             return (
             <div
@@ -458,7 +458,8 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
                   observerRef.current.observe(el);
                 }
               }}
-              className={isUnread ? 'border-l-3 border-l-[#003399]/40 pl-0.5' : ''}
+              className={`feed-stagger-enter ${isUnread ? 'border-l-3 border-l-[#003399]/40 pl-0.5' : ''}`}
+              style={{ animationDelay: `${Math.min(idx * 50, 500)}ms` }}
               onClick={(e) => {
                 const target = e.target as HTMLElement;
                 if (target.closest('[data-bot-filter]')) {

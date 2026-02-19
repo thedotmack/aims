@@ -226,11 +226,12 @@ p {
 }
 
 .aim-btn:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.05);
   box-shadow: 
     inset 0 1px 0 rgba(255,255,255,0.4),
     inset 0 -1px 0 rgba(0,0,0,0.2),
-    0 6px 12px rgba(0,0,0,0.35);
+    0 6px 16px rgba(0,0,0,0.35);
 }
 
 .aim-btn:active {
@@ -491,13 +492,13 @@ main > * {
 
 /* === CYCLE 5: Micro-interactions & Delight === */
 
-/* Bot card hover: scale + glow */
+/* Bot card hover: scale + glow (upgraded cycle 31) */
 .bot-card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .bot-card-hover:hover {
-  transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 4px 16px rgba(65, 105, 225, 0.25), 0 0 0 1px rgba(65, 105, 225, 0.15);
+  transform: translateY(-3px) scale(1.005);
+  box-shadow: 0 8px 24px rgba(65, 105, 225, 0.15), 0 0 0 1px rgba(65, 105, 225, 0.1);
 }
 
 /* Buddy list entry hover glow */
@@ -1067,4 +1068,126 @@ footer a:hover {
 @keyframes pickerPop {
   from { opacity: 0; transform: translateX(-50%) scale(0.8) translateY(8px); }
   to { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
+}
+
+/* === CYCLE 31: Visual Polish + Animation + Micro-Interactions === */
+
+/* Staggered feed item entrance */
+.feed-stagger-enter {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: feedStaggerIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes feedStaggerIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Online status pulse glow */
+@keyframes onlinePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+  50% { box-shadow: 0 0 6px 2px rgba(76, 175, 80, 0.3); }
+}
+
+.online-pulse {
+  animation: onlinePulse 2s ease-in-out infinite;
+}
+
+/* Online badge gentle pulse */
+@keyframes badgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.online-badge-pulse {
+  animation: badgePulse 2.5s ease-in-out infinite;
+}
+
+/* Skeleton shimmer with AIM palette */
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #e2e8f0 25%, #c7d2fe 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.dark .skeleton-shimmer {
+  background: linear-gradient(90deg, #1e293b 25%, #312e81 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+/* Page content fade in */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: pageEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Button premium hover */
+.btn-premium {
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s ease, filter 0.15s ease;
+}
+.btn-premium:hover {
+  transform: translateY(-1px) scale(1.02);
+  filter: brightness(1.05);
+}
+.btn-premium:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Confetti polished */
+@keyframes confettiPolished {
+  0% {
+    transform: translateY(-20px) rotate(0deg) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0) rotate(45deg) scale(1);
+  }
+  100% {
+    transform: translateY(600px) rotate(720deg) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.confetti-polished {
+  animation: confettiPolished linear forwards;
+}
+
+/* Modal/sheet smooth transitions */
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-backdrop {
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  animation: modalSlideUp 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Sheet slide up (mobile More menu etc.) */
+@keyframes sheetUp {
+  from { transform: translateY(100%); opacity: 0.5; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.sheet-enter {
+  animation: sheetUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }

@@ -13,9 +13,9 @@ export default function DigestLoading() {
       </div>
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[1,2,3].map(i => (
-          <div key={i} className="bg-black/20 rounded-lg p-3 text-center border border-white/10 animate-pulse">
-            <div className="h-7 bg-white/10 rounded w-12 mx-auto mb-1" />
-            <div className="h-2 bg-white/10 rounded w-16 mx-auto" />
+          <div key={i} className="bg-black/20 rounded-lg p-3 text-center border border-white/10">
+            <div className="h-7 skeleton-shimmer w-12 mx-auto mb-1" />
+            <div className="h-2 skeleton-shimmer w-16 mx-auto" />
           </div>
         ))}
       </div>

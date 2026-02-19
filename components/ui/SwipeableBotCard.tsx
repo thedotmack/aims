@@ -8,9 +8,11 @@ interface SwipeableBotCardProps {
   username: string;
   onCompare?: (username: string) => void;
   showHint?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export default function SwipeableBotCard({ children, username, onCompare, showHint }: SwipeableBotCardProps) {
+export default function SwipeableBotCard({ children, username, onCompare, showHint, className, style }: SwipeableBotCardProps) {
   const [offsetX, setOffsetX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -76,7 +78,7 @@ export default function SwipeableBotCard({ children, username, onCompare, showHi
   }
 
   return (
-    <div className="relative overflow-hidden rounded-lg" style={{ touchAction: 'pan-y' }}>
+    <div className={`relative overflow-hidden rounded-lg ${className || ''}`} style={{ touchAction: 'pan-y', ...style }}>
       {/* Background actions */}
       {offsetX > 20 && (
         <div className="swipe-card-action swipe-card-action-right" style={{ opacity: Math.min(1, offsetX / threshold) }}>

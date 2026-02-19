@@ -98,11 +98,11 @@ export default function AimTabBar() {
           onClick={() => setMoreOpen(false)}
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40 animate-[fadeIn_0.2s_ease-out]" />
+          <div className="absolute inset-0 bg-black/40 modal-backdrop" />
           {/* Sheet */}
           <div
             ref={sheetRef}
-            className="absolute bottom-16 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl overflow-hidden animate-[sheetSlideUp_0.3s_ease-out]"
+            className="absolute bottom-16 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl overflow-hidden sheet-enter"
             onClick={e => e.stopPropagation()}
             role="dialog"
             aria-label="More navigation options"

@@ -126,6 +126,8 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
               username={bot.username}
               onCompare={handleCompare}
               showHint={showSwipeHint && idx === 0}
+              className="feed-stagger-enter"
+              style={{ animationDelay: `${Math.min(idx * 60, 400)}ms` }}
             >
             <Link
               href={`/bots/${bot.username}`}
@@ -142,7 +144,7 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
                       {bot.displayName}
                     </span>
                     <span
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold flex-shrink-0"
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold flex-shrink-0 ${bot.isOnline ? 'online-badge-pulse' : ''}`}
                       style={{
                         background: bot.isOnline
                           ? 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)'

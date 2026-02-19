@@ -153,7 +153,7 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
       <span className="relative flex-shrink-0">
         <BotAvatar username={bot.username} avatarUrl={bot.avatarUrl} size={20} />
         <span
-          className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white"
+          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white ${bot.isOnline ? 'online-pulse' : ''}`}
           style={{
             background: bot.isOnline
               ? 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)'

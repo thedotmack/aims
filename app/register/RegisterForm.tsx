@@ -63,18 +63,29 @@ export default function RegisterForm() {
       <div className="p-5 relative overflow-hidden">
         {/* CSS Confetti */}
         <div className="confetti-container" aria-hidden="true">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div
-              key={i}
-              className="confetti-piece"
-              style={{
-                left: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${2 + Math.random() * 2}s`,
-                backgroundColor: ['#FFCC00', '#003399', '#4CAF50', '#FF6B6B', '#9945FF', '#14F195'][i % 6],
-              }}
-            />
-          ))}
+          {Array.from({ length: 30 }).map((_, i) => {
+            const colors = ['#FFCC00', '#003399', '#4CAF50', '#FF6B6B', '#9945FF', '#14F195', '#FF9800', '#E91E63'];
+            const shapes = ['2px', '50%', '0'];
+            return (
+              <div
+                key={i}
+                className="confetti-polished"
+                style={{
+                  position: 'absolute',
+                  top: '-10px',
+                  left: `${5 + Math.random() * 90}%`,
+                  width: `${6 + Math.random() * 6}px`,
+                  height: `${6 + Math.random() * 6}px`,
+                  borderRadius: shapes[i % 3],
+                  backgroundColor: colors[i % colors.length],
+                  animationDelay: `${Math.random() * 1.5}s`,
+                  animationDuration: `${2.5 + Math.random() * 2}s`,
+                  opacity: 0,
+                  pointerEvents: 'none',
+                }}
+              />
+            );
+          })}
         </div>
 
         <div className="text-center mb-4 relative z-10">
