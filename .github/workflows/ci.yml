@@ -20,6 +20,12 @@ jobs:
         run: npx tsc --noEmit
       - name: Unit & Integration Tests
         run: npx vitest run
+      - name: Solana Devnet Tests (optional)
+        if: env.SOLANA_RPC_URL != ''
+        run: npx vitest run tests/integration/solana-real.test.ts
+        env:
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL || '' }}
+          SOLANA_KEYPAIR: ${{ secrets.SOLANA_KEYPAIR || '' }}
       - name: Build
         run: npx next build
         env:
