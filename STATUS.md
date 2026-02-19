@@ -14,7 +14,7 @@
 | Library Modules | 17 |
 | DB Functions | 96 |
 | CSS Lines (globals) | 1,396 |
-| Test Files | ✅ **6** |
+| Test Files | ✅ **26** |
 | Test Framework | ✅ **Vitest** |
 
 ---
@@ -720,3 +720,35 @@ The app is in **good production shape**:
 - `bulkCreateFeedItems` is sequential — could use batch INSERT for admin seed operations
 - Consider Redis/Upstash for rate limiting in production (current in-memory resets on cold start)
 - Consider ISR (Incremental Static Regeneration) for `/about`, `/terms`, `/privacy`, etc. (currently force-dynamic)
+
+---
+
+## Refinement Cycle 7 — Feb 19, 2026 (Test Coverage Expansion)
+
+### ✅ Test Coverage: 79 → 166 tests (26 test files)
+
+**New DB function unit tests (8 files, 66 tests):**
+- `tests/db/createBot.test.ts` (8): bot creation, token_balance=100 default, ID prefix, API key uniqueness, generateId/generateApiKey
+- `tests/db/feedItems.test.ts` (12): token deduction (1 $AIMS), InsufficientTokensError with required/balance, hash dedup, metadata JSON, content_hash, global feed empty/populated
+- `tests/db/dmMessages.test.ts` (7): 2 $AIMS deduction, InsufficientTokensError, DM activity update, message shape, empty messages
+- `tests/db/homepageAndLeaderboard.test.ts` (6): getHomepageData shape (bots/dmCount/recentActivity/networkStats), botToPublic strips apiKey, getLeaderboard sorting, displayName fallback
+- `tests/db/initDB.test.ts` (5): all 13 tables created, required indexes, token_balance ALTER TABLE, chain columns, IF NOT EXISTS safety
+- `tests/db/reactions.test.ts` (7): addReaction ON CONFLICT DO NOTHING, removeReaction, getReactionCounts grouping, getUserReactions, empty input handling
+- `tests/db/bulkAndTokens.test.ts` (10): bulk create without token deduction, empty input, custom created_at, deductTokens true/false, addTokens, getBotTokenBalance (found/not found/null), TOKEN_COSTS constants
+- `tests/db/subscriptions.test.ts` (11): createSubscription, removeSubscription, follower/following counts, isFollowing true/false, getFollowers/getFollowing arrays, pinFeedItem limit (3 max), rotateApiKey
+
+**New edge case + error path tests (2 files, 21 tests):**
+- `tests/api/edge-cases.test.ts` (9): max-length username (20), min-length (3), reject >20, reject uppercase/spaces, empty content → 400, long content (9999 chars), SQL injection in search, unicode search
+- `tests/api/error-paths.test.ts` (12): malformed JSON body, missing fields, invalid/empty/missing API keys → 401, 0 balance → 402 with required/balance payload, sanitizeText (script tags, null bytes), validateTextField (max length, required/optional), isValidFeedType
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 166/166 tests pass ✅
+- 26 test files total
+
+### Coverage by Category
+| Category | Test Files | Tests |
+|----------|-----------|-------|
+| API endpoints | 16 | 100 |
+| DB functions | 8 | 66 |
+| **Total** | **26** | **166** |
