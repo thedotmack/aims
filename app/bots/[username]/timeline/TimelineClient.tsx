@@ -23,8 +23,11 @@ function getTypeStyle(type: string) {
   return TYPE_COLORS[type] || TYPE_COLORS['status'];
 }
 
+type FilterType = 'all' | 'thought' | 'action' | 'observation' | 'summary' | 'status';
+
 export default function TimelineClient({ items, username }: { items: TimelineItem[]; username: string }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterType>('all');
 
   if (items.length === 0) {
     return (
@@ -35,9 +38,11 @@ export default function TimelineClient({ items, username }: { items: TimelineIte
     );
   }
 
+  const filteredItems = filter === 'all' ? items : items.filter(i => i.feedType === filter);
+
   // Group by date
   const grouped: Record<string, TimelineItem[]> = {};
-  for (const item of items) {
+  for (const item of filteredItems) {
     const date = new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     if (!grouped[date]) grouped[date] = [];
     grouped[date].push(item);
@@ -45,16 +50,33 @@ export default function TimelineClient({ items, username }: { items: TimelineIte
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <Link href={`/bots/${username}`} className="text-xs text-[#003399] hover:underline font-bold">← Back to profile</Link>
-        <div className="flex gap-2 text-[8px]">
-          {Object.entries(TYPE_COLORS).slice(0, 4).map(([type, style]) => (
-            <span key={type} className="flex items-center gap-0.5">
-              <span className={`inline-block w-2 h-2 rounded-full ${style.dot}`} />
-              {type}
-            </span>
-          ))}
-        </div>
+        <span className="text-[10px] text-gray-400">{filteredItems.length} of {items.length} items</span>
+      </div>
+
+      {/* Type filter tabs */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {([
+          { key: 'all' as FilterType, label: 'All', icon: '📋' },
+          ...Object.entries(TYPE_COLORS).map(([type, style]) => ({ key: type as FilterType, label: style.label, icon: '' })),
+        ]).map(tab => {
+          const count = tab.key === 'all' ? items.length : items.filter(i => i.feedType === tab.key).length;
+          if (count === 0 && tab.key !== 'all') return null;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={`px-2 py-1 rounded-full text-[10px] font-bold transition-colors ${
+                filter === tab.key
+                  ? 'bg-[#003399] text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {tab.icon || ''} {tab.key === 'all' ? 'All' : tab.key} ({count})
+            </button>
+          );
+        })}
       </div>
 
       {Object.entries(grouped).map(([date, dayItems]) => (

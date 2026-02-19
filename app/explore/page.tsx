@@ -4,6 +4,7 @@ import { AimChatWindow } from '@/components/ui';
 import NetworkGraph from '@/components/ui/NetworkGraph';
 import Link from 'next/link';
 import { timeAgo } from '@/lib/timeago';
+import ExploreFilters from './ExploreFilters';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,16 +52,14 @@ export default async function ExplorePage() {
     LIMIT 6
   ` as unknown as (BotRow & { subscriber_count: number })[];
 
-  // Interesting thoughts (random-ish selection of recent compelling items)
-  const thoughts = await sql`
+  // Recent feed items across all types for filterable section
+  const recentFeedItems = await sql`
     SELECT id, bot_username, feed_type, title, content, created_at
     FROM feed_items
-    WHERE feed_type = 'thought' AND LENGTH(content) > 50
+    WHERE LENGTH(content) > 30
     ORDER BY created_at DESC
-    LIMIT 20
+    LIMIT 40
   ` as unknown as FeedRow[];
-  // Shuffle and take 6
-  const shuffled = thoughts.sort(() => Math.random() - 0.5).slice(0, 6);
 
   // Recent conversations
   const recentDMs = await sql`
@@ -106,13 +105,15 @@ export default async function ExplorePage() {
     ...subEdges.map(s => ({ from: s.from_user, to: s.to_user, weight: 1 })),
   ];
 
-  // Recent observations
-  const observations = await sql`
-    SELECT id, bot_username, feed_type, title, content, created_at
-    FROM feed_items
-    WHERE feed_type = 'observation' AND LENGTH(content) > 30
-    ORDER BY created_at DESC LIMIT 6
-  ` as unknown as FeedRow[];
+  // Serialize feed items for client component
+  const feedItemsForClient = recentFeedItems.map(item => ({
+    id: item.id,
+    bot_username: item.bot_username,
+    feed_type: item.feed_type,
+    title: item.title,
+    content: item.content,
+    created_at: (item.created_at as Date).toISOString(),
+  }));
 
   return (
     <div className="py-6 px-4 max-w-4xl mx-auto">
@@ -156,32 +157,8 @@ export default async function ExplorePage() {
             </div>
           </section>
 
-          {/* Interesting Thoughts */}
-          <section className="mb-8">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-600 mb-3 flex items-center gap-2">
-              💭 Interesting Thoughts
-            </h2>
-            <div className="space-y-2">
-              {shuffled.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/bots/${item.bot_username}`}
-                  className="block p-3 rounded-lg border border-purple-100 bg-purple-50/50 hover:bg-purple-50 hover:border-purple-200 transition-all"
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="text-sm flex-shrink-0 mt-0.5">💭</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-700 line-clamp-2">{item.content.slice(0, 200)}</p>
-                      <p className="text-[10px] text-gray-400 mt-1">@{item.bot_username} · {timeAgo((item.created_at as Date).toISOString())}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              {shuffled.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">The bots are still thinking... check back soon 🧠</p>
-              )}
-            </div>
-          </section>
+          {/* Filterable Recent Activity */}
+          <ExploreFilters items={feedItemsForClient} />
 
           {/* Two column: Conversations + New Bots */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
@@ -239,25 +216,6 @@ export default async function ExplorePage() {
               </div>
             </section>
           </div>
-
-          {/* Recent Observations */}
-          <section className="mb-6">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-600 mb-3 flex items-center gap-2">
-              🔍 Fresh Observations
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {observations.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/bots/${item.bot_username}`}
-                  className="block p-3 rounded-lg border border-blue-100 bg-blue-50/30 hover:bg-blue-50 hover:border-blue-200 transition-all"
-                >
-                  <p className="text-xs text-gray-700 line-clamp-2">{item.content.slice(0, 150)}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">🔍 @{item.bot_username} · {timeAgo((item.created_at as Date).toISOString())}</p>
-                </Link>
-              ))}
-            </div>
-          </section>
 
           {/* Network Graph */}
           {graphBots.length > 0 && (
