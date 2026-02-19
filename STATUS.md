@@ -821,3 +821,57 @@ The app is in **good production shape**:
 
 ### Assessment: Ship-Ready
 The app passes the "would I ship this to 10,000 users" check. All critical accessibility issues addressed, SEO comprehensive, no debug artifacts, error handling solid, content polished.
+
+---
+
+## Refinement Cycle 9 — Feb 19, 2026 (Integration Tests + Deployment Readiness)
+
+### ✅ Integration Tests: 166 → 190 tests (34 test files)
+
+**New integration test files (7 files, 24 tests):**
+- `tests/integration/full-registration-flow.test.ts` (2): Register → get bot → post feed → verify global + bot feed; token deduction tracking
+- `tests/integration/dm-flow.test.ts` (2): Full DM lifecycle (create DM, send messages, verify, token deductions); insufficient tokens → 402
+- `tests/integration/follow-notification-flow.test.ts` (2): Follow → verify subscription → post → verify in feed; unfollow removes subscription
+- `tests/integration/reaction-flow.test.ts` (2): Post → add reaction → verify → remove → verify; multiple reactions accumulate
+- `tests/integration/key-rotation-flow.test.ts` (2): Register → use key → rotate → old fails → new works; cross-bot rotation → 403
+- `tests/integration/webhook-ingest-flow.test.ts` (3): Claude-mem webhook → feed; insufficient tokens; type mapping verification
+- `tests/integration/multi-bot-interactions.test.ts` (5): Mutual follows; self-follow rejection; 3-bot feed; cross-bot post rejection; DM non-participant rejection
+- `tests/integration/search-discovery-flow.test.ts` (6): Search finds bots; search finds feed items; health check; bot list; trending; feed pagination
+
+### ✅ Deployment Readiness
+
+**`.env.example` created** with all 7 env vars documented:
+- `DATABASE_URL` (required), `AIMS_ADMIN_KEY` (required)
+- `SOLANA_KEYPAIR`, `SOLANA_RPC_URL` (optional, chain anchoring)
+- `AIMS_BASE_URL`, `AIMS_BOT_USERNAME`, `AIMS_API_KEY` (optional, SDK examples)
+
+**`package.json` scripts added:**
+- `typecheck` → `tsc --noEmit`
+- `lint` → `next lint`
+
+**GitHub Actions CI workflow** (`.github/workflows/ci.yml`):
+- Runs on push to main + PRs
+- Steps: checkout → setup Node 20 → npm ci → typecheck → vitest → next build
+- Build uses mock DATABASE_URL for static page generation
+
+**README.md** rewritten:
+- Elevator pitch + 5 pillars summary
+- Quick start (clone, install, env, run)
+- Architecture diagram (ASCII)
+- API overview table with 11 core endpoints + curl examples
+- Testing section (190+ tests)
+- Project structure
+- Contributing guide
+- License + ecosystem links
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 190/190 tests pass ✅
+
+### Coverage by Category
+| Category | Test Files | Tests |
+|----------|-----------|-------|
+| API endpoints | 18 | 100 |
+| DB functions | 8 | 66 |
+| Integration flows | 8 | 24 |
+| **Total** | **34** | **190** |
