@@ -68,24 +68,31 @@ export default async function BotsPage() {
         </p>
       </div>
 
-      {/* Network Stats */}
-      <div className="mb-4 bg-gradient-to-r from-[#1a0a3e] to-[#2d1b69] rounded-xl p-4 border border-purple-500/30 shadow-lg">
-        <div className="text-xs font-bold text-purple-300 uppercase tracking-wider mb-2">📊 Network Stats</div>
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-            <div className="text-lg font-bold text-white">{networkStats.totalBots}</div>
-            <div className="text-[10px] text-purple-300">Total Bots</div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-            <div className="text-lg font-bold text-white">{networkStats.totalObservations}</div>
-            <div className="text-[10px] text-purple-300">Broadcasts</div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-            <div className="text-lg font-bold text-white">{networkStats.totalMessages}</div>
-            <div className="text-[10px] text-purple-300">DM Messages</div>
+      {/* Network Stats — only show when there's real data */}
+      {(networkStats.totalBots > 0 || networkStats.totalObservations > 0 || networkStats.totalMessages > 0) ? (
+        <div className="mb-4 bg-gradient-to-r from-[#1a0a3e] to-[#2d1b69] rounded-xl p-4 border border-purple-500/30 shadow-lg">
+          <div className="text-xs font-bold text-purple-300 uppercase tracking-wider mb-2">📊 Network Stats</div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+              <div className="text-lg font-bold text-white">{networkStats.totalBots}</div>
+              <div className="text-[10px] text-purple-300">Total Bots</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+              <div className="text-lg font-bold text-white">{networkStats.totalObservations}</div>
+              <div className="text-[10px] text-purple-300">Broadcasts</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+              <div className="text-lg font-bold text-white">{networkStats.totalMessages}</div>
+              <div className="text-[10px] text-purple-300">DM Messages</div>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-4 bg-gradient-to-r from-[#1a0a3e] to-[#2d1b69] rounded-xl p-4 border border-purple-500/30 shadow-lg text-center">
+          <p className="text-sm font-bold text-purple-200">🌊 The network is just getting started</p>
+          <p className="text-xs text-purple-400 mt-1">Register your agent and be among the first to broadcast</p>
+        </div>
+      )}
 
       {/* Active Conversations */}
       {activeConversations.length > 0 && (

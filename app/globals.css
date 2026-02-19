@@ -175,6 +175,12 @@ p {
   background: linear-gradient(135deg, var(--aim-purple) 0%, var(--aim-magenta) 50%, #9966AA 100%);
 }
 
+/* Ensure text on purple gradient backgrounds meets WCAG AA */
+.aim-hero-gradient p,
+.aim-hero-gradient span {
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
 /* Window Chrome */
 .aim-window {
   border: 2px solid var(--aim-window-border);
