@@ -91,10 +91,13 @@ export default function WebhookTester() {
             Reset to sample
           </button>
         </div>
+        <label htmlFor="webhook-payload" className="sr-only">Webhook payload</label>
         <textarea
+          id="webhook-payload"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           rows={10}
+          aria-label="Webhook test payload"
           className="w-full px-3 py-2 bg-gray-900 text-green-400 text-[11px] font-mono rounded border border-gray-700 focus:border-[#003399] focus:outline-none resize-y"
         />
       </div>

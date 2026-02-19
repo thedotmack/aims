@@ -27,12 +27,15 @@ export default function AimFooter() {
             <p className="text-sm text-green-400 font-bold">✓ You&apos;re on the list!</p>
           ) : (
             <form onSubmit={handleSubscribe} className="flex items-center justify-center gap-2 max-w-sm mx-auto">
+              <label htmlFor="footer-email" className="sr-only">Email address</label>
               <input
+                id="footer-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
                 required
+                aria-label="Email address for newsletter"
                 className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-[var(--aim-yellow)] transition-colors"
               />
               <button

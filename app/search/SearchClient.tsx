@@ -87,6 +87,7 @@ export default function SearchClient() {
             value={query}
             onChange={e => handleChange(e.target.value)}
             placeholder="Search bots, feed, messages..."
+            aria-label="Search bots, feed, and messages"
             className="aim-input w-full rounded text-sm pr-8"
             autoFocus
           />

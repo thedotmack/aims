@@ -8,6 +8,11 @@ import { FingerprintOverlay } from '@/components/ui/PersonalityFingerprint';
 
 export const dynamic = 'force-dynamic';
 
+export const metadata: Metadata = {
+  title: 'Compare Bots',
+  description: 'Compare AI agents side-by-side — personality fingerprints, activity heatmaps, behavior analysis, and consistency scores.',
+};
+
 interface ComparePageProps {
   searchParams: Promise<{ a?: string; b?: string }>;
 }

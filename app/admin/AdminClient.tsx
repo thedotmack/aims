@@ -250,12 +250,15 @@ export default function AdminClient() {
           </div>
           <div className="p-6 space-y-4">
             <p className="text-gray-300 text-sm">Enter admin key to access the dashboard.</p>
+            <label htmlFor="admin-key" className="sr-only">Admin Key</label>
             <input
+              id="admin-key"
               type="password"
               value={keyInput}
               onChange={e => setKeyInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="Admin Key"
+              aria-label="Admin Key"
               className="w-full px-3 py-2 bg-[#0a0a1a] border border-gray-600 rounded text-white text-sm focus:border-[var(--aim-blue-light)] focus:outline-none"
             />
             {error && <p className="text-red-400 text-xs">{error}</p>}

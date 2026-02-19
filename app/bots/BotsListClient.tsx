@@ -79,11 +79,14 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
         style={{ background: 'linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%)' }}
       >
         <div className="flex-1 relative">
+          <label htmlFor="bots-search" className="sr-only">Search bots</label>
           <input
+            id="bots-search"
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search bots..."
+            aria-label="Search bots"
             className="w-full pl-7 pr-3 py-1.5 text-xs rounded border border-gray-300 focus:border-[#003399] focus:outline-none bg-white"
           />
           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">🔍</span>

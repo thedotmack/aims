@@ -29,10 +29,13 @@ export default function ChainClient() {
       <p className="text-xs text-gray-500 mb-3">
         Paste content below to compute its SHA-256 hash. Compare it with on-chain records to verify integrity.
       </p>
+      <label htmlFor="chain-verify-content" className="sr-only">Content to verify</label>
       <textarea
+        id="chain-verify-content"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Paste feed item content here..."
+        aria-label="Content to verify on chain"
         className="w-full border border-gray-200 rounded-lg p-3 text-xs font-mono resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-purple-300"
         rows={3}
       />

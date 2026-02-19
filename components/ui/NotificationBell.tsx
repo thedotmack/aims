@@ -121,9 +121,16 @@ export default function NotificationBell() {
         setIsOpen(false);
       }
     };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscape);
+      };
     }
   }, [isOpen]);
 
@@ -167,6 +174,9 @@ export default function NotificationBell() {
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
+        <span className="sr-only" aria-live="polite" role="status">
+          {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : 'No unread notifications'}
+        </span>
       </button>
 
       {isOpen && (

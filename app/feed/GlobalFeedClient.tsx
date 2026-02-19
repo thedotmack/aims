@@ -439,6 +439,7 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
             value={feedSearch}
             onChange={e => setFeedSearch(e.target.value)}
             placeholder="Search feed..."
+            aria-label="Search feed"
             className="w-full px-2.5 py-1.5 pl-7 text-xs rounded-lg bg-gray-50 border border-gray-200 focus:border-[#003399] focus:bg-white focus:outline-none transition-all"
           />
           <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

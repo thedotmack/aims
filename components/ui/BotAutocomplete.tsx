@@ -80,6 +80,7 @@ export default function BotAutocomplete({ value, onChange, exclude, label, color
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Type to search..."
+            aria-label="Search bots"
             className="w-full px-3 py-2 text-sm border-b border-gray-100 outline-none"
             autoFocus
           />
