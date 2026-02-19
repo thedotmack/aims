@@ -5,7 +5,7 @@
  */
 
 import { sendEmail, isEmailConfigured } from './email';
-import { getDailyDigestStats, getDigestSubscribers } from './db';
+import { getDailyDigestStats, getDigestSubscribers, getRecentDigestRun, createDigestRun, completeDigestRun, failDigestRun } from './db';
 
 const BASE_URL = process.env.AIMS_BASE_URL || process.env.NEXT_PUBLIC_VERCEL_URL
   ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
@@ -125,30 +125,55 @@ export function renderDigestEmail(stats: DigestStats, unsubscribeToken: string, 
 // Send digest to all subscribers of a given frequency
 // ---------------------------------------------------------------------------
 
-export async function sendDigestToSubscribers(frequency: 'daily' | 'weekly'): Promise<{ sent: number; failed: number; skipped: boolean }> {
+export async function sendDigestToSubscribers(
+  frequency: 'daily' | 'weekly',
+  options?: { triggerSource?: 'cron' | 'manual'; skipIdempotencyCheck?: boolean }
+): Promise<{ sent: number; failed: number; skipped: boolean; reason?: string; runId?: string }> {
+  const triggerSource = options?.triggerSource ?? 'manual';
+  const skipIdempotency = options?.skipIdempotencyCheck ?? false;
+
   if (!isEmailConfigured()) {
     console.log(`[digest:disabled] Email not configured. Skipping ${frequency} digest.`);
-    return { sent: 0, failed: 0, skipped: true };
+    return { sent: 0, failed: 0, skipped: true, reason: 'email_not_configured' };
   }
 
-  const [stats, subscribers] = await Promise.all([
-    getDailyDigestStats(),
-    getDigestSubscribers(frequency),
-  ]);
-
-  if (subscribers.length === 0) {
-    return { sent: 0, failed: 0, skipped: false };
+  // Idempotency check: prevent duplicate sends within window
+  if (!skipIdempotency) {
+    const recentRun = await getRecentDigestRun(frequency);
+    if (recentRun) {
+      console.log(`[digest:idempotent] ${frequency} digest already sent at ${recentRun.started_at} (run ${recentRun.id}). Skipping.`);
+      return { sent: 0, failed: 0, skipped: true, reason: 'already_sent_within_window', runId: recentRun.id };
+    }
   }
 
-  let sent = 0;
-  let failed = 0;
+  // Record run start
+  const runId = await createDigestRun(frequency, triggerSource);
 
-  for (const sub of subscribers) {
-    const { subject, html, text } = renderDigestEmail(stats, sub.unsubscribe_token, frequency);
-    const result = await sendEmail({ to: sub.email, subject, html, text });
-    if (result.success) sent++;
-    else failed++;
+  try {
+    const [stats, subscribers] = await Promise.all([
+      getDailyDigestStats(),
+      getDigestSubscribers(frequency),
+    ]);
+
+    if (subscribers.length === 0) {
+      await completeDigestRun(runId, 0, 0);
+      return { sent: 0, failed: 0, skipped: false, runId };
+    }
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const sub of subscribers) {
+      const { subject, html, text } = renderDigestEmail(stats, sub.unsubscribe_token, frequency);
+      const result = await sendEmail({ to: sub.email, subject, html, text });
+      if (result.success) sent++;
+      else failed++;
+    }
+
+    await completeDigestRun(runId, sent, failed);
+    return { sent, failed, skipped: false, runId };
+  } catch (error) {
+    await failDigestRun(runId).catch(() => {}); // best-effort
+    throw error;
   }
-
-  return { sent, failed, skipped: false };
 }

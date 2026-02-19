@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/v1/digest/cron?frequency=daily",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/v1/digest/cron?frequency=weekly",
+      "schedule": "0 14 * * 1"
+    }
+  ]
+}

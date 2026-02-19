@@ -1663,4 +1663,81 @@ New test files:
 - `aims/STATUS.md` — this section
 
 ### ⚠️ Next Priority Gap
-**Automated digest scheduling** (P2) — Digest sending currently requires manual admin trigger (`POST /api/v1/digest/send`). For true daily/weekly delivery, needs a cron job (Vercel Cron or external scheduler) hitting this endpoint on schedule. Also: email verification flow (double opt-in) to prevent abuse.
+~~**Automated digest scheduling**~~ — resolved in Cycle 25.
+
+---
+
+## Refinement Cycle 25 — Feb 19, 2026 (Automated Digest Scheduling with Idempotency)
+
+### ✅ Problem
+Digest sending required manual admin trigger (`POST /api/v1/digest/send`). No automated scheduling, no duplicate-send protection, no run tracking.
+
+### ✅ Solution: Vercel Cron + Idempotency Window + Run Tracking
+
+**New cron endpoint: `GET /api/v1/digest/cron`**
+| Feature | Details |
+|---------|---------|
+| Auth | `CRON_SECRET` (Vercel auto-injects) or `AIMS_ADMIN_KEY` fallback, via Bearer token |
+| Query params | `?frequency=daily` (default) or `?frequency=weekly` |
+| Idempotency | Checks `digest_runs` table — skips if same frequency sent within window |
+| Failure handling | Returns 200 even on skip (prevents Vercel cron retry alerts), 503 if email unconfigured |
+
+**Vercel Cron schedules (`vercel.json`):**
+| Schedule | Frequency | Time |
+|----------|-----------|------|
+| `0 13 * * *` | Daily | 9 AM ET (1 PM UTC) |
+| `0 14 * * 1` | Weekly (Monday) | 10 AM ET (2 PM UTC) |
+
+**New DB table: `digest_runs`**
+- Tracks every digest send attempt: frequency, trigger source (cron/manual), start/complete time, sent/failed counts, status (running/completed/failed)
+- Idempotency window: 20 hours for daily, 6 days for weekly — prevents double sends from retries or overlapping triggers
+
+**Idempotency safeguards:**
+- Cron endpoint always checks idempotency window (cannot be bypassed)
+- Manual admin endpoint (`POST /api/v1/digest/send`) checks by default, returns 409 if already sent
+- Manual endpoint accepts `"force": true` to override idempotency (for re-sends)
+- Run status tracked as running/completed/failed — "running" entries also block duplicates
+
+**Existing manual trigger preserved:**
+- `POST /api/v1/digest/send` still works exactly as before (admin-only)
+- Now returns 409 with explanation if already sent within window (unless `force: true`)
+- Now records run in `digest_runs` table for tracking
+
+### ✅ Tests: 320 → 338 tests (52 test files)
+
+New test files:
+- `tests/api/digest-cron.test.ts` (7 tests): auth rejection, CRON_SECRET auth, AIMS_ADMIN_KEY fallback, 503 on no email, idempotency skip (200), weekly param, daily default
+- `tests/db/digestRuns.test.ts` (5 tests): daily/weekly window queries, insert with trigger source, complete with counts, fail marking
+- `tests/lib/digest.test.ts` (6 tests): send to subscribers with run tracking, idempotency skip, force override, email not configured, failure marking, default trigger source
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **338 passed**, 16 skipped ✅
+
+### Files Changed
+- `lib/db.ts` — added `digest_runs` table in `initDB()`, added `getRecentDigestRun()`, `createDigestRun()`, `completeDigestRun()`, `failDigestRun()`
+- `lib/digest.ts` — `sendDigestToSubscribers()` now accepts options (triggerSource, skipIdempotencyCheck), tracks runs, checks idempotency
+- `app/api/v1/digest/cron/route.ts` — NEW (cron-triggered digest endpoint)
+- `app/api/v1/digest/send/route.ts` — updated: passes triggerSource, supports `force` override, returns 409 on duplicate
+- `vercel.json` — NEW (Vercel Cron configuration)
+- `.env.example` — added CRON_SECRET documentation and schedule notes
+- `tests/api/digest-cron.test.ts` — NEW (7 tests)
+- `tests/db/digestRuns.test.ts` — NEW (5 tests)
+- `tests/lib/digest.test.ts` — NEW (6 tests)
+- `STATUS.md` — this section
+
+### What's Truly Automated Now
+- Daily digest: fires at 9 AM ET every day via Vercel Cron
+- Weekly digest: fires at 10 AM ET every Monday via Vercel Cron
+- Duplicate sends prevented by idempotency window (20h daily, 6d weekly)
+- Failed runs tracked for debugging
+- Manual admin trigger still available with force override
+
+### Limitations
+- Requires Vercel deployment for automatic cron (external schedulers can call the endpoint with Bearer token)
+- No email verification/double opt-in (subscribers are saved immediately)
+- No retry logic for individual failed email sends within a batch
+- Cron endpoint returns 200 on idempotency skip (to avoid Vercel retry alerts) — check response body for `skipped: true`
+
+### ⚠️ Next Priority Gap
+**Email verification / double opt-in for digest subscribers** — Currently any email can be subscribed without verification. Implement: subscribe → send verification email with token → mark `verified=true` on click → only send digests to verified subscribers. The `verified` column already exists in `digest_subscribers` (defaults to `false`) but is not enforced.

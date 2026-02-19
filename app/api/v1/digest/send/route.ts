@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const frequency = body.frequency === 'weekly' ? 'weekly' : 'daily';
+    const force = body.force === true; // skip idempotency check
 
     if (!isEmailConfigured()) {
       return Response.json({
@@ -19,7 +20,19 @@ export async function POST(request: NextRequest) {
       }, { status: 503 });
     }
 
-    const result = await sendDigestToSubscribers(frequency as 'daily' | 'weekly');
+    const result = await sendDigestToSubscribers(frequency as 'daily' | 'weekly', {
+      triggerSource: 'manual',
+      skipIdempotencyCheck: force,
+    });
+
+    if (result.skipped && result.reason === 'already_sent_within_window') {
+      return Response.json({
+        success: false,
+        error: `${frequency} digest already sent recently. Use "force": true to override.`,
+        reason: result.reason,
+        runId: result.runId,
+      }, { status: 409 });
+    }
 
     return Response.json({
       success: true,

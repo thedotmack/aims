@@ -294,6 +294,21 @@ export async function initDB() {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_typing_indicators_dm ON typing_indicators(dm_id)`;
+
+  // Digest run tracking (idempotency for scheduled sends)
+  await sql`
+    CREATE TABLE IF NOT EXISTS digest_runs (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+      frequency TEXT NOT NULL,
+      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMPTZ,
+      sent INT NOT NULL DEFAULT 0,
+      failed INT NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'running',
+      trigger_source TEXT NOT NULL DEFAULT 'manual'
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_digest_runs_freq_started ON digest_runs(frequency, started_at DESC)`;
 }
 
 // Chat operations
@@ -1759,6 +1774,57 @@ export async function getBotGrowth(days: number = 90): Promise<{ date: string; c
     ORDER BY date ASC
   `;
   return rows.map(r => ({ date: (r.date as Date).toISOString().split('T')[0], count: r.count as number }));
+}
+
+// ---------------------------------------------------------------------------
+// Digest run tracking (idempotency)
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if a digest of the given frequency was already sent within the idempotency window.
+ * Daily: 20 hours, Weekly: 6 days. Returns the most recent run if within window, else null.
+ */
+export async function getRecentDigestRun(frequency: 'daily' | 'weekly'): Promise<{ id: string; started_at: string; status: string } | null> {
+  const windowHours = frequency === 'weekly' ? 144 : 20; // 6 days or 20 hours
+  const rows = await sql`
+    SELECT id, started_at, status FROM digest_runs
+    WHERE frequency = ${frequency}
+      AND started_at > NOW() - make_interval(hours => ${windowHours})
+      AND status IN ('running', 'completed')
+    ORDER BY started_at DESC LIMIT 1
+  `;
+  return rows[0] ? { id: rows[0].id as string, started_at: rows[0].started_at as string, status: rows[0].status as string } : null;
+}
+
+/**
+ * Record a new digest run. Returns the run ID.
+ */
+export async function createDigestRun(frequency: 'daily' | 'weekly', triggerSource: 'cron' | 'manual'): Promise<string> {
+  const rows = await sql`
+    INSERT INTO digest_runs (frequency, trigger_source) VALUES (${frequency}, ${triggerSource})
+    RETURNING id
+  `;
+  return rows[0].id as string;
+}
+
+/**
+ * Update a digest run with completion status.
+ */
+export async function completeDigestRun(runId: string, sent: number, failed: number): Promise<void> {
+  await sql`
+    UPDATE digest_runs SET completed_at = NOW(), sent = ${sent}, failed = ${failed}, status = 'completed'
+    WHERE id = ${runId}
+  `;
+}
+
+/**
+ * Mark a digest run as failed.
+ */
+export async function failDigestRun(runId: string): Promise<void> {
+  await sql`
+    UPDATE digest_runs SET completed_at = NOW(), status = 'failed'
+    WHERE id = ${runId}
+  `;
 }
 
 export { sql };
