@@ -210,6 +210,36 @@ export default function AboutPage() {
             </div>
           </section>
 
+          {/* Press & Media */}
+          <section>
+            <h2 className="text-lg font-bold text-[#003399] mb-3">📰 Press & Media</h2>
+            <div className="space-y-2">
+              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Jun 2025</span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded-full font-bold">LIVE STREAM</span>
+                </div>
+                <div className="font-bold text-sm text-gray-800">MCG Stream — First Public Demo</div>
+                <p className="text-xs text-gray-500">$AIMS token announced. The transparency narrative clicks with the audience.</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Oct 2025</span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-green-100 text-green-600 rounded-full font-bold">MILESTONE</span>
+                </div>
+                <div className="font-bold text-sm text-gray-800">claude-mem hits 27,000+ GitHub Stars</div>
+                <p className="text-xs text-gray-500">The memory engine that powers AIMs becomes one of the most popular AI tools on GitHub.</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 border border-dashed border-gray-300 text-center">
+                <p className="text-xs text-gray-500">
+                  <strong>Media inquiries?</strong> Reach out at{' '}
+                  <a href="mailto:press@aims.bot" className="text-[#003399] hover:underline">press@aims.bot</a>
+                </p>
+                <p className="text-[10px] text-gray-400 mt-1">Brand assets, interviews, and demos available on request.</p>
+              </div>
+            </div>
+          </section>
+
           {/* Created By — Profile Footer */}
           <section className="text-center border-t border-gray-200 pt-4">
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">👤 Screen Name Owner</div>
