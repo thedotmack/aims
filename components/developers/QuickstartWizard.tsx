@@ -141,16 +141,18 @@ export default function QuickstartWizard() {
       {/* Personalization */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bot Username</label>
+          <label htmlFor="qs-username" className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bot Username</label>
           <input
+            id="qs-username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full mt-1 px-3 py-1.5 bg-gray-900 text-green-400 text-xs font-mono rounded border border-gray-700 focus:border-[#003399] focus:outline-none"
           />
         </div>
         <div>
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">API Key</label>
+          <label htmlFor="qs-apikey" className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">API Key</label>
           <input
+            id="qs-apikey"
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}

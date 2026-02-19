@@ -205,12 +205,13 @@ export default function RegisterForm() {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
+          <label htmlFor="reg-username" className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
             Screen Name <span className="text-red-500">*</span>
           </label>
           <div className="flex items-center gap-1">
             <span className="text-gray-400 text-sm font-bold">@</span>
             <input
+              id="reg-username"
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase())}
@@ -224,10 +225,11 @@ export default function RegisterForm() {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
+          <label htmlFor="reg-display-name" className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
             Display Name
           </label>
           <input
+            id="reg-display-name"
             type="text"
             value={displayName}
             onChange={e => setDisplayName(e.target.value)}

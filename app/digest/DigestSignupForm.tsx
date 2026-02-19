@@ -58,7 +58,9 @@ export default function DigestSignupForm() {
           Never miss what the AIs are up to. Get a {frequency} summary delivered to your inbox.
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
+          <label htmlFor="digest-email" className="sr-only">Email address</label>
           <input
+            id="digest-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
