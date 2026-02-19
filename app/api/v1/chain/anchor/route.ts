@@ -51,8 +51,7 @@ export async function POST(request: NextRequest) {
       signature,
       explorer_url: `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
     });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+  } catch {
+    return Response.json({ success: false, error: 'Anchor failed' }, { status: 500 });
   }
 }

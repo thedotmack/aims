@@ -590,3 +590,133 @@ All tables confirmed in `initDB()`:
 - Typing indicators are UI-only (faked)
 - No E2E browser tests
 - FollowButton server persistence requires apiKey prop (no spectator auth system)
+
+---
+
+## Refinement Cycle 6 — Feb 19, 2026 (Performance, Caching, Security Hardening)
+
+### ✅ Performance Audit — Complete
+
+**Homepage (`/`):**
+- Uses `getHomepageData()` which already batches 4 queries in `Promise.all` — no N+1 ✅
+- Auto-init fallback only fires when no data exists (cold start) ✅
+
+**Feed page (`/feed`):**
+- Thin server component delegates to `GlobalFeedClient` (SSE + polling fallback) ✅
+- No server-side data fetching — client handles all feed loading ✅
+
+**Bot profile (`/bots/[username]`):**
+- All 14 data fetches already batched in single `Promise.all` ✅
+- `generateMetadata` makes 2 separate DB calls (`getBotByUsername` + `getBotFeedStats`) that duplicate the page's calls — acceptable since Next.js deduplicates fetch for the same request lifecycle
+- `getFeedItems(username, undefined, 200)` loads up to 200 items for personality computation — could be reduced but personality needs representative sample
+
+**Conversations page:**
+- Already uses `getConversationsWithPreviewsOptimized` (single query with lateral join) ✅
+- Legacy `getConversationsWithPreviews` (N+1 pattern) still exists in `lib/db.ts` but is **not imported anywhere** — dead code
+
+**`bulkCreateFeedItems`:**
+- Sequential INSERT + SELECT per item (N+1) — acceptable for bulk import which is admin-only and infrequent
+- No token deduction on bulk import (intentional for seed data)
+
+### ✅ Caching Strategy — Already Comprehensive
+
+All API endpoints already have appropriate `Cache-Control` headers:
+| Endpoint Pattern | Cache Strategy | Notes |
+|-----------------|---------------|-------|
+| `/api/v1/bots` (list) | `s-maxage=60, swr=120` | Semi-static ✅ |
+| `/api/v1/bots/:username` | `s-maxage=60, swr=120` | Semi-static ✅ |
+| `/api/v1/feed` | `s-maxage=30, swr=60` | Dynamic, short cache ✅ |
+| `/api/v1/trending` | `s-maxage=120, swr=240` | Semi-static ✅ |
+| `/api/v1/stats` | **Changed: `s-maxage=300, swr=600`** | Was 30s — expensive query (9 parallel queries + behavior analysis) |
+| `/api/v1/search` | `s-maxage=10, swr=20` | Short cache ✅ |
+| `/api/v1/feed/stream` (SSE) | `no-cache, no-transform` | Streaming ✅ |
+| `/api/v1/health` | `no-cache` | Health check ✅ |
+| `/api/v1/chain/status` | **Added: `s-maxage=60, swr=120`** | Was uncached |
+| `/api/v1/explore` | `s-maxage=60, swr=120` | Semi-static ✅ |
+| `/api/v1/activity/pulse` | `s-maxage=15, swr=30` | Near real-time ✅ |
+| Bot RSS/JSON feeds | `max-age=300, s-maxage=300` | Longer cache for syndication ✅ |
+| Analytics (per-bot) | `private, max-age=60` | Private, short cache ✅ |
+
+### ✅ Security Hardening — Findings & Fixes
+
+**SQL Injection: SAFE ✅**
+- All 96+ DB functions use Neon tagged template literals (`sql\`...\``) which are parameterized by design
+- No string concatenation in queries — verified entire `lib/db.ts` (1704 lines)
+- Dynamic SQL fragments use Neon's `sql\`\`` interpolation (e.g., leaderboard time filter)
+
+**XSS: SAFE ✅**
+- Only 2 uses of `dangerouslySetInnerHTML`: both for JSON-LD structured data (`JSON.stringify` of static objects — no user input)
+- User content rendered via `react-markdown` with `remark-gfm` (sanitized by default)
+- No raw HTML rendering of user input anywhere
+
+**Error Stack Traces: FIXED ✅**
+- **`/api/v1/chain/status`**: Was leaking `err.message` to client → now returns generic "Failed to fetch chain status"
+- **`/api/v1/chain/anchor`**: Was leaking `err.message` → now returns generic "Anchor failed"
+- **`/api/v1/chain/anchor-batch`**: Was leaking outer `err.message` → now returns generic "Anchor batch failed"
+- Inner per-item errors in anchor-batch still show messages (admin-only endpoint, acceptable)
+- All other endpoints use `handleApiError()` which returns generic messages ✅
+
+**Rate Limiting: GOOD ✅**
+- 35 API route files use `checkRateLimit` 
+- All public read endpoints: `PUBLIC_READ` (100/min)
+- All write endpoints: `AUTH_WRITE` (30/min)
+- Registration: `REGISTER` (5/hour)
+- Webhook ingest: `WEBHOOK_INGEST` (60/min)
+- Search: `SEARCH` (30/min)
+- **Unprotected endpoints** (acceptable):
+  - `/api/v1/health` — trivial, no DB
+  - `/api/v1/init`, `/api/v1/init/seed` — admin-protected via `requireAdmin`
+  - `/api/v1/chain/*` — admin-protected (anchor, anchor-batch) or read-only (status, now cached)
+  - `/api/v1/admin/*` — all admin-protected via `requireAdmin`
+  - `/api/v1/feed/stream` — SSE, self-limiting (5-min timeout + reconnect)
+
+**API Key Exposure: SAFE ✅**
+- `botToPublic()` strips `apiKey` from all public-facing bot responses
+- API keys only returned on registration and rotation (authenticated endpoints)
+- Admin dashboard protected by `AIMS_ADMIN_KEY` cookie/param
+- No API keys in client-side code or HTML source
+
+**CORS: N/A**
+- Next.js API routes on same domain — no CORS needed for the web app
+- External API consumers (bots) use Bearer token auth — CORS not applicable for server-to-server
+
+### ✅ Bundle Analysis — Clean
+
+**Dependencies (production):**
+- `@neondatabase/serverless` — server-only (API routes) ✅
+- `@solana/web3.js` + `@solana/spl-memo` — server-only (only imported in `lib/solana.ts` and 3 API routes) ✅
+- `react-markdown` + `remark-gfm` — used in `MarkdownContent.tsx` (client component, necessary for feed rendering)
+- No unnecessary large dependencies detected
+
+**`'use client'` audit:** 81 client components — all legitimate (interactive UI, localStorage, effects)
+- Removed unused `Connection` import from `chain/status/route.ts`
+
+**Code splitting:** Next.js automatic — each page is its own chunk. Client components are lazy-loaded by default.
+
+### ✅ Fixes Applied
+1. `/api/v1/stats` cache extended from 30s → 300s (expensive query)
+2. `/api/v1/chain/status` cache added (60s) — was uncached
+3. Error message leaks plugged in 3 chain API endpoints
+4. Unused `Connection` import removed from chain/status
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 79/79 tests pass ✅
+
+### Assessment Summary
+The app is in **good production shape**:
+- No N+1 query patterns on hot paths (homepage, feed, bot profile all use Promise.all)
+- Comprehensive caching strategy already in place across all endpoints
+- No SQL injection vectors (parameterized queries throughout)
+- No XSS vectors (no raw HTML with user input)
+- Rate limiting on all public and write endpoints
+- Error messages don't leak internal details
+- Server-only dependencies stay server-side
+- Token economy is real and atomic
+
+### ⚠️ Remaining Optimization Opportunities (P2)
+- `getConversationsWithPreviews` (non-optimized, N+1) is dead code — could be removed
+- Bot profile loads 200 feed items for personality computation — could be reduced to 50-100
+- `bulkCreateFeedItems` is sequential — could use batch INSERT for admin seed operations
+- Consider Redis/Upstash for rate limiting in production (current in-memory resets on cold start)
+- Consider ISR (Incremental Static Regeneration) for `/about`, `/terms`, `/privacy`, etc. (currently force-dynamic)

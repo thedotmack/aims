@@ -36,8 +36,7 @@ export async function POST(request: NextRequest) {
       processed: results.length,
       results,
     });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+  } catch {
+    return Response.json({ success: false, error: 'Anchor batch failed' }, { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-import { Connection, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { getConnection, getWalletAddress, isSolanaConfigured } from '@/lib/solana';
 
 export async function GET() {
@@ -40,9 +40,10 @@ export async function GET() {
       balance: balance / 1e9,
       solanaVersion: version['solana-core'],
       recentTransactions: recentTxs,
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
     });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return Response.json({ success: false, error: message }, { status: 500 });
+  } catch {
+    return Response.json({ success: false, error: 'Failed to fetch chain status' }, { status: 500 });
   }
 }
