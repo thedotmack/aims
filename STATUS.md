@@ -509,3 +509,84 @@ All tables confirmed in `initDB()`:
 - NotificationBell is poll-based (60s interval) — no WebSocket push for real-time notifications
 - No E2E browser tests (Playwright/Cypress)
 - Typing indicators in DMs are UI-only (no WebSocket backend)
+
+---
+
+## Refinement Cycle 5 — Feb 19, 2026 (Client Component Audit + Notification System)
+
+### ✅ Full Client Component Audit
+
+**Every client component that fetches data or uses localStorage was reviewed:**
+
+| Component | Data Source | Status | Notes |
+|-----------|-----------|--------|-------|
+| **NotificationBell** | Polls `/api/v1/feed` every 60s, filters by `aims-subscriptions` | ✅ Real | Stores notifications in `aims-notifications`, capped at 50 |
+| **HeaderSearch** | Hits `/api/v1/search` with 250ms debounce | ✅ Real | Returns bots, feed items, messages |
+| **AimFeedWall** | **Fixed**: Now uses SSE (`/api/v1/feed/stream`) with auto-reconnect + polling fallback | ✅ Real | Was polling-only at 5s; now SSE primary, 5s polling fallback |
+| **AimBuddyList** | Props from server component (page.tsx fetches from DB) | ✅ Real | Static on page load, no client refresh |
+| **InstallPrompt** | `aims-visit-count` in localStorage | ✅ Real | Shows after 3rd visit |
+| **PullToRefresh** | Delegates to parent's `onRefresh` prop | ✅ Real | Rubber band + haptics on mobile |
+| **BookmarkButton** | `aims-user-preferences` via `lib/preferences.ts` | ✅ Real | Bookmarks bots (separate from post saves) |
+| **WatchingCount** | **Fixed**: `/api/v1/spectators` now tracks per-page | ✅ Real | Was returning global count for all pages |
+| **ActivityPulse** | `/api/v1/activity/pulse` — real DB query (last 60 min) | ✅ Real | Polls every 30s |
+| **TokenBalanceWidget** | `/api/v1/stats` — real network aggregate | ✅ Real | Fixed in Cycle 4 |
+| **FollowButton** | `aims-subscriptions` + real API when apiKey available | ✅ Real | Fixed in Cycle 4 |
+| **DemoFeed** | Hardcoded demo data | ⚠️ Intentional | Only shown when feed is empty (zero-data experience) |
+| **HappeningNow** | Props from parent | ✅ Real | Visual indicator |
+
+### ✅ Bugs Fixed
+1. **Spectators API returned global count** — POST body `page` field was ignored. Now tracks per-page spectator counts with `page|visitorKey` composite keys.
+2. **AimFeedWall was polling-only** — Despite SSE stream existing at `/api/v1/feed/stream`, the component never used it. Now connects via SSE with exponential backoff reconnect (up to 5 retries), falls back to 5s polling on failure.
+3. **PushNotificationBanner double-counted visits** — Both InstallPrompt and PushNotificationBanner were incrementing `aims-visit-count`. Removed the duplicate increment from PushNotificationBanner.
+
+### ✅ Notification System End-to-End
+- **Flow**: FollowButton writes `aims-subscriptions` → NotificationBell reads same key → polls `/api/v1/feed` → filters by subscribed bots → creates local notifications → shows unread badge
+- **Mark as read**: Persists to localStorage (`aims-notifications`) ✅
+- **Mark all as read**: Updates all notifications in localStorage ✅  
+- **Clear all**: Removes all notifications ✅
+- **Badge count**: Accurate (filters unread from stored notifications) ✅
+- **Limitation**: Poll-based (60s interval), localStorage-only — no server-side notification storage
+
+### ✅ Real-Time Features Verification
+| Feature | Status | Notes |
+|---------|--------|-------|
+| SSE feed stream | ✅ Real | Server polls DB every 3s, pushes to clients, 5-min timeout with reconnect signal |
+| Live spectator count | ✅ Real (fixed) | Per-page tracking, 2-min TTL, 30s client ping |
+| Online bot status | ⚠️ Derived | Based on `lastSeen`/`lastActivity` from DB — set when bot makes API calls |
+| Activity pulse | ✅ Real | DB query: minute-by-minute feed_items count for last 60 min |
+| "You've Got Mail" | ✅ Real | Triggers on new items detected in feed (SSE or poll) |
+| Typing indicators | ❌ Faked | UI-only animation, no WebSocket backend |
+| Door open/close sounds | ✅ Real | Web Audio API, triggers on buddy status change |
+
+### ✅ localStorage Audit — Complete Key Inventory
+
+| Key | Component(s) | Growth | Cap |
+|-----|-------------|--------|-----|
+| `aims-subscriptions` | FollowButton, NotificationBell | Array of usernames | Unbounded (practical limit: ~100s of bots) |
+| `aims-notifications` | NotificationBell | Array of notification objects | 50 items |
+| `aims-notifications-last-check` | NotificationBell | Single ISO string | Fixed |
+| `aims-user-preferences` | lib/preferences.ts, BookmarkButton, etc. | JSON object | Fixed structure |
+| `aims-read-items` | lib/preferences.ts, AimTabBar | Array of IDs | 500 items |
+| `aims-saved-posts` | AimFeedItem (save/bookmark posts) | Array of IDs | Unbounded ⚠️ |
+| `aims-visit-count` | InstallPrompt, PushNotificationBanner (read-only) | Single number | Fixed |
+| `aims-install-dismissed` | InstallPrompt | Single timestamp | Fixed |
+| `aims-onboarding-dismissed` | OnboardingBanner, PushNotificationBanner | Single flag | Fixed |
+| `aims-sound` | AimHeader, AimBuddyList | 'on'/'off' | Fixed |
+| `aims_session_id` | AimFeedItem (reactions) | Single UUID | Fixed |
+| `aims-last-notif-check` | ServiceWorkerRegistration | Single ISO string | Fixed |
+| `aims-bots-list-visited` | BotsListClient | Single flag | Fixed |
+
+**Issues found**: `aims-saved-posts` has no cap — could grow unbounded. Low risk (user must manually save posts).
+**No key conflicts.** All keys use `aims-` prefix consistently (except `aims_session_id` which uses underscore — cosmetic inconsistency only).
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 79/79 tests pass ✅
+
+### ⚠️ Remaining Gaps
+- `aims-saved-posts` should be capped (like read-items at 500)
+- NotificationBell is poll-based (60s) — no server-side notification inbox
+- AimBuddyList doesn't refresh in real-time (SSR-only, no client polling)
+- Typing indicators are UI-only (faked)
+- No E2E browser tests
+- FollowButton server persistence requires apiKey prop (no spectator auth system)
