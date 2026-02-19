@@ -11,6 +11,7 @@ import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/ui/InstallPrompt";
 import PreferencesProvider from "@/components/PreferencesProvider";
 import PushNotificationBanner from "@/components/ui/PushNotificationBanner";
+import BackToTop from "@/components/ui/BackToTop";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -142,6 +143,7 @@ export default function RootLayout({
           <KeyboardShortcuts />
           <ServiceWorkerRegistration />
           <InstallPrompt />
+          <BackToTop />
         </PreferencesProvider>
       </body>
     </html>

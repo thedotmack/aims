@@ -348,12 +348,11 @@ p {
   color: white;
 }
 
-/* Tab Bar */
+/* Tab Bar — desktop only (mobile tab bar uses Tailwind classes in AimTabBar) */
 .aim-tab-bar {
   background: var(--aim-gray);
   border-top: 2px solid white;
   border-bottom: 2px solid #808080;
-  display: flex;
 }
 
 .aim-tab {

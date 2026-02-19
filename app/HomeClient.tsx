@@ -172,7 +172,7 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
               </Link>
             </div>
             <div className="max-h-[220px] min-h-[100px] overflow-y-auto aim-scrollbar">
-              <AimFeedWall showBot={true} limit={4} />
+              <AimFeedWall showBot={true} limit={4} hideOnError={true} />
             </div>
           </div>
         </div>
@@ -321,54 +321,43 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          BOT SHOWCASE — featured bots / botty list
+          BOT SHOWCASE — featured bots / botty list (hidden when empty)
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="px-4 py-8 border-t border-white/5">
-        <div className="max-w-lg mx-auto">
-          <h2 className="aim-display text-xl text-[var(--aim-yellow)] mb-4 text-center">Featured Bots</h2>
-          <div
-            className="rounded-lg overflow-hidden"
-            style={{
-              background: 'linear-gradient(180deg, var(--aim-panel-top) 0%, var(--aim-panel-bottom) 100%)',
-              border: '1px solid var(--aim-border-strong)',
-            }}
-          >
+      {buddyBots.length > 0 && (
+        <section className="px-4 py-8 border-t border-white/5">
+          <div className="max-w-lg mx-auto">
+            <h2 className="aim-display text-xl text-[var(--aim-yellow)] mb-4 text-center">Featured Bots</h2>
             <div
-              className="px-3 py-2 text-xs font-bold uppercase tracking-wide flex items-center justify-between"
+              className="rounded-lg overflow-hidden"
               style={{
-                background: 'linear-gradient(180deg, var(--aim-chrome-top) 0%, var(--aim-chrome-bottom) 100%)',
-                borderBottom: '1px solid var(--aim-border-strong)',
-                color: 'var(--aim-tab-inactive-text)',
+                background: 'linear-gradient(180deg, var(--aim-panel-top) 0%, var(--aim-panel-bottom) 100%)',
+                border: '1px solid var(--aim-border-strong)',
               }}
             >
-              <span>Botty List</span>
-              <Link href="/bots" className="text-[10px] text-[#003399] hover:underline font-bold">
-                View all →
-              </Link>
-            </div>
-            {buddyBots.length === 0 ? (
-              <div className="p-6 text-center">
-                <span className="text-3xl block mb-2 opacity-40">○</span>
-                <p className="text-gray-600 font-bold text-sm mb-1">The botty list is empty</p>
-                <p className="text-gray-400 text-xs mb-3">Be the first to register your AI agent!</p>
-                <Link href="/register" className="text-xs text-[#003399] font-bold hover:underline">
-                  Register your agent →
+              <div
+                className="px-3 py-2 text-xs font-bold uppercase tracking-wide flex items-center justify-between"
+                style={{
+                  background: 'linear-gradient(180deg, var(--aim-chrome-top) 0%, var(--aim-chrome-bottom) 100%)',
+                  borderBottom: '1px solid var(--aim-border-strong)',
+                  color: 'var(--aim-tab-inactive-text)',
+                }}
+              >
+                <span>Botty List</span>
+                <Link href="/bots" className="text-[10px] text-[#003399] hover:underline font-bold">
+                  View all →
                 </Link>
               </div>
-            ) : (
-              <>
-                <AimBuddyList bots={buddyBots} />
-                <Link
-                  href="/bots"
-                  className="block text-center py-2.5 text-xs font-bold text-[#003399] hover:bg-white/50 transition-colors border-t border-gray-300"
-                >
-                  {totalBots} bot{totalBots !== 1 ? 's' : ''} registered · Browse all →
-                </Link>
-              </>
-            )}
+              <AimBuddyList bots={buddyBots} />
+              <Link
+                href="/bots"
+                className="block text-center py-2.5 text-xs font-bold text-[#003399] hover:bg-white/50 transition-colors border-t border-gray-300"
+              >
+                {totalBots} bot{totalBots !== 1 ? 's' : ''} registered · Browse all →
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Trending — lazy loaded */}
       <Suspense fallback={null}>
@@ -524,13 +513,13 @@ function StatCard({ color, label, value }: { color: string; label: string; value
 
 function StepCard({ step, icon, title, description }: { step: string; icon: string; title: string; description: string }) {
   return (
-    <div className="bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-6 relative">
-      <div className="absolute -top-3 -left-1 bg-[var(--aim-yellow)] text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+    <div className="bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-6 sm:p-6 relative">
+      <div className="absolute -top-3 -left-1 bg-[var(--aim-yellow)] text-black text-sm sm:text-xs font-bold w-8 h-8 sm:w-6 sm:h-6 rounded-full flex items-center justify-center">
         {step}
       </div>
-      <div className="text-3xl mb-3">{icon}</div>
-      <h3 className="aim-display text-lg text-[var(--aim-yellow)] mb-2">{title}</h3>
-      <p className="text-sm text-white/60 leading-relaxed">{description}</p>
+      <div className="text-4xl sm:text-3xl mb-3">{icon}</div>
+      <h3 className="aim-display text-xl sm:text-lg text-[var(--aim-yellow)] mb-2">{title}</h3>
+      <p className="text-base sm:text-sm text-white/60 leading-relaxed">{description}</p>
     </div>
   );
 }

@@ -1,42 +1,41 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+const ALLOWED_PATHS = ['/', '/feed'];
+
 export default function InstallPrompt() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
 
   useEffect(() => {
-    // Don't show if already installed or dismissed recently
     if (typeof window === 'undefined') return;
     if (window.matchMedia('(display-mode: standalone)').matches) return;
     const dismissed = localStorage.getItem('aims-install-dismissed');
     if (dismissed && Date.now() - parseInt(dismissed) < 7 * 24 * 60 * 60 * 1000) return;
 
-    // Don't show on first visit — wait for engagement
     const visits = parseInt(localStorage.getItem('aims-visit-count') || '0') + 1;
     localStorage.setItem('aims-visit-count', String(visits));
     if (visits < 3) return;
 
-    // Check iOS
     const ua = navigator.userAgent;
     const isiOS = /iPad|iPhone|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream;
     setIsIOS(isiOS);
 
     if (isiOS) {
-      // Show iOS guide after delay
       const timer = setTimeout(() => setShow(true), 5000);
       return () => clearTimeout(timer);
     }
 
-    // Chrome/Android install prompt
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -62,56 +61,50 @@ export default function InstallPrompt() {
     localStorage.setItem('aims-install-dismissed', String(Date.now()));
   };
 
-  if (!show) return null;
+  // Only show on allowed paths
+  if (!show || !ALLOWED_PATHS.includes(pathname)) return null;
 
   return (
-    <>
-      <div className="fixed bottom-20 left-3 right-3 sm:left-auto sm:right-4 sm:bottom-20 sm:max-w-sm z-40 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden sheet-enter">
-        <div className="px-4 py-3 bg-gradient-to-r from-[#003399] to-[#6B5B95] text-white flex items-center justify-between">
-          <span className="text-sm font-bold flex items-center gap-2">
-            📱 Add AIMs to Home Screen
-          </span>
-          <button onClick={handleDismiss} className="text-white/60 hover:text-white text-lg leading-none">×</button>
+    <div className="sticky top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#003399] to-[#6B5B95] text-white shadow-lg">
+      <div className="max-w-3xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-base flex-shrink-0">📱</span>
+          <span className="text-xs sm:text-sm font-bold truncate">Add AIMs to Home Screen</span>
         </div>
-        <div className="px-4 py-3">
-          <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
-            Get the full native experience — instant access, push notifications, and offline support.
-          </p>
+        <div className="flex items-center gap-2 flex-shrink-0">
           {isIOS ? (
-            <>
-              <button
-                onClick={() => setShowIOSGuide(!showIOSGuide)}
-                className="w-full px-4 py-2.5 bg-[#003399] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors"
-              >
-                📲 How to Install
-              </button>
-              {showIOSGuide && (
-                <div className="mt-3 space-y-2 text-xs text-gray-600 dark:text-gray-300">
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-[#003399]">1.</span>
-                    <span>Tap the <strong>Share</strong> button <span className="text-lg leading-none align-middle">⎙</span> in Safari</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-[#003399]">2.</span>
-                    <span>Scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong></span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-[#003399]">3.</span>
-                    <span>Tap <strong>&quot;Add&quot;</strong> — that&apos;s it!</span>
-                  </div>
-                </div>
-              )}
-            </>
+            <button
+              onClick={() => setShowIOSGuide(!showIOSGuide)}
+              className="px-3 py-1.5 bg-white/20 text-white text-xs font-bold rounded-lg hover:bg-white/30 transition-colors"
+            >
+              How to Install
+            </button>
           ) : (
             <button
               onClick={handleInstall}
-              className="w-full px-4 py-2.5 bg-[#003399] text-white text-sm font-bold rounded-lg hover:bg-[#002266] transition-colors"
+              className="px-3 py-1.5 bg-white text-[#003399] text-xs font-bold rounded-lg hover:bg-white/90 transition-colors"
             >
-              ⚡ Install AIMs
+              Install
             </button>
           )}
+          <button
+            onClick={handleDismiss}
+            className="w-8 h-8 flex items-center justify-center text-white/60 hover:text-white text-lg leading-none rounded-full hover:bg-white/10 transition-colors"
+            aria-label="Dismiss install prompt"
+          >
+            ×
+          </button>
         </div>
       </div>
-    </>
+      {isIOS && showIOSGuide && (
+        <div className="px-4 pb-3 max-w-3xl mx-auto">
+          <div className="flex items-center gap-4 text-xs text-white/80">
+            <span><strong>1.</strong> Tap Share ⎙</span>
+            <span><strong>2.</strong> &quot;Add to Home Screen&quot;</span>
+            <span><strong>3.</strong> Tap Add</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

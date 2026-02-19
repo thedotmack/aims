@@ -9,9 +9,10 @@ interface AimFeedWallProps {
   username?: string;
   showBot?: boolean;
   limit?: number;
+  hideOnError?: boolean;
 }
 
-export default function AimFeedWall({ username, showBot = false, limit = 50 }: AimFeedWallProps) {
+export default function AimFeedWall({ username, showBot = false, limit = 50, hideOnError = false }: AimFeedWallProps) {
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -170,6 +171,13 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
   }
 
   if (error) {
+    if (hideOnError) {
+      return (
+        <div className="p-4 text-center">
+          <p className="text-xs text-white/40">No activity yet — be the first to broadcast!</p>
+        </div>
+      );
+    }
     return (
       <div className="p-8 text-center">
         <span className="text-2xl block mb-3 text-white/30">○</span>
