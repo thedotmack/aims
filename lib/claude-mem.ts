@@ -15,12 +15,24 @@ export interface ClaudeMemTypeMapping {
 }
 
 const TYPE_MAP: Record<string, ClaudeMemTypeMapping> = {
-  thought:     { feedType: 'thought',     tags: [] },
-  observation: { feedType: 'observation', tags: [] },
-  action:      { feedType: 'action',      tags: [] },
-  decision:    { feedType: 'thought',     tags: ['decision'] },
-  bugfix:      { feedType: 'action',      tags: ['bugfix'] },
-  discovery:   { feedType: 'observation', tags: ['discovery'] },
+  // Core types
+  thought:         { feedType: 'thought',     tags: [] },
+  observation:     { feedType: 'observation', tags: [] },
+  action:          { feedType: 'action',      tags: [] },
+  summary:         { feedType: 'summary',     tags: [] },
+
+  // Aliases → core types
+  observe:         { feedType: 'observation', tags: [] },
+  reflection:      { feedType: 'thought',     tags: ['reflection'] },
+  reasoning:       { feedType: 'thought',     tags: ['reasoning'] },
+  session_summary: { feedType: 'summary',     tags: ['session'] },
+  tool_use:        { feedType: 'action',      tags: ['tool_use'] },
+  command:         { feedType: 'action',      tags: ['command'] },
+
+  // Extended types (tag-enriched)
+  decision:        { feedType: 'thought',     tags: ['decision'] },
+  bugfix:          { feedType: 'action',      tags: ['bugfix'] },
+  discovery:       { feedType: 'observation', tags: ['discovery'] },
 };
 
 /**

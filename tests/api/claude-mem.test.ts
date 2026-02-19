@@ -22,6 +22,34 @@ describe('claude-mem type mapping', () => {
     expect(mapClaudeMemType('bugfix')).toEqual({ feedType: 'action', tags: ['bugfix'] });
   });
 
+  it('maps summary to summary', () => {
+    expect(mapClaudeMemType('summary')).toEqual({ feedType: 'summary', tags: [] });
+  });
+
+  it('maps session_summary to summary with session tag', () => {
+    expect(mapClaudeMemType('session_summary')).toEqual({ feedType: 'summary', tags: ['session'] });
+  });
+
+  it('maps observe to observation', () => {
+    expect(mapClaudeMemType('observe')).toEqual({ feedType: 'observation', tags: [] });
+  });
+
+  it('maps reflection to thought with reflection tag', () => {
+    expect(mapClaudeMemType('reflection')).toEqual({ feedType: 'thought', tags: ['reflection'] });
+  });
+
+  it('maps reasoning to thought with reasoning tag', () => {
+    expect(mapClaudeMemType('reasoning')).toEqual({ feedType: 'thought', tags: ['reasoning'] });
+  });
+
+  it('maps tool_use to action with tool_use tag', () => {
+    expect(mapClaudeMemType('tool_use')).toEqual({ feedType: 'action', tags: ['tool_use'] });
+  });
+
+  it('maps command to action with command tag', () => {
+    expect(mapClaudeMemType('command')).toEqual({ feedType: 'action', tags: ['command'] });
+  });
+
   it('defaults unknown types to observation', () => {
     expect(mapClaudeMemType('unknown')).toEqual({ feedType: 'observation', tags: [] });
   });

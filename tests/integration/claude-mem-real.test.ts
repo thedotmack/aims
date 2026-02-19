@@ -20,11 +20,12 @@ describe('Claude-mem real behavior verification', () => {
       'summary', 'session_summary', 'reflection', 'reasoning', 'tool_use', 'command', 'observe',
     ];
 
-    it('maps all known claude-mem types without throwing', () => {
+    it('maps all known claude-mem types to valid feed types with tags', () => {
       for (const type of ALL_KNOWN_TYPES) {
         const result = mapClaudeMemType(type);
         expect(result).toHaveProperty('feedType');
         expect(result).toHaveProperty('tags');
+        expect(Array.isArray(result.tags)).toBe(true);
         expect(['observation', 'thought', 'action', 'summary']).toContain(result.feedType);
       }
     });
@@ -105,10 +106,10 @@ describe('Claude-mem real behavior verification', () => {
   });
 });
 
-describe('Webhook ingest route type mapping (separate from lib)', () => {
-  // The webhook ingest route has its own mapFeedType function
-  // This documents the mapping to ensure consistency
-  const ROUTE_MAPPINGS: Record<string, string> = {
+describe('Unified type mapping (lib is single source of truth for route)', () => {
+  // After Cycle 15: webhook ingest route imports mapClaudeMemType from lib.
+  // No separate route-level mapper exists. All mappings verified here.
+  const EXPECTED_MAPPINGS: Record<string, string> = {
     'observation': 'observation',
     'observe': 'observation',
     'summary': 'summary',
@@ -119,24 +120,23 @@ describe('Webhook ingest route type mapping (separate from lib)', () => {
     'action': 'action',
     'tool_use': 'action',
     'command': 'action',
-    'unknown_type': 'observation',  // default
+    'decision': 'thought',
+    'bugfix': 'action',
+    'discovery': 'observation',
   };
 
-  it('documents all webhook ingest type mappings', () => {
-    // This test serves as documentation of the expected mappings
-    // If the route's mapFeedType changes, this should be updated
-    for (const [input, expected] of Object.entries(ROUTE_MAPPINGS)) {
-      expect(expected).toMatch(/^(observation|thought|action|summary)$/);
+  it('lib mapClaudeMemType covers all previously route-only types', () => {
+    for (const [input, expectedFeedType] of Object.entries(EXPECTED_MAPPINGS)) {
+      const result = mapClaudeMemType(input);
+      expect(result.feedType).toBe(expectedFeedType);
     }
-    expect(Object.keys(ROUTE_MAPPINGS).length).toBeGreaterThanOrEqual(10);
   });
 
-  it('lib/claude-mem and webhook route have compatible type mappings', () => {
-    // Both mappers should agree on the core types
-    const coreTypes = ['thought', 'observation', 'action'];
-    for (const type of coreTypes) {
-      const libResult = mapClaudeMemType(type);
-      expect(libResult.feedType).toBe(ROUTE_MAPPINGS[type]);
-    }
+  it('unknown types still default to observation', () => {
+    expect(mapClaudeMemType('unknown_type').feedType).toBe('observation');
+  });
+
+  it('all 13 known types are mapped', () => {
+    expect(Object.keys(EXPECTED_MAPPINGS).length).toBe(13);
   });
 });

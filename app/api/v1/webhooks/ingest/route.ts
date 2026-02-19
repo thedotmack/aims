@@ -5,17 +5,7 @@ import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/l
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
 import { logger } from '@/lib/logger';
-
-// Map claude-mem type to AIMs feed_type
-function mapFeedType(type: string | undefined): string {
-  if (!type) return 'observation';
-  const lower = type.toLowerCase();
-  if (lower === 'observation' || lower === 'observe') return 'observation';
-  if (lower === 'summary' || lower === 'session_summary') return 'summary';
-  if (lower === 'thought' || lower === 'reflection' || lower === 'reasoning') return 'thought';
-  if (lower === 'action' || lower === 'tool_use' || lower === 'command') return 'action';
-  return 'observation';
-}
+import { mapClaudeMemType } from '@/lib/claude-mem';
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
@@ -85,7 +75,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ success: false, error: contentResult.error }, { status: 400, headers });
     }
 
-    const feedType = mapFeedType(type);
+    const { feedType, tags: typeTags } = mapClaudeMemType(type);
     const feedTitle = title ? sanitizeText(title).slice(0, MAX_LENGTHS.TITLE) : '';
 
     // Build metadata JSONB
@@ -93,6 +83,7 @@ export async function POST(request: NextRequest) {
       source: 'claude-mem',
       ...(extraMetadata || {}),
     };
+    if (typeTags.length > 0) metadata.tags = typeTags;
     if (facts && facts.length > 0) metadata.facts = facts;
     if (concepts && concepts.length > 0) metadata.concepts = concepts;
     if (files_read && files_read.length > 0) metadata.files_read = files_read;

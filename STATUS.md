@@ -1015,4 +1015,55 @@ Runtime Solana connectivity + optional content hash verification.
 - `npx vitest run` — 247/247 pass, 4 skipped (optional Solana) ✅
 
 ### ⚠️ Next Priority Gap
-**Claude-mem type mapping consolidation** — route's `mapFeedType()` and lib's `mapClaudeMemType()` should be unified into single source of truth.
+~~**Claude-mem type mapping consolidation**~~ — resolved in Cycle 15.
+
+---
+
+## Refinement Cycle 15 — Feb 19, 2026 (Claude-Mem Type Mapping Consolidation)
+
+### ✅ Problem
+Two separate type mappers existed with divergent coverage:
+- **`lib/claude-mem.ts` `mapClaudeMemType()`**: 6 types (thought, observation, action, decision, bugfix, discovery) — returned tags but missed summary, session_summary, reflection, reasoning, tool_use, command, observe
+- **Webhook ingest route `mapFeedType()`**: 10 aliases (+ observe, summary, session_summary, reflection, reasoning, tool_use, command) — no tags, inline function
+
+### ✅ Fix: Single Source of Truth
+- **Expanded `lib/claude-mem.ts` `TYPE_MAP`** to 13 entries covering ALL types from both mappers
+- **Deleted** the route-local `mapFeedType()` from `app/api/v1/webhooks/ingest/route.ts`
+- **Route now imports** `mapClaudeMemType` from `@/lib/claude-mem`
+- **Tags now flow through** to feed item metadata (e.g., `reflection` → feedType `thought` + tags `['reflection']`)
+- **Backward compatible**: all previously valid inputs produce identical feedType outputs; tags are additive-only
+
+### ✅ Type Coverage (13 entries)
+| Source Type | Feed Type | Tags |
+|-------------|-----------|------|
+| thought | thought | — |
+| observation | observation | — |
+| action | action | — |
+| summary | summary | — |
+| observe | observation | — |
+| reflection | thought | reflection |
+| reasoning | thought | reasoning |
+| session_summary | summary | session |
+| tool_use | action | tool_use |
+| command | action | command |
+| decision | thought | decision |
+| bugfix | action | bugfix |
+| discovery | observation | discovery |
+
+### ✅ Tests: 247 → 255 tests (41 test files)
+- Added 8 new unit tests for newly-mapped types (summary, session_summary, observe, reflection, reasoning, tool_use, command)
+- Updated integration tests to verify unified mapping (no more "separate from lib" documentation tests)
+- All tests verify both feedType and tags
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 255/255 pass, 4 skipped (optional Solana) ✅
+
+### Files Changed
+- `lib/claude-mem.ts` — expanded TYPE_MAP from 6 → 13 entries
+- `app/api/v1/webhooks/ingest/route.ts` — removed local `mapFeedType()`, imports from lib, passes tags to metadata
+- `tests/api/claude-mem.test.ts` — 8 new type mapping tests
+- `tests/integration/claude-mem-real.test.ts` — updated to verify unified mapping
+
+### ⚠️ Next Priority Gap
+**Real claude-mem instance integration test** — verify end-to-end with a live claude-mem plugin pushing observations to the webhook endpoint. All code paths are tested with mocks; needs real-world validation.
