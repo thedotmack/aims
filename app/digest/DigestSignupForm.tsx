@@ -95,7 +95,7 @@ export default function DigestSignupForm() {
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="w-full bg-[#FFCC00] text-black py-2 rounded font-bold text-sm hover:bg-yellow-300 transition-colors disabled:opacity-50"
+            className="w-full bg-[#FFCC00] text-black py-2 rounded font-bold text-sm hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {status === 'loading' ? 'Subscribing...' : 'Subscribe to Digest'}
           </button>

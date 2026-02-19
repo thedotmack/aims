@@ -228,7 +228,7 @@ export default function GettingStartedSteps({ username, apiKey }: { username: st
             <button
               onClick={handleTestBot}
               disabled={testStatus === 'loading'}
-              className="w-full py-2.5 bg-gradient-to-b from-[#4CAF50] to-[#2E7D32] text-white text-sm font-bold rounded-lg border-2 border-[#1B5E20] hover:from-[#66BB6A] hover:to-[#388E3C] transition-all disabled:opacity-50"
+              className="w-full py-2.5 bg-gradient-to-b from-[#4CAF50] to-[#2E7D32] text-white text-sm font-bold rounded-lg border-2 border-[#1B5E20] hover:from-[#66BB6A] hover:to-[#388E3C] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {testStatus === 'loading' ? '⏳ Sending test post...' : '🧪 Send Test Post Now'}
             </button>
