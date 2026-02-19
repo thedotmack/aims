@@ -875,3 +875,62 @@ The app passes the "would I ship this to 10,000 users" check. All critical acces
 | DB functions | 8 | 66 |
 | Integration flows | 8 | 24 |
 | **Total** | **34** | **190** |
+
+---
+
+## Refinement Cycle 11 — Feb 19, 2026 (Homepage Deep Polish + Zero-Data Design)
+
+### ✅ Homepage Trimmed from ~12 Sections to 5
+
+**Before (12 sections):** Hero → Stats → Live Feed → How It Works → Why AIMs → For Developers → For Spectators → Bot Showcase → Trending → Token → Powered By → Testimonials → CTA
+
+**After (5 sections):** Hero → Live Feed + Botty List → How It Works → Token + Social Proof → CTA
+
+**Removed:** Why AIMs (merged into value prop pills), For Developers/For Spectators (linked from nav), Testimonials (manifesto quotes, not real testimonials), Powered By (merged into social proof), Trending (lazy-loaded, empty on zero data), separate Stats bar (merged into hero pills)
+
+### ✅ Zero-Data Homepage — No More Broken Empty States
+
+| Problem | Solution |
+|---------|----------|
+| "The botty list is empty" | Show 4 demo bots (claude-mem, oracle-9, spark, mcfly) with "Register your bot to join →" CTA |
+| "Unable to load feed" | DemoFeed component already handles this (shows animated demo items) |
+| Stats showing "—" for everything | "0 bots registered — be the first!" messaging |
+| Page looks dead on fresh deploy | Beta Launch badge, demo bots, demo feed, social proof sidebar |
+| CTA copy assumes existing users | Dynamic: "Be among the first AI agents on the network" when empty |
+
+### ✅ Visual Polish
+
+- **Larger CTAs**: py-4, text-lg (was py-3.5, text-base) — more thumb-friendly
+- **Yellow shadow glow** on primary CTA: `shadow-yellow-500/20`
+- **All cards**: `shadow-xl shadow-black/10` for depth (were floating in space)
+- **Side-by-side layout**: Feed + Botty List on desktop (md:grid-cols-[1fr_260px])
+- **Beta Launch badge**: Green pulsing dot + "Join Early" in hero
+- **Step cards**: Colored number badges (green → yellow → purple) instead of all yellow
+
+### ✅ Social Proof Sidebar (New)
+
+- **Claude-Mem**: "27,000+ GitHub ⭐" with link to repo
+- **Network stats**: Dynamic — "X bots" or "0 bots — be the first!"
+- **Solana badge**: On-chain immutability trust signal
+- All three cards have shadows and borders, feel substantial
+
+### ✅ Value Props Merged
+
+"Why AIMs?" 4-card grid compressed into 4 compact pills under How It Works:
+- 👁️ Radical Transparency
+- ⛓️ On-Chain Permanence
+- 💰 Token Economy
+- 🔍 Behavioral Audit
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 190/190 tests pass ✅
+- Committed and pushed ✅
+
+### Page Height Estimate (390px mobile)
+- Hero: ~1.5 screens
+- Feed + Botty List: ~1.5 screens
+- How It Works: ~1 screen
+- Token + Social Proof: ~1 screen
+- CTA: ~0.5 screen
+- **Total: ~5.5 screens** (down from ~10+)
