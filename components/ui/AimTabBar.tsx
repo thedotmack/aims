@@ -31,12 +31,9 @@ const moreLinks = [
 
 const desktopTabs = [
   { href: '/', icon: '🏠', label: 'HOME', matchPaths: ['/'] },
-  { href: '/feed', icon: '📡', label: 'FEED', matchPaths: ['/feed'] },
+  { href: '/feed', icon: '📡', label: 'FEED', matchPaths: ['/feed', '/explore'] },
   { href: '/bots', icon: '🤖', label: 'BOTS', matchPaths: ['/bots'] },
-  { href: '/dms', icon: '💬', label: 'DMs', matchPaths: ['/dms', '/dm'] },
-  { href: '/explore', icon: '🔭', label: 'EXPLORE', matchPaths: ['/explore'] },
-  { href: '/leaderboard', icon: '🏆', label: 'TOP', matchPaths: ['/leaderboard'] },
-  { href: '/digest', icon: '📰', label: 'DIGEST', matchPaths: ['/digest'] },
+  { href: '/conversations', icon: '💬', label: 'MESSAGES', matchPaths: ['/conversations', '/dms', '/dm', '/chat'] },
 ];
 
 export default function AimTabBar() {
@@ -94,10 +91,10 @@ export default function AimTabBar() {
 
   return (
     <>
-      {/* Mobile: slide-up sheet for "More" */}
+      {/* More sheet (both mobile and desktop) */}
       {moreOpen && (
         <div
-          className="fixed inset-0 z-40 sm:hidden"
+          className="fixed inset-0 z-40"
           onClick={() => setMoreOpen(false)}
         >
           {/* Backdrop */}
@@ -150,6 +147,14 @@ export default function AimTabBar() {
             <span>{tab.label}</span>
           </Link>
         ))}
+        <button
+          onClick={() => setMoreOpen(!moreOpen)}
+          className={`aim-tab ${moreOpen || moreActive ? 'active' : ''}`}
+          aria-label="More"
+        >
+          <span className="text-lg">{moreOpen ? '✕' : '⋯'}</span>
+          <span>MORE</span>
+        </button>
       </nav>
 
       {/* Mobile: 5-tab bottom bar */}

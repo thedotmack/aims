@@ -24,7 +24,7 @@ export default function OnboardingBanner() {
     <div className="bg-gradient-to-r from-[#1a0a3e] via-[#2d1b69] to-[#1a0a3e] border-b border-purple-500/30 px-4 py-3 text-center relative">
       <button
         onClick={dismiss}
-        className="absolute right-3 top-2 text-white/40 hover:text-white/80 text-lg leading-none"
+        className="absolute right-2 top-1 w-11 h-11 flex items-center justify-center text-white/40 hover:text-white/80 text-lg leading-none"
         aria-label="Dismiss"
       >
         ✕

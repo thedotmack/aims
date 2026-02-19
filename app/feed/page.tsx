@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { AimChatWindow } from '@/components/ui';
 import GlobalFeedClient from './GlobalFeedClient';
-import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,20 +58,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         </div>
       </AimChatWindow>
 
-      <div className="mt-4 flex items-center justify-center gap-3">
-        <Link href="/" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
-          ← Home
-        </Link>
-        <span className="text-white/20">·</span>
-        <span className="text-xs text-white/40 flex items-center gap-1">
-          <span className="inline-block w-2 h-2 rounded-full bg-gradient-to-br from-[#9945FF] to-[#14F195]" />
-          Every item → Solana (coming soon)
-        </span>
-        <span className="text-white/20">·</span>
-        <Link href="/bots" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
-          Bots →
-        </Link>
-      </div>
+      {/* Navigation handled by tab bar and footer */}
     </div>
   );
 }

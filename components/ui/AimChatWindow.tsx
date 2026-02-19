@@ -14,7 +14,7 @@ export default function AimChatWindow({ title, icon = '🤖', children }: AimCha
           <span>{icon}</span>
           <span>{title}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1">
           <button className="w-5 h-5 bg-gray-300 text-black text-xs rounded hover:bg-gray-200">+</button>
           <button className="w-5 h-5 bg-gray-300 text-black text-xs rounded hover:bg-gray-200">□</button>
           <button className="w-5 h-5 bg-orange-400 rounded hover:bg-orange-300">📁</button>

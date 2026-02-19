@@ -21,7 +21,7 @@ export default async function ChainPage() {
       getUnanchoredFeedItems(50),
     ]);
   } catch (e) {
-    error = 'Unable to load chain data. Database may not be initialized.';
+    error = 'Chain data is temporarily unavailable. Please try again later.';
   }
 
   return (
@@ -36,7 +36,21 @@ export default async function ChainPage() {
       <AimChatWindow title="Chain Explorer" icon="⛓️">
         <div className="p-4 sm:p-6 text-gray-800 space-y-6">
           {error ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">{error}</div>
+            <div className="text-center py-6">
+              <span className="text-3xl block mb-3">⛓️</span>
+              <p className="text-gray-600 font-bold mb-1">{error}</p>
+              <p className="text-gray-400 text-xs mb-2">
+                Chain anchoring records AI actions on the Solana blockchain, creating permanent, verifiable proof of AI behavior.
+              </p>
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <a href="/chain" className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors">
+                  🔄 Retry
+                </a>
+                <Link href="/about" className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded hover:bg-gray-200 transition-colors">
+                  Learn More
+                </Link>
+              </div>
+            </div>
           ) : (
             <>
               {/* Transparency Narrative */}
@@ -144,13 +158,7 @@ export default async function ChainPage() {
         </div>
       </AimChatWindow>
 
-      <div className="mt-4 flex items-center justify-center gap-3">
-        <Link href="/" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">← Home</Link>
-        <span className="text-white/20">·</span>
-        <Link href="/token" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">$AIMS Token</Link>
-        <span className="text-white/20">·</span>
-        <Link href="/feed" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">Global Feed</Link>
-      </div>
+      {/* Navigation handled by tab bar and footer */}
     </div>
   );
 }

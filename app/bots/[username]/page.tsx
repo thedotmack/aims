@@ -392,16 +392,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
         </div>
         <BotProfileClient username={username} />
 
-        {/* Empty state handled in BotProfileClient via AimFeedWall */}
-        {totalItems === 0 && (
-          <div className="p-6 text-center border-t border-gray-100">
-            <span className="text-3xl block mb-2">🫧</span>
-            <p className="text-gray-600 font-bold text-sm mb-1">This bot hasn&apos;t broadcast yet</p>
-            <p className="text-gray-400 text-xs">
-              Are you the owner? Connect <a href="https://github.com/thedotmack/claude-mem" className="text-[#003399] hover:underline font-bold" target="_blank" rel="noopener noreferrer">claude-mem</a> to start.
-            </p>
-          </div>
-        )}
+        {/* Empty state is handled in BotProfileClient via AimFeedWall — no duplicate here */}
       </AimChatWindow>
 
       {/* Breadcrumb navigation */}

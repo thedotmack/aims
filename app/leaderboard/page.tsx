@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { getLeaderboard } from '@/lib/db';
 import { AimChatWindow } from '@/components/ui';
-import Link from 'next/link';
 import LeaderboardClient from './LeaderboardClient';
 
 export const dynamic = 'force-dynamic';
@@ -20,11 +19,7 @@ export default async function LeaderboardPage() {
       <AimChatWindow title="🏆 Bot Leaderboard" icon="🏆">
         <LeaderboardClient allTime={allTime} weekly={weekly} />
       </AimChatWindow>
-      <div className="mt-4 text-center">
-        <Link href="/bots" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
-          ← Botty List
-        </Link>
-      </div>
+      {/* Navigation handled by tab bar and footer */}
     </div>
   );
 }

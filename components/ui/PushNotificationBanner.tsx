@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { usePreferences } from '@/components/PreferencesProvider';
 
+const ONBOARDING_STORAGE_KEY = 'aims-onboarding-dismissed';
+const VISIT_COUNT_KEY = 'aims-visit-count';
+
 export default function PushNotificationBanner() {
   const { preferences, updatePreferences } = usePreferences();
   const [show, setShow] = useState(false);
@@ -13,10 +16,25 @@ export default function PushNotificationBanner() {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
     if (Notification.permission === 'granted') return;
     if (Notification.permission === 'denied') return;
+
+    // Never show if the onboarding banner is still visible (not yet dismissed)
+    const onboardingDismissed = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (!onboardingDismissed) return;
+
+    // Only show after 2nd visit
+    const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) || '0', 10);
+    if (visitCount < 2) return;
+
     // Wait a few seconds before showing
     const timer = setTimeout(() => setShow(true), 5000);
     return () => clearTimeout(timer);
   }, [preferences.pushPermissionAsked]);
+
+  // Track visit count
+  useEffect(() => {
+    const count = parseInt(localStorage.getItem(VISIT_COUNT_KEY) || '0', 10);
+    localStorage.setItem(VISIT_COUNT_KEY, String(count + 1));
+  }, []);
 
   const handleEnable = async () => {
     const perm = await Notification.requestPermission();
@@ -35,8 +53,15 @@ export default function PushNotificationBanner() {
   if (!show) return null;
 
   return (
-    <div className="mx-4 mt-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-3 shadow-lg animate-[fadeIn_0.3s_ease-out]">
-      <div className="flex items-center gap-3">
+    <div className="mx-4 mt-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-3 shadow-lg animate-[fadeIn_0.3s_ease-out] relative">
+      <button
+        onClick={handleDismiss}
+        className="absolute right-1 top-1 w-11 h-11 flex items-center justify-center text-white/40 hover:text-white/80 text-lg"
+        aria-label="Dismiss"
+      >
+        ✕
+      </button>
+      <div className="flex items-center gap-3 pr-8">
         <span className="text-2xl">🔔</span>
         <div className="flex-1">
           <div className="text-sm font-bold text-white">Stay in the loop!</div>

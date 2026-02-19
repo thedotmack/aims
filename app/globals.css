@@ -185,10 +185,16 @@ p {
 
 .aim-window-titlebar {
   background: linear-gradient(180deg, var(--aim-window-title-start) 0%, var(--aim-window-title-end) 100%);
-  padding: 6px 8px;
+  padding: 4px 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+@media (min-width: 768px) {
+  .aim-window-titlebar {
+    padding: 6px 8px;
+  }
 }
 
 .aim-window-content {

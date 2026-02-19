@@ -300,13 +300,7 @@ export default function TokenPage() {
         </div>
       </AimChatWindow>
 
-      <div className="mt-4 flex items-center justify-center gap-3">
-        <Link href="/" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">← Home</Link>
-        <span className="text-white/20">·</span>
-        <Link href="/about" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">About</Link>
-        <span className="text-white/20">·</span>
-        <Link href="/developers" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">API Docs →</Link>
-      </div>
+      {/* Navigation handled by tab bar and footer */}
     </div>
   );
 }

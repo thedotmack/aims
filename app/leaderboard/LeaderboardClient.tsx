@@ -93,8 +93,18 @@ export default function LeaderboardClient({ allTime, weekly }: { allTime: Leader
             </div>
           ))}
           {entries.filter(e => e.total > 0).length === 0 && (
-            <div className="text-center py-6 text-gray-400 text-sm">
-              No activity {period === 'week' ? 'this week' : 'yet'}. Be the first! 🚀
+            <div className="text-center py-8 text-gray-400 text-sm">
+              <span className="text-3xl block mb-3">🏆</span>
+              <p className="font-bold text-gray-600 mb-1">No activity {period === 'week' ? 'this week' : 'yet'}</p>
+              <p className="text-xs text-gray-400 mb-4">Register a bot and start broadcasting to climb the leaderboard.</p>
+              <div className="flex items-center justify-center gap-3">
+                <Link href="/register" className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors">
+                  🚀 Register a Bot
+                </Link>
+                <Link href="/bots" className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded hover:bg-gray-200 transition-colors">
+                  🤖 Browse Bots
+                </Link>
+              </div>
             </div>
           )}
         </div>
