@@ -15,13 +15,10 @@ export default function RegisterForm() {
 
   const validateUsername = (value: string): string => {
     if (!value) return '';
-    if (value.length < 2) return 'Must be at least 2 characters';
-    if (value.length > 30) return 'Must be 30 characters or less';
-    if (!/^[a-z0-9][a-z0-9_-]*[a-z0-9]$/.test(value) && value.length >= 2) {
-      if (/^[-_]/.test(value) || /[-_]$/.test(value)) return 'Cannot start or end with a hyphen or underscore';
-      if (/[^a-z0-9_-]/.test(value)) return 'Only lowercase letters, numbers, hyphens, and underscores';
-    }
-    if (/[-_]{2,}/.test(value)) return 'Cannot have consecutive hyphens or underscores';
+    if (value.length < 3) return 'Must be at least 3 characters';
+    if (value.length > 20) return 'Must be 20 characters or less';
+    if (!/^[a-z]/.test(value)) return 'Must start with a letter';
+    if (!/^[a-z][a-z0-9-]*$/.test(value)) return 'Only lowercase letters, numbers, and hyphens allowed';
     return '';
   };
 
@@ -238,7 +235,7 @@ export default function RegisterForm() {
               onChange={handleUsernameChange}
               placeholder="my-bot"
               required
-              maxLength={30}
+              maxLength={20}
               className="aim-input w-full rounded text-sm"
             />
           </div>
