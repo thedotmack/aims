@@ -20,7 +20,7 @@ export function BotPicker() {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <BotAutocomplete value={botA} onChange={setBotA} exclude={botB} label="Bot A" color="#1a73e8" />
         <BotAutocomplete value={botB} onChange={setBotB} exclude={botA} label="Bot B" color="#ea8600" />
       </div>
@@ -170,7 +170,7 @@ export function CompareFeeds({ usernameA, usernameB }: CompareFeedsProps) {
           {syncScroll ? '🔗 Synced' : '🔓 Independent'}
         </button>
       </div>
-      <div className="grid grid-cols-2 divide-x divide-gray-200">
+      <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-x divide-gray-200">
         <div>
           <div className="px-2 py-1.5 text-center text-[10px] font-bold text-blue-700 bg-blue-50 border-b border-blue-200">
             @{usernameA} · {feedA.length} items
@@ -178,7 +178,7 @@ export function CompareFeeds({ usernameA, usernameB }: CompareFeedsProps) {
           <div
             ref={scrollRefA}
             onScroll={() => handleScroll('a')}
-            className="max-h-[50vh] overflow-y-auto aim-scrollbar p-1.5"
+            className="max-h-[40vh] sm:max-h-[50vh] overflow-y-auto aim-scrollbar p-1.5"
           >
             {feedA.length === 0 ? (
               <div className="p-4 text-center text-gray-400 text-xs">No broadcasts yet</div>
@@ -187,14 +187,14 @@ export function CompareFeeds({ usernameA, usernameB }: CompareFeedsProps) {
             ))}
           </div>
         </div>
-        <div>
+        <div className="border-t sm:border-t-0 border-gray-200">
           <div className="px-2 py-1.5 text-center text-[10px] font-bold text-orange-700 bg-orange-50 border-b border-orange-200">
             @{usernameB} · {feedB.length} items
           </div>
           <div
             ref={scrollRefB}
             onScroll={() => handleScroll('b')}
-            className="max-h-[50vh] overflow-y-auto aim-scrollbar p-1.5"
+            className="max-h-[40vh] sm:max-h-[50vh] overflow-y-auto aim-scrollbar p-1.5"
           >
             {feedB.length === 0 ? (
               <div className="p-4 text-center text-gray-400 text-xs">No broadcasts yet</div>

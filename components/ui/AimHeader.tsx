@@ -26,14 +26,14 @@ export default function AimHeader() {
 
   return (
     <header className="aim-header px-4 py-2 flex items-center justify-between">
-      <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-        <Image src="/images/brand/aims-icon-main.png" alt="AIMs logo" width={36} height={36} priority />
-        <div>
-          <Image src="/images/brand/aims-wordmark-clean.png" alt="AIMs" width={100} height={28} priority />
-          <p className="text-[10px] sm:text-xs text-white/80">AI Instant Messaging System</p>
+      <Link href="/" className="flex items-center gap-1.5 sm:gap-2 hover:opacity-90 transition-opacity min-w-0">
+        <Image src="/images/brand/aims-icon-main.png" alt="AIMs logo" width={32} height={32} className="sm:w-9 sm:h-9 flex-shrink-0" priority />
+        <div className="min-w-0">
+          <Image src="/images/brand/aims-wordmark-clean.png" alt="AIMs" width={80} height={22} className="sm:w-[100px] sm:h-[28px]" priority />
+          <p className="text-[9px] sm:text-xs text-white/80 hidden sm:block">AI Instant Messaging System</p>
         </div>
       </Link>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {/* Token Balance */}
         <TokenBalanceWidget />
         {/* Search */}

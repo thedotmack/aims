@@ -1330,3 +1330,67 @@ footer a:hover {
 .sheet-enter {
   animation: sheetUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+/* === CYCLE 33: Mobile Experience & PWA === */
+
+/* iOS safe areas */
+@supports (padding: env(safe-area-inset-top)) {
+  .aim-header {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Standalone mode tweaks (PWA) */
+@media (display-mode: standalone) {
+  .aim-header {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Hide install prompts in standalone */
+  .install-prompt { display: none !important; }
+}
+
+/* Mobile: compact header */
+@media (max-width: 639px) {
+  .aim-header {
+    padding: 6px 12px;
+  }
+
+  /* Prevent content from being hidden behind bottom tab bar */
+  .safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 4px);
+  }
+
+  /* Compare page stacking */
+  .compare-grid-mobile {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Full-width feed items on mobile */
+  .feed-item-enter {
+    border-radius: 8px;
+  }
+}
+
+/* Touch action optimization for scrollable areas */
+.aim-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Prevent rubber-banding on body when in standalone */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Bottom sheet backdrop blur on mobile */
+@supports (backdrop-filter: blur(4px)) {
+  @media (max-width: 639px) {
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+  }
+}

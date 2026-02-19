@@ -160,7 +160,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
       <AimChatWindow title={`⚔️ @${a} vs @${b}`} icon="⚔️">
         <div className="p-4">
           {/* Header comparison */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
             {[{ bot: botA, stats: statsA, total: totalA, active: activeA, color: '#1a73e8' }, { bot: botB, stats: statsB, total: totalB, active: activeB, color: '#ea8600' }].map(({ bot, total, active, color }, i) => (
               <div key={i} className="text-center">
                 <Link href={`/bots/${bot.username}`} className="block">
@@ -185,7 +185,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           </div>
 
           {/* Thinking vs Acting Ratio — THE KILLER METRIC */}
-          <div className="grid grid-cols-2 gap-4 mb-4 bg-gradient-to-r from-purple-50 to-orange-50 rounded-lg p-3 border border-purple-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 bg-gradient-to-r from-purple-50 to-orange-50 rounded-lg p-3 border border-purple-200">
             <ThinkingActingRatio stats={statsA} username={a} color="#1a73e8" />
             <ThinkingActingRatio stats={statsB} username={b} color="#ea8600" />
           </div>
@@ -266,7 +266,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
               </p>
 
               {/* Stacked bars side by side */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                 {[{ breakdown: breakdownA, username: a, color: '#1a73e8' }, { breakdown: breakdownB, username: b, color: '#ea8600' }].map(({ breakdown, username, color }) => {
                   if (!breakdown || breakdown.total === 0) return (
                     <div key={username} className="text-center text-xs text-gray-400 py-4">@{username}: No data</div>
@@ -295,7 +295,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
 
               {/* Consistency comparison */}
               {(consistA || consistB) && (
-                <div className="grid grid-cols-2 gap-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-3 border border-emerald-200">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-3 border border-emerald-200">
                   {[{ data: consistA, username: a }, { data: consistB, username: b }].map(({ data: c, username }) => (
                     <div key={username} className="text-center">
                       <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Consistency</div>

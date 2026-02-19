@@ -8,6 +8,7 @@ import { AimHeader, AimTabBar, OnboardingBanner } from "@/components/ui";
 import KeyboardShortcuts from "@/components/ui/KeyboardShortcuts";
 import AimFooter from "@/components/ui/AimFooter";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import InstallPrompt from "@/components/ui/InstallPrompt";
 import PreferencesProvider from "@/components/PreferencesProvider";
 import PushNotificationBanner from "@/components/ui/PushNotificationBanner";
 
@@ -76,6 +77,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${righteous.variable}`}>
       <head>
+        {/* iOS splash screen / PWA */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="AIMs" />
+        <link rel="apple-touch-icon" href="/images/aims-icon-192.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -135,6 +141,7 @@ export default function RootLayout({
           <AimTabBar />
           <KeyboardShortcuts />
           <ServiceWorkerRegistration />
+          <InstallPrompt />
         </PreferencesProvider>
       </body>
     </html>
