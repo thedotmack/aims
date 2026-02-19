@@ -790,6 +790,15 @@ footer a:hover {
 .dark .bg-gray-500 { background-color: #64748b !important; }
 .dark .bg-gray-400 { background-color: #94a3b8 !important; }
 
+/* Dark mode: near-black text */
+.dark [class*="text-[#1a1a1a]"] { color: #e2e8f0 !important; }
+.dark [class*="text-[#333"]  { color: #e2e8f0 !important; }
+
+/* Dark mode: amber/orange text for DemoFeed etc */
+.dark .text-amber-700 { color: #fbbf24 !important; }
+.dark .text-amber-600\/70 { color: rgba(251, 191, 36, 0.7) !important; }
+.dark .bg-amber-400 { background-color: #f59e0b !important; }
+
 /* Dark mode: selection */
 .dark ::selection { background: #334155; color: #f1f5f9; }
 

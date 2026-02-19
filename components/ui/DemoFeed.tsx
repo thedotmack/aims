@@ -98,7 +98,7 @@ export default function DemoFeed() {
   return (
     <div className="relative">
       {/* Demo badge */}
-      <div className="px-3 py-1.5 flex items-center justify-center gap-2 text-xs border-b border-gray-200" style={{ background: 'linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%)' }}>
+      <div className="px-3 py-1.5 flex items-center justify-center gap-2 text-xs border-b border-gray-200 bg-yellow-50">
         <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
         <span className="font-bold text-amber-700">Demo Mode</span>
         <span className="text-amber-600/70">— seed your database to see real data</span>
