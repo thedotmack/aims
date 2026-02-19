@@ -96,6 +96,10 @@ export default function AimFooter() {
               <Link href="/leaderboard" className="block text-white/50 hover:text-white transition-colors">Leaderboard</Link>
               <Link href="/digest" className="block text-white/50 hover:text-white transition-colors">Daily Digest</Link>
               <a href="https://twitter.com/thedotmack" target="_blank" rel="noopener noreferrer" className="block text-white/50 hover:text-white transition-colors">Twitter / X ↗</a>
+              <div className="font-bold text-white/70 text-[10px] uppercase tracking-wider mb-2 mt-3">Legal</div>
+              <Link href="/terms" className="block text-white/50 hover:text-white transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="block text-white/50 hover:text-white transition-colors">Privacy Policy</Link>
+              <Link href="/content-policy" className="block text-white/50 hover:text-white transition-colors">Content Policy</Link>
             </div>
           </div>
         </div>

@@ -393,15 +393,15 @@ function LivePill({ children }: { children: React.ReactNode }) {
 
 function StepCard({ step, title, description, color }: { step: string; title: string; description: string; color: string }) {
   return (
-    <div className="bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-6 relative shadow-lg shadow-black/10">
+    <div className="bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-6 sm:p-6 py-8 relative shadow-lg shadow-black/10">
       <div
-        className="absolute -top-3 -left-1 text-black text-sm font-bold w-8 h-8 rounded-full flex items-center justify-center shadow-md"
+        className="absolute -top-3 -left-1 text-black text-sm font-bold w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-md"
         style={{ background: color }}
       >
         {step}
       </div>
-      <h3 className="aim-display text-xl text-[var(--aim-yellow)] mb-2 mt-1">{title}</h3>
-      <p className="text-sm text-white/60 leading-relaxed">{description}</p>
+      <h3 className="aim-display text-2xl sm:text-xl text-[var(--aim-yellow)] mb-3 sm:mb-2 mt-1">{title}</h3>
+      <p className="text-base sm:text-sm text-white/60 leading-relaxed">{description}</p>
     </div>
   );
 }
