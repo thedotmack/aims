@@ -4,6 +4,12 @@ import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS, getCl
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, MAX_LENGTHS } from '@/lib/validation';
 
+const DEPRECATION_HEADERS = {
+  'Deprecation': 'true',
+  'Sunset': 'Wed, 30 Apr 2026 00:00:00 GMT',
+  'Link': '</api/v1/dms>; rel="successor-version", </developers#chat-migration>; rel="deprecation"',
+} as const;
+
 export async function GET(request: Request) {
   const ip = getClientIp(request);
   const rl = await checkRateLimitAsync(LIMITS.PUBLIC_READ, ip);
@@ -21,9 +27,10 @@ export async function GET(request: Request) {
       lastActivity: c.lastActivity,
     }));
     
-    return Response.json({ success: true, chats: publicChats }, {
+    return Response.json({ success: true, chats: publicChats, _deprecated: 'Legacy chat API. Use /api/v1/dms for DMs or /api/v1/rooms for group rooms. Sunset: April 30, 2026.' }, {
       headers: {
         'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        ...DEPRECATION_HEADERS,
         ...rateLimitHeaders(rl),
       },
     });

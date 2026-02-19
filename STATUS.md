@@ -1511,4 +1511,80 @@ New test file `tests/api/messaging-routes.test.ts` (4 tests):
 - `aims/STATUS.md` — this section
 
 ### ⚠️ Next Priority Gap
-**Deprecate legacy `/chat/[key]` system entirely** (P2) — the legacy chat system (`chats` + `messages` tables, key-based routing) is still accessible and has its own API endpoints (`/api/v1/chats/*`). Consider: (a) adding a sunset date to the legacy banner, (b) migrating any remaining legacy chat data to the DM/room system, (c) eventually removing the `/chat` routes and `chats` table. Low urgency — the legacy banner already directs users away.
+~~**Deprecate legacy `/chat/[key]` system entirely**~~ — resolved in Cycle 23.
+
+---
+
+## Refinement Cycle 23 — Feb 19, 2026 (Legacy Chat Deprecation with Sunset Strategy)
+
+### ✅ Problem
+The legacy `/chat/[key]` system and `/api/v1/chats/*` API endpoints were still accessible without clear deprecation signaling. While Cycle 22 consolidated messaging surfaces and added a banner, there was no machine-readable deprecation (HTTP headers), no sunset date, no migration guide, and no API-level deprecation notices.
+
+### ✅ Deprecation Signaling — Complete
+
+**HTTP Headers (RFC 8594 compliant) on all `/api/v1/chats/*` endpoints:**
+| Header | Value |
+|--------|-------|
+| `Deprecation` | `true` |
+| `Sunset` | `Wed, 30 Apr 2026 00:00:00 GMT` |
+| `Link` | `</api/v1/dms>; rel="successor-version", </developers#chat-migration>; rel="deprecation"` |
+
+**Applied to:**
+- `GET /api/v1/chats` — list chats (already had headers from prior work, verified)
+- `POST /api/v1/chats` — create chat (already had headers)
+- `GET /api/v1/chats/:key` — get chat (NEW: added headers + `_deprecated` field)
+- `GET /api/v1/chats/:key/messages` — list messages (NEW: added headers + `_deprecated` field)
+- `POST /api/v1/chats/:key/messages` — send message (NEW: added headers + `_deprecated` field)
+- Even 404 responses include deprecation headers (so clients detect deprecation regardless of chat existence)
+
+**JSON body deprecation notice:** Every response includes `_deprecated: "Legacy chat API. Use /api/v1/dms for DMs or /api/v1/rooms for group rooms. Sunset: April 30, 2026."`
+
+### ✅ UX Deprecation Banner — Enhanced
+`/chat/[key]` page already had a deprecation banner (from prior work). Enhanced with:
+- Explicit **sunset date: April 30, 2026** prominently displayed
+- Red border + background for urgency
+- Direct links to DMs, Group Rooms, and migration guide
+- CTA buttons: "Go to DMs" and "Go to Group Rooms"
+
+### ✅ Migration Guide — NEW
+Added `#chat-migration` section to `/developers` page with:
+- Endpoint mapping table (legacy → replacement for all 5 endpoints)
+- Step-by-step migration instructions (5 steps)
+- Key differences callout (auth required, token cost, typing indicators, SSE streaming)
+- Linked from deprecation headers via `Link` header `rel="deprecation"`
+
+### ✅ Backward Compatibility Preserved
+- All legacy endpoints still function normally (no 410 yet)
+- No breaking changes to request/response shape (only additive `_deprecated` field)
+- Legacy chat data (`chats` + `messages` tables) untouched
+- Existing bookmarks to `/chat/:key` still work
+
+### ✅ Tests: 299 → 306 tests (47 test files)
+New test file `tests/api/chat-deprecation.test.ts` (7 tests):
+- GET /api/v1/chats returns Deprecation, Sunset, Link headers + `_deprecated` body field
+- GET /api/v1/chats/:key returns deprecation headers
+- GET /api/v1/chats/:key 404 still includes deprecation headers
+- GET /api/v1/chats/:key/messages returns deprecation headers
+- POST /api/v1/chats/:key/messages returns deprecation headers
+- Sunset date consistency across all endpoints
+- Link header contains successor-version and deprecation rel types
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **306 passed**, 16 skipped ✅
+
+### Files Changed
+- `app/api/v1/chats/[key]/route.ts` — added DEPRECATION_HEADERS, `_deprecated` field, headers on 404
+- `app/api/v1/chats/[key]/messages/route.ts` — added DEPRECATION_HEADERS, `_deprecated` field on GET and POST
+- `app/developers/page.tsx` — added #chat-migration section with endpoint mapping + migration steps
+- `tests/api/chat-deprecation.test.ts` — NEW (7 tests)
+- `aims/STATUS.md` — this section
+
+### Post-Sunset Plan (After April 30, 2026)
+1. Replace all `/api/v1/chats/*` route handlers with `410 Gone` responses (keep deprecation headers)
+2. Replace `/chat/[key]` page with redirect to `/conversations`
+3. Archive `chats` + `messages` table data (do not DROP — may be needed for audit)
+4. Remove `createChat`, `getChatByKey`, `getChatMessages`, `getMessagesAfter`, `createMessage`, `getAllChats` from `lib/db.ts`
+
+### ⚠️ Next Priority Gap
+**Email digest implementation** (P1) — `/digest/subscribe` form exists but no actual email sending. Either implement with a transactional email provider (Resend, SendGrid) or remove the subscription form to avoid misleading users.

@@ -6,6 +6,12 @@ import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS, getCl
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
 
+const DEPRECATION_HEADERS = {
+  'Deprecation': 'true',
+  'Sunset': 'Wed, 30 Apr 2026 00:00:00 GMT',
+  'Link': '</api/v1/dms>; rel="successor-version", </developers#chat-migration>; rel="deprecation"',
+} as const;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ key: string }> }
@@ -41,8 +47,9 @@ export async function GET(
       messages,
       poll: messages.length > 0 
         ? `?after=${messages[messages.length - 1].timestamp}`
-        : null
-    }, { headers: rateLimitHeaders(rl) });
+        : null,
+      _deprecated: 'Legacy chat API. Use /api/v1/dms for DMs or /api/v1/rooms for group rooms. Sunset: April 30, 2026.',
+    }, { headers: { ...DEPRECATION_HEADERS, ...rateLimitHeaders(rl) } });
   } catch (err: unknown) {
     return handleApiError(err, '/api/v1/chats/[key]/messages', 'GET', rateLimitHeaders(rl));
   }
@@ -101,8 +108,9 @@ export async function POST(
     
     return Response.json({ 
       success: true, 
-      message 
-    }, { status: 201, headers: rateLimitHeaders(rl) });
+      message,
+      _deprecated: 'Legacy chat API. Use /api/v1/dms for DMs or /api/v1/rooms for group rooms. Sunset: April 30, 2026.',
+    }, { status: 201, headers: { ...DEPRECATION_HEADERS, ...rateLimitHeaders(rl) } });
   } catch (err: unknown) {
     return handleApiError(err, '/api/v1/chats/[key]/messages', 'POST', rateLimitHeaders(rl));
   }
