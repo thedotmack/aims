@@ -11,7 +11,10 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#003399',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#6B5B95' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -98,7 +101,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-gradient-to-b from-[#6B5B95] via-[#8B4789] to-[#4a3070]">
+      <body className="min-h-screen aim-page-bg">
         <PreferencesProvider>
           <AimHeader />
           <OnboardingBanner />

@@ -8,7 +8,7 @@
   --aim-yellow: #FFCC00;
   --aim-purple: #6B5B95;
   --aim-magenta: #8B4789;
-  
+
   /* Action Button Colors */
   --aim-green-light: #4CAF50;
   --aim-green-dark: #2E7D32;
@@ -16,31 +16,102 @@
   --aim-gold-dark: #FFC107;
   --aim-red-light: #EF5350;
   --aim-red-dark: #C62828;
-  
+
   /* Window Chrome */
   --aim-window-title-start: #7799CC;
   --aim-window-title-end: #5577AA;
   --aim-window-border: #003366;
   --aim-input-border: #99CCFF;
-  
+
   /* Backgrounds */
   --aim-cream: #FFF8E7;
   --aim-blue-tint: #E8F4FC;
   --aim-gray: #C0C0C0;
   --aim-code-bg: #D6E9F8;
-  
+  --aim-surface: #ffffff;
+  --aim-surface-muted: #f8fafc;
+
+  /* Page + panels */
+  --aim-page-bg-start: #6B5B95;
+  --aim-page-bg-mid: #8B4789;
+  --aim-page-bg-end: #4a3070;
+  --aim-panel-top: #f5f5f5;
+  --aim-panel-bottom: #e0e0e0;
+  --aim-chrome-top: #e0e0e0;
+  --aim-chrome-bottom: #c0c0c0;
+  --aim-border-strong: #999999;
+  --aim-border-soft: #d1d5db;
+  --aim-link: #003399;
+  --aim-tab-inactive-top: #8B7DB8;
+  --aim-tab-inactive-bottom: #6B5B95;
+  --aim-tab-inactive-text: rgba(255, 255, 255, 0.7);
+  --aim-tab-active-border: #4169E1;
+
+  /* Feed details */
+  --aim-tag-bg: #f3f4f6;
+  --aim-tag-text: #6b7280;
+  --aim-tag-border: #e5e7eb;
+  --aim-feed-footer-bg: #fafafa;
+  --aim-feed-footer-border: #f0f0f0;
+  --aim-feed-footer-text: #999999;
+
   /* Text */
   --aim-text: #333333;
   --aim-text-light: #666666;
+}
+
+.dark {
+  --aim-window-title-start: #334155;
+  --aim-window-title-end: #1f2937;
+  --aim-window-border: #334155;
+  --aim-input-border: #475569;
+  --aim-cream: #111827;
+  --aim-blue-tint: #111827;
+  --aim-gray: #1f2937;
+  --aim-code-bg: #0f172a;
+  --aim-surface: #111827;
+  --aim-surface-muted: #0b1220;
+
+  --aim-page-bg-start: #0f172a;
+  --aim-page-bg-mid: #1f1b3a;
+  --aim-page-bg-end: #09090f;
+  --aim-panel-top: #1f2937;
+  --aim-panel-bottom: #111827;
+  --aim-chrome-top: #374151;
+  --aim-chrome-bottom: #1f2937;
+  --aim-border-strong: #475569;
+  --aim-border-soft: #334155;
+  --aim-link: #93c5fd;
+  --aim-tab-inactive-top: #334155;
+  --aim-tab-inactive-bottom: #1f2937;
+  --aim-tab-inactive-text: #94a3b8;
+  --aim-tab-active-border: #60a5fa;
+
+  --aim-tag-bg: #1f2937;
+  --aim-tag-text: #cbd5e1;
+  --aim-tag-border: #334155;
+  --aim-feed-footer-bg: #0f172a;
+  --aim-feed-footer-border: #1f2937;
+  --aim-feed-footer-text: #94a3b8;
+
+  --aim-text: #e2e8f0;
+  --aim-text-light: #94a3b8;
 }
 
 /* Typography */
 body {
   font-family: 'Tahoma', 'Segoe UI', Arial, sans-serif;
   color: var(--aim-text);
+  background-color: var(--aim-page-bg-start);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.aim-page-bg {
+  background: linear-gradient(to bottom, var(--aim-page-bg-start) 0%, var(--aim-page-bg-mid) 50%, var(--aim-page-bg-end) 100%);
+  transition: background 0.25s ease;
 }
 
 h1, h2, h3 {
@@ -89,7 +160,7 @@ p {
 }
 
 .aim-window-content {
-  background: white;
+  background: var(--aim-surface);
   box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
 }
 
@@ -213,7 +284,8 @@ p {
   border: 2px solid var(--aim-input-border);
   padding: 8px 12px;
   font-size: 0.875rem;
-  background: white;
+  background: var(--aim-surface);
+  color: var(--aim-text);
 }
 
 .aim-input:focus {
@@ -508,6 +580,106 @@ footer a:hover {
 .aim-card .text-3xl {
   text-shadow: none;
 }
+
+/* Theme-aware dark mode overrides */
+.dark .aim-header {
+  background: #0f172a;
+  border-bottom-color: #1e293b;
+}
+
+.dark .aim-hero-gradient {
+  background: linear-gradient(135deg, #1f2937 0%, #312e81 50%, #1e1b4b 100%);
+}
+
+.dark .aim-tab-bar {
+  background: #111827;
+  border-top: 1px solid #334155;
+  border-bottom: 1px solid #0f172a;
+}
+
+.dark .aim-tab {
+  color: #cbd5e1;
+  border-right-color: #334155;
+}
+
+.dark .aim-tab:hover {
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+}
+
+.dark .aim-tab.active {
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+  border-top-color: #60a5fa;
+  color: #93c5fd;
+}
+
+.dark .aim-window {
+  border-color: #334155;
+}
+
+.dark .aim-window-titlebar {
+  background: linear-gradient(180deg, #334155 0%, #1f2937 100%);
+}
+
+.dark .aim-window-content {
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.45);
+}
+
+.dark .aim-card,
+.dark .aim-card-cream,
+.dark .aim-card-blue {
+  border-color: var(--aim-border-soft);
+}
+
+.dark .aim-card-cream {
+  background: #111827;
+}
+
+.dark .aim-card-blue {
+  background: #0f172a;
+}
+
+.dark .group-header {
+  color: #e5e7eb !important;
+}
+
+.dark .buddy-entry:hover {
+  background: #1f2937 !important;
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
+
+.dark .reaction-picker {
+  background: #0f172a;
+  border-color: #334155;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+}
+
+.dark .bg-white { background-color: var(--aim-surface) !important; }
+.dark .bg-gray-50 { background-color: #0f172a !important; }
+.dark .bg-gray-100 { background-color: #1f2937 !important; }
+.dark .bg-gray-200 { background-color: #334155 !important; }
+.dark .bg-gray-300 { background-color: #475569 !important; }
+
+.dark .border-gray-50 { border-color: #1f2937 !important; }
+.dark .border-gray-100 { border-color: #1f2937 !important; }
+.dark .border-gray-200 { border-color: #334155 !important; }
+.dark .border-gray-300 { border-color: #475569 !important; }
+
+.dark .text-gray-900 { color: #f8fafc !important; }
+.dark .text-gray-800 { color: #e2e8f0 !important; }
+.dark .text-gray-700 { color: #cbd5e1 !important; }
+.dark .text-gray-600 { color: #94a3b8 !important; }
+.dark .text-gray-500 { color: #94a3b8 !important; }
+.dark .text-gray-400 { color: #64748b !important; }
+.dark .text-gray-300 { color: #94a3b8 !important; }
+
+.dark .hover\:bg-gray-50:hover { background-color: #1f2937 !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #334155 !important; }
+.dark .hover\:bg-gray-200:hover { background-color: #475569 !important; }
+.dark .hover\:text-red-500:hover { color: #f87171 !important; }
+
+.dark [class*="text-[#003399]"] { color: var(--aim-link) !important; }
+.dark [class*="bg-[#003399]"] { background-color: #1d4ed8 !important; }
+.dark [class*="focus:border-[#003399]"]:focus { border-color: #60a5fa !important; }
 
 /* === Registration Confetti === */
 .confetti-container {

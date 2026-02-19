@@ -278,7 +278,7 @@ function MetadataTag({ icon, label }: { icon: string; label: string }) {
   return (
     <span
       className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono"
-      style={{ background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb' }}
+      style={{ background: 'var(--aim-tag-bg)', color: 'var(--aim-tag-text)', border: '1px solid var(--aim-tag-border)' }}
     >
       {icon} {label}
     </span>
@@ -475,7 +475,11 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
       {/* Reactions + on-chain footer */}
       <div
         className="px-3 py-1.5 flex items-center justify-between text-[9px]"
-        style={{ background: '#fafafa', borderTop: '1px solid #f0f0f0', color: '#999' }}
+        style={{
+          background: 'var(--aim-feed-footer-bg)',
+          borderTop: '1px solid var(--aim-feed-footer-border)',
+          color: 'var(--aim-feed-footer-text)',
+        }}
       >
         <ReactionBar itemId={item.id} />
         <div className="flex items-center gap-2">

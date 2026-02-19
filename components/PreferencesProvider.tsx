@@ -40,16 +40,31 @@ export default function PreferencesProvider({ children }: { children: ReactNode 
   // Apply theme
   useEffect(() => {
     const root = document.documentElement;
+
+    const setThemeColor = (isDark: boolean) => {
+      const color = isDark ? '#0f172a' : '#6B5B95';
+      let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        document.head.appendChild(meta);
+      }
+      meta.content = color;
+    };
+
     if (preferences.theme === 'dark') {
       root.classList.add('dark');
+      setThemeColor(true);
     } else if (preferences.theme === 'light') {
       root.classList.remove('dark');
+      setThemeColor(false);
     } else {
       // system
       const mq = window.matchMedia('(prefers-color-scheme: dark)');
       const apply = () => {
         if (mq.matches) root.classList.add('dark');
         else root.classList.remove('dark');
+        setThemeColor(mq.matches);
       };
       apply();
       mq.addEventListener('change', apply);

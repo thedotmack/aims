@@ -242,10 +242,10 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
               className="flex-1 py-3 px-4 text-sm font-bold rounded-t-lg transition-all"
               style={{
                 background: activeTab === 'bots'
-                  ? 'linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%)'
-                  : 'linear-gradient(180deg, #8B7DB8 0%, #6B5B95 100%)',
-                color: activeTab === 'bots' ? '#003399' : 'rgba(255,255,255,0.7)',
-                borderTop: activeTab === 'bots' ? '2px solid #4169E1' : '2px solid transparent',
+                  ? 'linear-gradient(180deg, var(--aim-panel-top) 0%, var(--aim-panel-bottom) 100%)'
+                  : 'linear-gradient(180deg, var(--aim-tab-inactive-top) 0%, var(--aim-tab-inactive-bottom) 100%)',
+                color: activeTab === 'bots' ? 'var(--aim-link)' : 'var(--aim-tab-inactive-text)',
+                borderTop: activeTab === 'bots' ? '2px solid var(--aim-tab-active-border)' : '2px solid transparent',
               }}
             >
               🤖 AI AGENTS
@@ -255,10 +255,10 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
               className="flex-1 py-3 px-4 text-sm font-bold rounded-t-lg transition-all"
               style={{
                 background: activeTab === 'humans'
-                  ? 'linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%)'
-                  : 'linear-gradient(180deg, #8B7DB8 0%, #6B5B95 100%)',
-                color: activeTab === 'humans' ? '#003399' : 'rgba(255,255,255,0.7)',
-                borderTop: activeTab === 'humans' ? '2px solid #4169E1' : '2px solid transparent',
+                  ? 'linear-gradient(180deg, var(--aim-panel-top) 0%, var(--aim-panel-bottom) 100%)'
+                  : 'linear-gradient(180deg, var(--aim-tab-inactive-top) 0%, var(--aim-tab-inactive-bottom) 100%)',
+                color: activeTab === 'humans' ? 'var(--aim-link)' : 'var(--aim-tab-inactive-text)',
+                borderTop: activeTab === 'humans' ? '2px solid var(--aim-tab-active-border)' : '2px solid transparent',
               }}
             >
               👤 HUMANS
@@ -269,8 +269,8 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
           <div
             className="rounded-b-lg overflow-hidden"
             style={{
-              background: 'linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%)',
-              border: '1px solid #999',
+              background: 'linear-gradient(180deg, var(--aim-panel-top) 0%, var(--aim-panel-bottom) 100%)',
+              border: '1px solid var(--aim-border-strong)',
               borderTop: 'none',
             }}
           >
@@ -321,8 +321,8 @@ function BotsTab({ buddyBots }: { buddyBots: BuddyBot[] }) {
       <div
         className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-gray-600"
         style={{
-          background: 'linear-gradient(180deg, #e0e0e0 0%, #c0c0c0 100%)',
-          borderBottom: '1px solid #999',
+          background: 'linear-gradient(180deg, var(--aim-chrome-top) 0%, var(--aim-chrome-bottom) 100%)',
+          borderBottom: '1px solid var(--aim-border-strong)',
         }}
       >
         📡 Latest Activity
@@ -341,9 +341,9 @@ function BotsTab({ buddyBots }: { buddyBots: BuddyBot[] }) {
       <div
         className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-gray-600"
         style={{
-          background: 'linear-gradient(180deg, #e0e0e0 0%, #c0c0c0 100%)',
-          borderBottom: '1px solid #999',
-          borderTop: '1px solid #999',
+          background: 'linear-gradient(180deg, var(--aim-chrome-top) 0%, var(--aim-chrome-bottom) 100%)',
+          borderBottom: '1px solid var(--aim-border-strong)',
+          borderTop: '1px solid var(--aim-border-strong)',
         }}
       >
         🤖 Botty List
