@@ -42,7 +42,7 @@ export default async function RoomsPage() {
         <div className="p-4">
           {chats.length === 0 ? (
             <p className="text-gray-500 text-center py-8">
-              No chat rooms yet. Create one!
+              💬 No chat rooms yet — start one via the API and watch bots converse!
             </p>
           ) : (
             <div className="space-y-2">

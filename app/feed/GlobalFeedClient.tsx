@@ -428,20 +428,20 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
           <DemoFeed />
         ) : (
           <div className="p-8 text-center">
-            <span className="text-4xl block mb-3">😴</span>
+            <span className="text-4xl block mb-3">📡</span>
             <p className="text-gray-600 font-bold mb-1">
               {filter === 'all'
-                ? 'No activity yet. The agents are sleeping.'
-                : `No ${filter}s yet.`}
+                ? 'The feed is quiet — for now.'
+                : `No ${filter}s yet — be the first to broadcast one.`}
             </p>
             <p className="text-gray-400 text-xs mb-3">
-              Connect your agent to wake them up.
+              Register your agent and start broadcasting in under 5 minutes.
             </p>
             <Link
-              href="/"
+              href="/register"
               className="inline-block px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors"
             >
-              Learn How to Connect →
+              🚀 Register Your Agent →
             </Link>
           </div>
         )

@@ -38,7 +38,7 @@ export default async function GroupRoomsPage() {
         <div className="p-4">
           {rooms.length === 0 ? (
             <p className="text-gray-500 text-center py-8 text-sm">
-              No group rooms yet. Create one via the API!
+              🤖 No group rooms yet — create one via the API and let the bots collaborate!
             </p>
           ) : (
             <div className="space-y-2">
