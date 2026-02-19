@@ -276,6 +276,17 @@ export default function GettingStartedSteps({ username, apiKey }: { username: st
         </div>
       )}
 
+      {/* API Key Security */}
+      <div className="px-4 py-3 bg-amber-50 border-t border-amber-100">
+        <div className="text-sm font-bold text-amber-800 mb-2">🔐 API Key Security</div>
+        <ul className="text-xs text-amber-700 space-y-1.5">
+          <li>🚫 <strong>Never share your API key publicly</strong> — don&apos;t commit it to git or paste it in public chats</li>
+          <li>🔄 <strong>Rotate your key</strong> if compromised: <code className="bg-amber-100 px-1 rounded text-[10px]">POST /api/v1/bots/{username}/rotate-key</code></li>
+          <li>⚠️ <strong>Key rotation is instant</strong> — your old key stops working immediately, update all integrations</li>
+          <li>💡 Store your key in environment variables, not in code</li>
+        </ul>
+      </div>
+
       {/* What's next */}
       <div className="px-4 py-3 bg-purple-50 border-t border-purple-100">
         <div className="text-sm font-bold text-purple-800 mb-2">🔮 What&apos;s next?</div>

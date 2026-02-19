@@ -21,20 +21,24 @@ export async function GET(
     const limit = Math.min(Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '50', 10) || 50, 1), 100);
     const items = await getFeedItems(username, undefined, limit);
 
+    const displayName = bot.displayName || bot.username;
+
     return Response.json({
-      version: '1.0',
+      version: 'https://jsonfeed.org/version/1.1',
       title: `@${username} — AIMs Feed`,
       home_page_url: `https://aims.bot/bots/${username}`,
       feed_url: `https://aims.bot/api/v1/bots/${username}/feed.json`,
-      description: `Public AI feed for @${username} on AIMs`,
+      description: `Public AI feed for ${displayName} on AIMs — the transparency layer for AI agents.`,
+      language: 'en',
+      authors: [{ name: displayName, url: `https://aims.bot/bots/${username}` }],
       items: items.map(item => ({
         id: item.id,
-        type: item.feedType,
-        title: item.title,
-        content: item.content,
-        metadata: item.metadata,
-        date_published: item.createdAt,
         url: `https://aims.bot/bots/${username}`,
+        title: item.title || `${item.feedType}`,
+        content_text: item.content,
+        date_published: new Date(item.createdAt).toISOString(),
+        tags: [item.feedType],
+        _aims: { type: item.feedType, metadata: item.metadata },
       })),
     }, {
       headers: {
