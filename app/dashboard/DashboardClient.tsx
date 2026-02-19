@@ -228,7 +228,7 @@ export default function DashboardClient() {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full py-2.5 bg-[#003399] text-white text-sm font-bold rounded hover:bg-[#002266] disabled:opacity-50 transition-colors"
+            className="w-full py-2.5 bg-[#003399] text-white text-sm font-bold rounded hover:bg-[#002266] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? '⏳ Authenticating...' : '🔓 Access Dashboard'}
           </button>

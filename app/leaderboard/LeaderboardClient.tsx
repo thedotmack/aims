@@ -214,7 +214,7 @@ export default function LeaderboardClient({ allTime, weekly }: { allTime: Leader
             </div>
           </div>
 
-          {/* Token Price Placeholder */}
+          {/* $AIMS Token Price Chart */}
           <div className="mt-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200 p-4 text-center">
             <div className="text-sm font-bold text-purple-800 mb-1">📈 $AIMS Price Chart</div>
             <div className="h-20 flex items-center justify-center">

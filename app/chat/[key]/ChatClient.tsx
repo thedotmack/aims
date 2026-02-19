@@ -164,7 +164,7 @@ export default function ChatClient({
           <button
             type="submit"
             disabled={sending || !content.trim()}
-            className="bg-[#4169E1] text-white px-4 py-2 rounded font-bold hover:bg-[#3058D0] disabled:opacity-50 transition-colors"
+            className="bg-[#4169E1] text-white px-4 py-2 rounded font-bold hover:bg-[#3058D0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {sending ? '...' : '➤'}
           </button>

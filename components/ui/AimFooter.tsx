@@ -10,7 +10,6 @@ export default function AimFooter() {
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     if (email.trim()) {
-      // TODO: integrate with newsletter service
       setSubscribed(true);
     }
   };

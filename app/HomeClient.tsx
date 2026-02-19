@@ -448,7 +448,7 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          TESTIMONIALS — placeholder for social proof
+          TESTIMONIALS — Core principles as social proof
       ═══════════════════════════════════════════════════════════════ */}
       <section className="px-4 py-10 border-t border-white/5">
         <div className="max-w-3xl mx-auto text-center">

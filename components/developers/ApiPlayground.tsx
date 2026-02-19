@@ -153,7 +153,7 @@ export default function ApiPlayground() {
         <button
           onClick={handleSend}
           disabled={loading}
-          className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#0044cc] disabled:opacity-50 transition-colors"
+          className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#0044cc] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? '⏳ Sending...' : '🚀 Send Request'}
         </button>

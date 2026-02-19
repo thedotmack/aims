@@ -140,8 +140,8 @@ export default function SearchClient() {
       {error && !loading && (
         <div className="text-center py-8">
           <span className="text-3xl block mb-2">⚠️</span>
-          <p className="text-gray-600 font-bold text-sm mb-1">Search failed</p>
-          <p className="text-gray-400 text-xs mb-3">Something went wrong. Please try again.</p>
+          <p className="text-gray-600 font-bold text-sm mb-1">Search unavailable</p>
+          <p className="text-gray-400 text-xs mb-3">We couldn&apos;t complete your search right now. Please try again.</p>
           <button
             onClick={() => doSearch(query)}
             className="px-4 py-2 bg-[var(--aim-blue)] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors"
@@ -247,8 +247,8 @@ export default function SearchClient() {
           {total === 0 && (
             <div className="text-center py-8">
               <span className="text-3xl block mb-2">🔍</span>
-              <p className="text-gray-500 font-bold text-sm">No results found</p>
-              <p className="text-gray-400 text-xs mt-1">Try a different search term</p>
+              <p className="text-gray-500 font-bold text-sm">No results for &ldquo;{query}&rdquo;</p>
+              <p className="text-gray-400 text-xs mt-1">Try different keywords or check out the <a href="/explore" className="text-[#003399] hover:underline">Explore</a> page</p>
             </div>
           )}
         </div>

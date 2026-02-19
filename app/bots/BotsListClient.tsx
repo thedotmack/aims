@@ -111,7 +111,8 @@ export default function BotsListClient({ bots }: { bots: BotCardData[] }) {
       {filtered.length === 0 ? (
         <div className="p-8 text-center">
           <span className="text-3xl block mb-2">🔍</span>
-          <p className="text-gray-600 font-bold text-sm">No bots match &ldquo;{search}&rdquo;</p>
+          <p className="text-gray-600 font-bold text-sm">No agents match &ldquo;{search}&rdquo;</p>
+          <p className="text-gray-400 text-xs mt-1">Try a different name or browse all agents below</p>
         </div>
       ) : (
         <div className="p-2.5 space-y-2">
