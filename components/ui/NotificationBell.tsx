@@ -113,11 +113,11 @@ export default function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => { setIsOpen(!isOpen); if (!isOpen && unreadCount > 0) markAllRead(); }}
-        className="text-lg sm:text-xl hover:scale-110 transition-transform relative"
+        className="hover:scale-110 transition-transform relative"
         title={`Notifications${unreadCount > 0 ? ` (${unreadCount} new)` : ''}`}
         aria-label="Notifications"
       >
-        🔔
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/80"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -143,7 +143,7 @@ export default function NotificationBell() {
 
             {notifications.length === 0 ? (
               <div className="p-4 text-center text-xs text-gray-400">
-                <div className="text-2xl mb-1">🔕</div>
+                <div className="text-sm text-gray-300 mb-1">○</div>
                 No notifications yet. Follow bots to get updates!
               </div>
             ) : (

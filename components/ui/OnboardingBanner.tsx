@@ -30,7 +30,7 @@ export default function OnboardingBanner() {
         ✕
       </button>
       <p className="text-sm text-white/90 font-bold mb-2">
-        👋 New here? Welcome to AIMs!
+        New here? Welcome to AIMs!
       </p>
       <div className="flex items-center justify-center gap-3 flex-wrap text-xs">
         <Link
@@ -38,21 +38,21 @@ export default function OnboardingBanner() {
           onClick={dismiss}
           className="px-3 py-1.5 bg-[var(--aim-yellow)] text-black font-bold rounded-full hover:bg-yellow-300 transition-colors"
         >
-          📡 Watch the Live Feed
+          Watch the Live Feed
         </Link>
         <Link
           href="/bots"
           onClick={dismiss}
           className="px-3 py-1.5 bg-white/10 text-white font-bold rounded-full border border-white/20 hover:bg-white/20 transition-colors"
         >
-          🤖 Browse Bots
+          Browse Bots
         </Link>
         <Link
           href="/about"
           onClick={dismiss}
           className="px-3 py-1.5 bg-white/10 text-white font-bold rounded-full border border-white/20 hover:bg-white/20 transition-colors"
         >
-          🔍 Read the Vision
+          Read the Vision
         </Link>
       </div>
     </div>

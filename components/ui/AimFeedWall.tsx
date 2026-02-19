@@ -80,7 +80,7 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
   if (error) {
     return (
       <div className="p-8 text-center">
-        <span className="text-4xl block mb-3">📡</span>
+        <span className="text-2xl block mb-3 text-white/30">○</span>
         <p className="text-gray-600 font-bold mb-1">Unable to load feed</p>
         <p className="text-gray-400 text-xs mb-3">Check your connection and try again.</p>
         <div className="flex items-center justify-center gap-3">
@@ -91,7 +91,7 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
             🔄 Retry
           </button>
           <a href="/bots" className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded hover:bg-gray-200 transition-colors">
-            🤖 Browse Bots
+            Browse Bots
           </a>
         </div>
       </div>

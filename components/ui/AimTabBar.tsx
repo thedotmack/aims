@@ -4,36 +4,46 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+/* SVG icon components for tab bar */
+const TabIcons = {
+  home: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  feed: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>,
+  bots: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>,
+  chats: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  more: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
+  close: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+};
+
 const mobileTabs = [
-  { href: '/', icon: '🏠', label: 'Home', matchPaths: ['/'] },
-  { href: '/feed', icon: '📡', label: 'Feed', matchPaths: ['/feed'] },
-  { href: '/bots', icon: '🤖', label: 'Bots', matchPaths: ['/bots'] },
-  { href: '/conversations', icon: '💬', label: 'Chats', matchPaths: ['/conversations', '/dms', '/dm', '/chat'] },
+  { href: '/', icon: 'home' as const, label: 'Home', matchPaths: ['/'] },
+  { href: '/feed', icon: 'feed' as const, label: 'Feed', matchPaths: ['/feed'] },
+  { href: '/bots', icon: 'bots' as const, label: 'Bots', matchPaths: ['/bots'] },
+  { href: '/conversations', icon: 'chats' as const, label: 'Chats', matchPaths: ['/conversations', '/dms', '/dm', '/chat'] },
 ];
 
 const moreLinks = [
-  { href: '/about', icon: 'ℹ️', label: 'About' },
-  { href: '/developers', icon: '👨‍💻', label: 'Developers' },
-  { href: '/token', icon: '🪙', label: '$AIMS Token' },
-  { href: '/chain', icon: '⛓️', label: 'On-Chain' },
-  { href: '/stats', icon: '📊', label: 'Stats' },
-  { href: '/leaderboard', icon: '🏆', label: 'Leaderboard' },
-  { href: '/explore', icon: '🔭', label: 'Explore' },
-  { href: '/compare', icon: '⚖️', label: 'Compare Bots' },
-  { href: '/digest', icon: '📰', label: 'Digest' },
-  { href: '/status', icon: '🟢', label: 'API Status' },
-  { href: '/register', icon: '🚀', label: 'Register Bot' },
-  { href: '/quickstart', icon: '⚡', label: 'Quickstart' },
-  { href: '/integrations/claude-mem', icon: '🧠', label: 'Claude-Mem' },
-  { href: '/search', icon: '🔍', label: 'Search' },
-  { href: '/settings', icon: '⚙️', label: 'Settings' },
+  { href: '/about', label: 'About' },
+  { href: '/developers', label: 'Developers' },
+  { href: '/token', label: '$AIMS Token' },
+  { href: '/chain', label: 'On-Chain' },
+  { href: '/stats', label: 'Stats' },
+  { href: '/leaderboard', label: 'Leaderboard' },
+  { href: '/explore', label: 'Explore' },
+  { href: '/compare', label: 'Compare Bots' },
+  { href: '/digest', label: 'Digest' },
+  { href: '/status', label: 'API Status' },
+  { href: '/register', label: 'Register Bot' },
+  { href: '/quickstart', label: 'Quickstart' },
+  { href: '/integrations/claude-mem', label: 'Claude-Mem' },
+  { href: '/search', label: 'Search' },
+  { href: '/settings', label: 'Settings' },
 ];
 
 const desktopTabs = [
-  { href: '/', icon: '🏠', label: 'HOME', matchPaths: ['/'] },
-  { href: '/feed', icon: '📡', label: 'FEED', matchPaths: ['/feed', '/explore'] },
-  { href: '/bots', icon: '🤖', label: 'BOTS', matchPaths: ['/bots'] },
-  { href: '/conversations', icon: '💬', label: 'MESSAGES', matchPaths: ['/conversations', '/dms', '/dm', '/chat'] },
+  { href: '/', icon: 'home' as const, label: 'HOME', matchPaths: ['/'] },
+  { href: '/feed', icon: 'feed' as const, label: 'FEED', matchPaths: ['/feed', '/explore'] },
+  { href: '/bots', icon: 'bots' as const, label: 'BOTS', matchPaths: ['/bots'] },
+  { href: '/conversations', icon: 'chats' as const, label: 'MESSAGES', matchPaths: ['/conversations', '/dms', '/dm', '/chat'] },
 ];
 
 export default function AimTabBar() {
@@ -123,7 +133,6 @@ export default function AimTabBar() {
                       active ? 'bg-blue-50 dark:bg-blue-950 text-[#003399] dark:text-blue-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                   >
-                    <span className="text-xl">{link.icon}</span>
                     <span className="text-[11px] font-bold leading-tight">{link.label}</span>
                   </Link>
                 );
@@ -143,7 +152,7 @@ export default function AimTabBar() {
             aria-current={isActive(tab) ? 'page' : undefined}
             aria-label={tab.label}
           >
-            <span className="text-lg">{tab.icon}</span>
+            {TabIcons[tab.icon]}
             <span>{tab.label}</span>
           </Link>
         ))}
@@ -152,7 +161,7 @@ export default function AimTabBar() {
           className={`aim-tab ${moreOpen || moreActive ? 'active' : ''}`}
           aria-label="More"
         >
-          <span className="text-lg">{moreOpen ? '✕' : '⋯'}</span>
+          {moreOpen ? TabIcons.close : TabIcons.more}
           <span>MORE</span>
         </button>
       </nav>
@@ -170,8 +179,8 @@ export default function AimTabBar() {
               }`}
               aria-current={active ? 'page' : undefined}
             >
-              <span className="relative text-lg leading-none">
-                {tab.icon}
+              <span className="relative leading-none">
+                {TabIcons[tab.icon]}
                 {tab.href === '/feed' && feedUnread > 0 && (
                   <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
                     {feedUnread > 9 ? '9+' : feedUnread}
@@ -189,7 +198,7 @@ export default function AimTabBar() {
           }`}
           aria-label="More"
         >
-          <span className="text-lg leading-none">{moreOpen ? '✕' : '⋯'}</span>
+          <span className="leading-none">{moreOpen ? TabIcons.close : TabIcons.more}</span>
           <span className={`text-[10px] leading-none ${moreOpen || moreActive ? 'font-bold' : 'font-medium'}`}>More</span>
         </button>
       </nav>

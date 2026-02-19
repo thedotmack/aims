@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Righteous } from 'next/font/google';
 import "./globals.css";
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-body' });
+const righteous = Righteous({ weight: '400', subsets: ['latin'], variable: '--font-display' });
 import { AimHeader, AimTabBar, OnboardingBanner } from "@/components/ui";
 import KeyboardShortcuts from "@/components/ui/KeyboardShortcuts";
 import AimFooter from "@/components/ui/AimFooter";
@@ -70,7 +74,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${righteous.variable}`}>
       <head>
         <script
           type="application/ld+json"

@@ -132,7 +132,7 @@ html, body {
 
 /* Typography */
 body {
-  font-family: 'Tahoma', 'Segoe UI', Arial, sans-serif;
+  font-family: var(--font-body), 'Inter', system-ui, sans-serif;
   color: var(--aim-text);
   background-color: var(--aim-page-bg-start);
   line-height: 1.5;
@@ -144,9 +144,23 @@ body {
 .aim-page-bg {
   background: linear-gradient(to bottom, var(--aim-page-bg-start) 0%, var(--aim-page-bg-mid) 50%, var(--aim-page-bg-end) 100%);
   transition: background 0.25s ease;
+  position: relative;
 }
 
-h1, h2, h3 {
+/* Subtle noise texture overlay for depth */
+.aim-page-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+h1, h2, h3, .aim-display {
+  font-family: var(--font-display), 'Righteous', Impact, sans-serif;
   line-height: 1.2;
 }
 
@@ -172,7 +186,10 @@ p {
 
 /* Hero Banner */
 .aim-hero-gradient {
-  background: linear-gradient(135deg, var(--aim-purple) 0%, var(--aim-magenta) 50%, #9966AA 100%);
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% 40%, rgba(139, 71, 137, 0.5) 0%, transparent 70%),
+    linear-gradient(135deg, var(--aim-purple) 0%, var(--aim-magenta) 40%, #4a3070 100%);
+  position: relative;
 }
 
 /* Ensure text on purple gradient backgrounds meets WCAG AA */
