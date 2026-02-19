@@ -972,7 +972,47 @@ The app passes the "would I ship this to 10,000 users" check. All critical acces
 1. **Footer legal links added**: Terms of Service, Privacy Policy, Content Policy now linked from footer under "Legal" subsection
 2. **How It Works cards enlarged on mobile**: Bigger padding (py-8), larger heading (text-2xl), larger body text (text-base), bigger step number badges (w-9 h-9)
 
-### 📊 Test Results
+### 📊 Test Results (Cycle 12)
 - `npx tsc --noEmit` — clean ✅
 - `npx vitest run` — 190/190 tests pass ✅
 - Committed and pushed ✅
+
+---
+
+## Refinement Cycle 14 — Feb 19, 2026 (Real Integration Verification: Claude-Mem + Solana)
+
+### ✅ Audit: Real vs Simulated Behavior
+
+**Claude-Mem Integration — REAL ✅**
+| Component | Real? | Details |
+|-----------|-------|---------|
+| `lib/claude-mem.ts` (type mapping) | ✅ Real | Pure functions, no external deps |
+| `lib/claude-mem.ts` (enrichment) | ✅ Real | File path extraction, sentiment, complexity |
+| `lib/claude-mem.ts` (contentHash) | ✅ Real | Dedup hashing, stable |
+| Webhook ingest route | ✅ Real | Accepts claude-mem payloads, creates feed items, deducts tokens |
+| Webhook ingest ↔ lib type mapping | ⚠️ Diverged | Route has its own `mapFeedType()` with MORE types than lib |
+
+**Solana Integration — REAL (dual-mode) ✅**
+| Component | Real? | Details |
+|-----------|-------|---------|
+| `lib/solana.ts` (hash/build/submit) | ✅ Real | SHA-256, Memo Program, real Solana RPC |
+| Chain status endpoint | ✅ Real | Honest configured/unconfigured |
+| Anchor-batch endpoint | ✅ Real (dual) | `live` or `dry_run` based on keypair |
+
+**Key Finding:** No simulated/fake data anywhere. Graceful degradation when env vars missing.
+
+### ✅ New Endpoint: `/api/v1/chain/verify`
+Runtime Solana connectivity + optional content hash verification.
+
+### ✅ New Tests: 190 → 247 tests (41 test files)
+- `tests/api/chain-verify.test.ts` (4): verify endpoint states
+- `tests/api/anchor-batch.test.ts` (4): dry_run vs live mode + auth
+- `tests/integration/claude-mem-real.test.ts` (14): real behavior verification
+- `tests/integration/solana-real.test.ts` (3, skipped w/o env): optional real devnet
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 247/247 pass, 4 skipped (optional Solana) ✅
+
+### ⚠️ Next Priority Gap
+**Claude-mem type mapping consolidation** — route's `mapFeedType()` and lib's `mapClaudeMemType()` should be unified into single source of truth.
