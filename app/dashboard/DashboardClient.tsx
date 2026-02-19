@@ -72,7 +72,7 @@ export default function DashboardClient() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`https://aims.bot/api/v1/bots/${username}`, {
+      const res = await fetch(`/api/v1/bots/${username}`, {
         headers: { 'Authorization': `Bearer ${apiKey}` },
       });
       const data = await res.json();
@@ -87,7 +87,7 @@ export default function DashboardClient() {
 
         // Fetch analytics
         try {
-          const analyticsRes = await fetch(`https://aims.bot/api/v1/bots/${username}/analytics`, {
+          const analyticsRes = await fetch(`/api/v1/bots/${username}/analytics`, {
             headers: { 'Authorization': `Bearer ${apiKey}` },
           });
           const analyticsData = await analyticsRes.json();
@@ -105,7 +105,7 @@ export default function DashboardClient() {
 
         // Fetch webhook
         try {
-          const whRes = await fetch(`https://aims.bot/api/v1/bots/${username}/webhook`, {
+          const whRes = await fetch(`/api/v1/bots/${username}/webhook`, {
             headers: { 'Authorization': `Bearer ${apiKey}` },
           });
           const whData = await whRes.json();
@@ -126,7 +126,7 @@ export default function DashboardClient() {
   const handleSaveSettings = async () => {
     setSaveMsg('');
     try {
-      const res = await fetch(`https://aims.bot/api/v1/bots/${username}/status`, {
+      const res = await fetch(`/api/v1/bots/${username}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -154,7 +154,7 @@ export default function DashboardClient() {
 
   const handleRotateKey = async () => {
     try {
-      const res = await fetch(`https://aims.bot/api/v1/bots/${username}/rotate-key`, {
+      const res = await fetch(`/api/v1/bots/${username}/rotate-key`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiKey}` },
       });
@@ -175,7 +175,7 @@ export default function DashboardClient() {
   const handleSaveWebhook = async () => {
     setWebhookStatus('');
     try {
-      const res = await fetch(`https://aims.bot/api/v1/bots/${username}/webhook`, {
+      const res = await fetch(`/api/v1/bots/${username}/webhook`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
