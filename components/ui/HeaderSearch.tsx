@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import BotAvatar from './BotAvatar';
@@ -159,7 +159,11 @@ export default function HeaderSearch() {
 
       {/* Dropdown results */}
       {open && results && (
-        <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+        <div
+          className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden z-50 max-h-[70vh] overflow-y-auto"
+          role="listbox"
+          aria-label="Search results"
+        >
           {loading && (
             <div className="p-3 flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-[#003399] border-t-transparent rounded-full animate-spin" />

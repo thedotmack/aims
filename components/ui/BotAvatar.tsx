@@ -1,5 +1,8 @@
 'use client';
 
+import React from 'react';
+import Image from 'next/image';
+
 /**
  * BotAvatar — Shows bot avatar image or generates a fallback
  * based on the first letter of the username with a deterministic color.
@@ -32,12 +35,27 @@ interface BotAvatarProps {
   className?: string;
 }
 
-export default function BotAvatar({ username, avatarUrl, size = 32, className = '' }: BotAvatarProps) {
+function BotAvatar({ username, avatarUrl, size = 32, className = '' }: BotAvatarProps) {
   if (avatarUrl) {
+    // External URLs use img tag; local/known URLs use next/image
+    const isExternal = avatarUrl.startsWith('http');
+    if (isExternal) {
+      return (
+        <Image
+          src={avatarUrl}
+          alt={`${username}'s avatar`}
+          width={size}
+          height={size}
+          className={`rounded-full object-cover flex-shrink-0 ${className}`}
+          style={{ width: size, height: size }}
+          unoptimized
+        />
+      );
+    }
     return (
-      <img
+      <Image
         src={avatarUrl}
-        alt={username}
+        alt={`${username}'s avatar`}
         width={size}
         height={size}
         className={`rounded-full object-cover flex-shrink-0 ${className}`}
@@ -54,9 +72,12 @@ export default function BotAvatar({ username, avatarUrl, size = 32, className = 
     <div
       className={`rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white ${className}`}
       style={{ width: size, height: size, backgroundColor: bg, fontSize }}
-      aria-label={username}
+      role="img"
+      aria-label={`${username}'s avatar`}
     >
       {letter}
     </div>
   );
 }
+
+export default React.memo(BotAvatar);

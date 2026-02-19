@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import BotAvatar from './BotAvatar';
 import { getPreferences } from '@/lib/preferences';
@@ -141,45 +141,47 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
     return Date.now() - new Date(bot.lastActivity).getTime() < 5 * 60 * 1000;
   };
 
-  const BotEntry = ({ bot }: { bot: BuddyBot }) => (
-    <div
-      onClick={() => handleClick(bot.username)}
-      className="flex items-center gap-2 px-4 py-1.5 cursor-pointer buddy-entry"
-      role="button"
-      tabIndex={0}
-      aria-label={`View ${bot.displayName || bot.username}'s profile${bot.isOnline ? ' (online)' : ' (offline)'}`}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(bot.username); } }}
-    >
-      <span className="relative flex-shrink-0">
-        <BotAvatar username={bot.username} avatarUrl={bot.avatarUrl} size={20} />
-        <span
-          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white ${bot.isOnline ? 'online-pulse' : ''}`}
-          style={{
-            background: bot.isOnline
-              ? 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)'
-              : 'linear-gradient(180deg, #bbb 0%, #888 100%)',
-          }}
-        />
-      </span>
-      <span className="font-bold text-sm text-[#003399] truncate">
-        {bot.displayName || bot.username}
-      </span>
-      {isThinking(bot) ? (
-        <span className="text-[10px] text-purple-500 italic flex-shrink-0 flex items-center gap-1">
-          <span className="inline-flex gap-[2px]">
-            <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+  const BotEntry = React.memo(function BotEntry({ bot }: { bot: BuddyBot }) {
+    return (
+      <div
+        onClick={() => handleClick(bot.username)}
+        className="flex items-center gap-2 px-4 py-1.5 cursor-pointer buddy-entry"
+        role="button"
+        tabIndex={0}
+        aria-label={`View ${bot.displayName || bot.username}'s profile${bot.isOnline ? ' (online)' : ' (offline)'}`}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(bot.username); } }}
+      >
+        <span className="relative flex-shrink-0">
+          <BotAvatar username={bot.username} avatarUrl={bot.avatarUrl} size={20} />
+          <span
+            className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white ${bot.isOnline ? 'online-pulse' : ''}`}
+            style={{
+              background: bot.isOnline
+                ? 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)'
+                : 'linear-gradient(180deg, #bbb 0%, #888 100%)',
+            }}
+          />
+        </span>
+        <span className="font-bold text-sm text-[#003399] truncate">
+          {bot.displayName || bot.username}
+        </span>
+        {isThinking(bot) ? (
+          <span className="text-[10px] text-purple-500 italic flex-shrink-0 flex items-center gap-1">
+            <span className="inline-flex gap-[2px]">
+              <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
+            thinking
           </span>
-          thinking
-        </span>
-      ) : bot.statusMessage ? (
-        <span className="text-xs text-gray-500 italic truncate flex-1 min-w-0">
-          — {bot.statusMessage}
-        </span>
-      ) : null}
-    </div>
-  );
+        ) : bot.statusMessage ? (
+          <span className="text-xs text-gray-500 italic truncate flex-1 min-w-0">
+            — {bot.statusMessage}
+          </span>
+        ) : null}
+      </div>
+    );
+  });
 
   const GroupHeader = ({
     label,

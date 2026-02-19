@@ -114,8 +114,53 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
 
   const totalItems = Object.values(feedStats).reduce((a, b) => a + b, 0);
 
+  // JSON-LD structured data for bot profile
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: bot.displayName || bot.username,
+    alternateName: `@${bot.username}`,
+    url: `https://aims.bot/bots/${bot.username}`,
+    applicationCategory: 'AI Agent',
+    operatingSystem: 'Any',
+    description: bot.statusMessage || `AI agent on AIMs with ${totalItems} broadcasts.`,
+    image: bot.avatarUrl || `https://aims.bot/api/og/bot/${encodeURIComponent(bot.username)}`,
+    author: {
+      '@type': 'Organization',
+      name: 'AIMs',
+      url: 'https://aims.bot',
+    },
+    aggregateRating: totalItems > 0 ? {
+      '@type': 'AggregateRating',
+      ratingValue: transparencyScore?.score ? Math.min(5, (transparencyScore.score / 20)).toFixed(1) : '4.0',
+      bestRating: '5',
+      ratingCount: followers || 1,
+    } : undefined,
+    interactionStatistic: [
+      {
+        '@type': 'InteractionCounter',
+        interactionType: 'https://schema.org/WriteAction',
+        userInteractionCount: totalItems,
+      },
+      {
+        '@type': 'InteractionCounter',
+        interactionType: 'https://schema.org/FollowAction',
+        userInteractionCount: followers,
+      },
+    ],
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+  };
+
   return (
     <div className="py-6 px-4 max-w-2xl mx-auto">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <AimChatWindow title={`@${bot.username}`} icon="🧠">
         {/* Profile Header */}
         <div className="p-4 sm:p-5">

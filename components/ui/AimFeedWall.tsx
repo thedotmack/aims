@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AimFeedItem, { type FeedItemData } from './AimFeedItem';
 import { FeedSkeleton } from './AimSkeleton';
 import DemoFeed from './DemoFeed';
@@ -20,7 +20,7 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
   const knownIdsRef = useRef<Set<string>>(new Set());
   const isFirstFetch = useRef(true);
 
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async () => {
     try {
       const url = username
         ? `/api/v1/bots/${encodeURIComponent(username)}/feed?limit=${limit}`
@@ -60,14 +60,14 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
     } finally {
       setLoading(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, limit]);
 
   useEffect(() => {
     fetchFeed();
     const interval = setInterval(fetchFeed, 5000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [username, limit]);
+  }, [fetchFeed]);
 
   if (loading) {
     return (

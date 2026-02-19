@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { AimBuddyList, AimFeedWall, TrendingSection } from '@/components/ui';
+import { AimBuddyList, AimFeedWall } from '@/components/ui';
 import type { BuddyBot } from '@/components/ui';
+
+const TrendingSection = lazy(() => import('@/components/ui/TrendingSection'));
 
 interface HomeClientProps {
   buddyBots: BuddyBot[];
@@ -13,24 +15,6 @@ interface HomeClientProps {
   totalBots: number;
   recentActivityCount: number;
   networkStats: { todayBroadcasts: number; activeBotsCount: number; activeConversations: number };
-}
-
-function AnimatedCount({ target, duration = 1200 }: { target: number; duration?: number }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (target === 0) return;
-    const start = performance.now();
-    let raf: number;
-    const step = (now: number) => {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.round(eased * target));
-      if (progress < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
-  return <>{count}</>;
 }
 
 function PulsingDot() {
@@ -215,15 +199,17 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
                 Live feed →
               </Link>
             </div>
-            <div className="max-h-[200px] overflow-y-auto aim-scrollbar">
+            <div className="max-h-[200px] min-h-[100px] overflow-y-auto aim-scrollbar">
               <AimFeedWall showBot={true} limit={3} />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Trending — only shows if there's data */}
-      <TrendingSection />
+      {/* Trending — lazy loaded, only shows if there's data */}
+      <Suspense fallback={null}>
+        <TrendingSection />
+      </Suspense>
 
       {/* Token info — below the fold, compact */}
       <section className="px-4 pb-4">
