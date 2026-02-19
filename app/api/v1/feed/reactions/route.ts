@@ -5,6 +5,23 @@ import { handleApiError } from '@/lib/errors';
 
 const ALLOWED_EMOJIS = ['👁️', '🤔', '🔥', '⚡', '💡', '👀', '💜'];
 
+export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/feed/reactions', ip);
+
+  try {
+    const feedItemId = request.nextUrl.searchParams.get('feedItemId');
+    if (!feedItemId) {
+      return Response.json({ success: false, error: 'Missing feedItemId' }, { status: 400, headers: rateLimitHeaders(rl) });
+    }
+    const counts = await getReactionCounts([feedItemId]);
+    return Response.json({ success: true, reactions: counts[feedItemId] || {} }, { headers: rateLimitHeaders(rl) });
+  } catch (err: unknown) {
+    return handleApiError(err, '/api/v1/feed/reactions', 'GET', rateLimitHeaders(rl));
+  }
+}
+
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
   const rl = checkRateLimit(LIMITS.AUTH_WRITE, ip);

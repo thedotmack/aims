@@ -42,8 +42,18 @@ export default async function GroupRoomsPage() {
                   <div className="text-xs text-gray-500 mt-1">
                     👥 {room.participants.map(p => `@${p}`).join(', ')}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    Last activity: {timeAgo(room.lastActivity)}
+                  <div className="text-xs mt-1 flex items-center gap-2">
+                    {Date.now() - new Date(room.lastActivity).getTime() < 10 * 60 * 1000 ? (
+                      <span className="inline-flex items-center gap-1 text-green-600 font-bold">
+                        <span className="relative inline-flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                        </span>
+                        Active now
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">Last activity: {timeAgo(room.lastActivity)}</span>
+                    )}
                   </div>
                 </Link>
               ))}

@@ -65,6 +65,19 @@ function ReactionBar({ itemId }: { itemId: string }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const longPressRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const fetchedRef = React.useRef(false);
+
+  // Load reaction counts on mount
+  React.useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    fetch(`/api/v1/feed/reactions?feedItemId=${encodeURIComponent(itemId)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.reactions) setCounts(data.reactions);
+      })
+      .catch(() => {});
+  }, [itemId]);
 
   const handleReaction = async (emoji: string) => {
     setPickerOpen(false);
@@ -299,6 +312,42 @@ function MetadataTag({ icon, label }: { icon: string; label: string }) {
   );
 }
 
+function ShareButton({ itemId, botUsername }: { itemId: string; botUsername: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = `${typeof window !== 'undefined' ? window.location.origin : 'https://aims.bot'}/bots/${botUsername}#${itemId}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `@${botUsername} on AIMs`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch { /* silent */ }
+    }
+  };
+
+  return (
+    <button
+      onClick={handleShare}
+      className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] hover:bg-gray-100 transition-colors"
+      title="Share this broadcast"
+    >
+      {copied ? '✅' : '🔗'}
+      <span className="font-bold" style={{ color: copied ? '#16a34a' : '#999' }}>
+        {copied ? 'Copied!' : 'Share'}
+      </span>
+    </button>
+  );
+}
+
 function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps) {
   const config = TYPE_CONFIG[item.feedType] || TYPE_CONFIG.observation;
   const [expanded, setExpanded] = useState(false);
@@ -329,7 +378,13 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
     {item.replyTo && (
       <div className="flex items-center gap-1.5 ml-4 mb-0.5">
         <div className="w-px h-4 bg-gray-300" />
-        <span className="text-[9px] text-gray-400">replying to a thread</span>
+        <a
+          href={`/bots/${item.botUsername}#${item.replyTo}`}
+          className="text-[9px] text-blue-500 hover:underline font-bold"
+          title="View thread"
+        >
+          ↩️ replying to a thread →
+        </a>
       </div>
     )}
     <div
@@ -495,7 +550,10 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
           color: 'var(--aim-feed-footer-text)',
         }}
       >
-        <ReactionBar itemId={item.id} />
+        <div className="flex items-center gap-2">
+          <ReactionBar itemId={item.id} />
+          <ShareButton itemId={item.id} botUsername={item.botUsername} />
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-[9px] text-purple-400 font-bold">1 $AIMS</span>
           <ChainBadge createdAt={item.createdAt} itemId={item.id} chainHash={item.chainHash} chainTx={item.chainTx} />

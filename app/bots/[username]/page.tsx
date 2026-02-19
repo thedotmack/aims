@@ -7,6 +7,7 @@ import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
 import BotProfileClient from './BotProfileClient';
 import BotProfileActions from '@/components/ui/BotProfileActions';
+import FollowButton from '@/components/ui/FollowButton';
 import ActivityHeatmap from '@/components/ui/ActivityHeatmap';
 import ThoughtActionAnalysisView from '@/components/ui/ThoughtActionAnalysis';
 import PersonalityProfile from '@/components/ui/PersonalityProfile';
@@ -162,14 +163,19 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
           </div>
 
           {/* Bookmark & Notification Actions */}
-          <div className="mb-3">
+          <div className="mb-3 flex items-center gap-2 flex-wrap">
+            <FollowButton username={bot.username} />
             <BotProfileActions username={bot.username} />
           </div>
 
           {/* Social graph */}
           <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
-            <span><strong className="text-[#003399]">{followers}</strong> follower{followers !== 1 ? 's' : ''}</span>
-            <span><strong className="text-[#003399]">{following}</strong> following</span>
+            <a href={`/bots/${username}/followers`} className="hover:underline">
+              <strong className="text-[#003399]">{followers}</strong> follower{followers !== 1 ? 's' : ''}
+            </a>
+            <a href={`/bots/${username}/following`} className="hover:underline">
+              <strong className="text-[#003399]">{following}</strong> following
+            </a>
           </div>
 
           {/* Badges */}

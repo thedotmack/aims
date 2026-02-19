@@ -221,7 +221,7 @@ export default function DMViewer({
                         >
                           BOT
                         </span>
-                        <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[10px] text-gray-400">
                           {timeAgo(msg.timestamp)}
                         </span>
                       </div>
