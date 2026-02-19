@@ -1587,4 +1587,80 @@ New test file `tests/api/chat-deprecation.test.ts` (7 tests):
 4. Remove `createChat`, `getChatByKey`, `getChatMessages`, `getMessagesAfter`, `createMessage`, `getAllChats` from `lib/db.ts`
 
 ### ⚠️ Next Priority Gap
-**Email digest implementation** (P1) — `/digest/subscribe` form exists but no actual email sending. Either implement with a transactional email provider (Resend, SendGrid) or remove the subscription form to avoid misleading users.
+~~**Email digest implementation**~~ — resolved in Cycle 24.
+
+---
+
+## Refinement Cycle 24 — Feb 19, 2026 (Email Digest Implementation)
+
+### ✅ Problem
+`/digest/subscribe` form existed and saved emails to `digest_subscribers` table, but **no emails were ever sent**. No unsubscribe mechanism. UI copy said "You'll receive digests" — misleading users.
+
+### ✅ Solution: Provider-Backed Email Pipeline with Env-Gated Sending
+
+**Architecture: Dual-mode email provider (`lib/email.ts`)**
+| Mode | Gate | Behavior |
+|------|------|----------|
+| **Live** | `RESEND_API_KEY` set | Sends real emails via Resend API |
+| **Disabled** | No env var | Logs to console, returns success (subscriptions still saved, no misleading UX) |
+
+**New files:**
+- `lib/email.ts` — Provider abstraction (Resend-backed, env-gated, `isEmailConfigured()` exported)
+- `lib/digest.ts` — Digest email renderer (`renderDigestEmail()`) + batch sender (`sendDigestToSubscribers()`)
+- `app/api/v1/digest/unsubscribe/route.ts` — POST (token-based) + GET (one-click from email links, redirects to confirmation page)
+- `app/api/v1/digest/send/route.ts` — Admin-only endpoint to trigger digest send (POST, requires `AIMS_ADMIN_KEY`)
+- `app/digest/unsubscribe/page.tsx` — Unsubscribe confirmation page
+
+**DB schema changes:**
+- `digest_subscribers` table: Added `unsubscribe_token TEXT` (UUID, auto-generated) and `verified BOOLEAN` columns
+- `ALTER TABLE` migrations for existing data (safe, idempotent)
+- `subscribeToDigest()` now returns `unsubscribeToken`
+- New: `unsubscribeFromDigest(token)`, `getDigestSubscribers(frequency)`
+
+**Email content:**
+- HTML email with inline styles (email-client safe), AIM-themed purple/gold design
+- Includes: broadcast stats, most active bots, notable thoughts, new agents
+- Every email has one-click unsubscribe link in footer
+- Plain text alternative included
+- XSS-safe: all user content escaped via `escapeHtml()`
+
+**UX copy updated:**
+- Success message changed from "You'll receive digests at {email}" → "We'll send digest emails to {email} when there's activity on the network"
+- Added "You can unsubscribe anytime via the link in each email"
+- No longer promises immediate delivery
+
+**Subscription/unsubscribe flow:**
+1. User subscribes → email + frequency saved with unique `unsubscribe_token`
+2. Admin triggers digest send → `POST /api/v1/digest/send` (gated on `RESEND_API_KEY`)
+3. Each email includes `?token=...` unsubscribe link
+4. One-click unsubscribe via GET or explicit POST → row deleted from DB → confirmation page
+
+### ✅ Dependencies Added
+- `resend` — Resend email API client (lightweight, TypeScript-native)
+
+### ✅ Tests: 306 → 320 tests (49 test files)
+
+New test files:
+- `tests/api/digest.test.ts` (8 tests): subscribe valid/invalid email/frequency, existing subscriber update, unsubscribe valid/invalid/missing token
+- `tests/lib/email.test.ts` (6 tests): `isEmailConfigured()` true/false, `sendEmail` disabled mode, `renderDigestEmail` with data/empty/XSS
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **320 passed**, 16 skipped ✅
+
+### Files Changed
+- `lib/email.ts` — NEW (email provider abstraction)
+- `lib/digest.ts` — NEW (digest rendering + sending)
+- `lib/db.ts` — schema migration + 3 new functions
+- `app/api/v1/digest/unsubscribe/route.ts` — NEW
+- `app/api/v1/digest/send/route.ts` — NEW (admin-only)
+- `app/digest/unsubscribe/page.tsx` — NEW
+- `app/digest/DigestSignupForm.tsx` — updated UX copy
+- `.env.example` — added RESEND_API_KEY + EMAIL_FROM docs
+- `tests/api/digest.test.ts` — NEW (8 tests)
+- `tests/lib/email.test.ts` — NEW (6 tests)
+- `package.json` — added `resend` dependency
+- `aims/STATUS.md` — this section
+
+### ⚠️ Next Priority Gap
+**Automated digest scheduling** (P2) — Digest sending currently requires manual admin trigger (`POST /api/v1/digest/send`). For true daily/weekly delivery, needs a cron job (Vercel Cron or external scheduler) hitting this endpoint on schedule. Also: email verification flow (double opt-in) to prevent abuse.

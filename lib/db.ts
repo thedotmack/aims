@@ -249,10 +249,14 @@ export async function initDB() {
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
       email TEXT NOT NULL UNIQUE,
       frequency TEXT NOT NULL DEFAULT 'daily',
+      unsubscribe_token TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT,
+      verified BOOLEAN NOT NULL DEFAULT false,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_digest_email ON digest_subscribers(email)`;
+  await sql`ALTER TABLE digest_subscribers ADD COLUMN IF NOT EXISTS unsubscribe_token TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT`;
+  await sql`ALTER TABLE digest_subscribers ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT false`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS api_logs (
@@ -1597,17 +1601,36 @@ export async function getSocialProofStats(): Promise<{
 }
 
 // Digest subscribers
-export async function subscribeToDigest(email: string, frequency: string): Promise<{ success: boolean; existing?: boolean }> {
+export async function subscribeToDigest(email: string, frequency: string): Promise<{ success: boolean; existing?: boolean; unsubscribeToken?: string }> {
   try {
-    const existing = await sql`SELECT id FROM digest_subscribers WHERE email = ${email}`;
+    const existing = await sql`SELECT id, unsubscribe_token FROM digest_subscribers WHERE email = ${email}`;
     if (existing.length > 0) {
       await sql`UPDATE digest_subscribers SET frequency = ${frequency} WHERE email = ${email}`;
-      return { success: true, existing: true };
+      return { success: true, existing: true, unsubscribeToken: existing[0].unsubscribe_token };
     }
-    await sql`INSERT INTO digest_subscribers (email, frequency) VALUES (${email}, ${frequency})`;
-    return { success: true };
+    const result = await sql`INSERT INTO digest_subscribers (email, frequency) VALUES (${email}, ${frequency}) RETURNING unsubscribe_token`;
+    return { success: true, unsubscribeToken: result[0]?.unsubscribe_token };
   } catch {
     return { success: false };
+  }
+}
+
+export async function unsubscribeFromDigest(token: string): Promise<{ success: boolean; email?: string }> {
+  try {
+    const result = await sql`DELETE FROM digest_subscribers WHERE unsubscribe_token = ${token} RETURNING email`;
+    if (result.length === 0) return { success: false };
+    return { success: true, email: result[0].email };
+  } catch {
+    return { success: false };
+  }
+}
+
+export async function getDigestSubscribers(frequency: 'daily' | 'weekly'): Promise<Array<{ id: string; email: string; unsubscribe_token: string }>> {
+  try {
+    const rows = await sql`SELECT id, email, unsubscribe_token FROM digest_subscribers WHERE frequency = ${frequency}`;
+    return rows as Array<{ id: string; email: string; unsubscribe_token: string }>;
+  } catch {
+    return [];
   }
 }
 

@@ -36,15 +36,18 @@ export default function DigestSignupForm() {
 
   if (status === 'success') {
     return (
-      <AimChatWindow title="📬 You've Got Mail!" icon="📬">
+      <AimChatWindow title="📬 Subscribed!" icon="📬">
         <div className="bg-white p-6 text-center">
           <span className="text-5xl block mb-3">📬</span>
           <h2 className="font-bold text-lg text-gray-800 mb-1" style={{ fontFamily: 'Georgia, serif' }}>
-            You&apos;ve Got Mail!
+            You&apos;re on the list!
           </h2>
           <p className="text-sm text-gray-600">{message}</p>
           <p className="text-xs text-gray-400 mt-2">
-            You&apos;ll receive {frequency} digests of AI activity at {email}
+            We&apos;ll send {frequency} digest emails to {email} when there&apos;s activity on the network.
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            You can unsubscribe anytime via the link in each email.
           </p>
         </div>
       </AimChatWindow>
