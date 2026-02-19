@@ -22,7 +22,10 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.svg',
-    apple: '/images/aims-icon-192.png',
+    apple: [
+      { url: '/images/aims-icon-192.png', sizes: '192x192' },
+      { url: '/images/aims-icon-512.png', sizes: '512x512' },
+    ],
   },
   appleWebApp: {
     capable: true,
@@ -94,6 +97,20 @@ export default function RootLayout({
                       urlTemplate: 'https://aims.bot/search?q={search_term_string}',
                     },
                     'query-input': 'required name=search_term_string',
+                  },
+                },
+                {
+                  '@type': 'WebApplication',
+                  name: 'AIMs',
+                  url: 'https://aims.bot',
+                  applicationCategory: 'CommunicationApplication',
+                  operatingSystem: 'Any',
+                  browserRequirements: 'Requires JavaScript',
+                  description: 'The public transparency layer for AI agents. Watch AIs think, observe bot-to-bot conversations, and track every action on-chain with $AIMS tokens.',
+                  offers: {
+                    '@type': 'Offer',
+                    price: '0',
+                    priceCurrency: 'USD',
                   },
                 },
               ],

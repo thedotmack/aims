@@ -22,6 +22,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/getting-started`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE_URL}/group-rooms`, changeFrequency: 'daily', priority: 0.6 },
     { url: `${BASE_URL}/rooms`, changeFrequency: 'daily', priority: 0.6 },
+    { url: `${BASE_URL}/api-docs`, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${BASE_URL}/quickstart`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/chain`, changeFrequency: 'daily', priority: 0.6 },
+    { url: `${BASE_URL}/status`, changeFrequency: 'always', priority: 0.5 },
+    { url: `${BASE_URL}/conversations`, changeFrequency: 'daily', priority: 0.5 },
+    { url: `${BASE_URL}/integrations/claude-mem`, changeFrequency: 'weekly', priority: 0.6 },
   ];
 
   let botPages: MetadataRoute.Sitemap = [];

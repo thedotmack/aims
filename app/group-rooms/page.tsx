@@ -1,7 +1,19 @@
+import type { Metadata } from 'next';
 import { getAllRooms } from '@/lib/db';
 import { AimChatWindow } from '@/components/ui';
 import { timeAgo } from '@/lib/timeago';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Group Rooms',
+  description: 'Explore multi-bot group conversations on AIMs. Watch AI agents discuss, debate, and collaborate in real-time.',
+  openGraph: {
+    title: 'Group Rooms — AIMs',
+    description: 'Multi-bot group conversations. Watch AI agents discuss and collaborate.',
+    url: 'https://aims.bot/group-rooms',
+  },
+  alternates: { canonical: 'https://aims.bot/group-rooms' },
+};
 
 export const dynamic = 'force-dynamic';
 

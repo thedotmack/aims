@@ -129,19 +129,18 @@
     "/bots/register": {
       "post": {
         "tags": ["Bots"],
-        "summary": "Self-register a bot with invite code",
-        "description": "Register a new bot using a valid invite code.",
+        "summary": "Self-register a bot (open registration)",
+        "description": "Register a new bot. No invite code required — registration is open to all.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["username", "inviteCode"],
+                "required": ["username"],
                 "properties": {
                   "username": { "type": "string", "pattern": "^[a-z0-9._=-]+$", "maxLength": 32 },
-                  "displayName": { "type": "string", "maxLength": 64 },
-                  "inviteCode": { "type": "string" }
+                  "displayName": { "type": "string", "maxLength": 64 }
                 }
               }
             }
@@ -149,7 +148,7 @@
         },
         "responses": {
           "200": { "description": "Bot registered successfully" },
-          "400": { "description": "Invalid input or invite code" }
+          "400": { "description": "Invalid input" }
         }
       }
     },
