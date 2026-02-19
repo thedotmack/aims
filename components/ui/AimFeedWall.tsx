@@ -17,8 +17,37 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
   const [error, setError] = useState(false);
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const [gotMail, setGotMail] = useState(false);
+  const [useSSE, setUseSSE] = useState(false);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const isFirstFetch = useRef(true);
+  const sseRef = useRef<EventSource | null>(null);
+  const sseFailCountRef = useRef(0);
+
+  const handleNewItems = useCallback((fetchedItems: FeedItemData[]) => {
+    if (!isFirstFetch.current) {
+      const newIds = new Set<string>();
+      for (const item of fetchedItems) {
+        if (!knownIdsRef.current.has(item.id)) {
+          newIds.add(item.id);
+        }
+      }
+      if (newIds.size > 0) {
+        setNewItemIds(newIds);
+        setGotMail(true);
+        setTimeout(() => setNewItemIds(new Set()), 2000);
+        setTimeout(() => setGotMail(false), 4000);
+      }
+    }
+    isFirstFetch.current = false;
+
+    for (const item of fetchedItems) {
+      knownIdsRef.current.add(item.id);
+    }
+
+    setItems(fetchedItems);
+    setError(false);
+    setLoading(false);
+  }, []);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -29,45 +58,108 @@ export default function AimFeedWall({ username, showBot = false, limit = 50 }: A
       if (!res.ok) throw new Error('fetch failed');
       const data = await res.json();
       if (data.success && data.items) {
-        const fetchedItems = data.items as FeedItemData[];
-
-        if (!isFirstFetch.current) {
-          const newIds = new Set<string>();
-          for (const item of fetchedItems) {
-            if (!knownIdsRef.current.has(item.id)) {
-              newIds.add(item.id);
-            }
-          }
-          if (newIds.size > 0) {
-            setNewItemIds(newIds);
-            setGotMail(true);
-            setTimeout(() => setNewItemIds(new Set()), 2000);
-            setTimeout(() => setGotMail(false), 4000);
-          }
-        }
-        isFirstFetch.current = false;
-
-        for (const item of fetchedItems) {
-          knownIdsRef.current.add(item.id);
-        }
-
-        setItems(fetchedItems);
-        setError(false);
+        handleNewItems(data.items as FeedItemData[]);
       }
     } catch {
-      // Only show error if we have no items yet
       if (items.length === 0) setError(true);
-    } finally {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [username, limit]);
+  }, [username, limit, handleNewItems]);
+
+  // SSE connection for global feed (no username filter)
+  const connectSSE = useCallback(() => {
+    if (username) return; // SSE stream is global only
+    if (sseRef.current) {
+      sseRef.current.close();
+      sseRef.current = null;
+    }
+
+    try {
+      const es = new EventSource('/api/v1/feed/stream');
+      sseRef.current = es;
+
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'init' && data.items) {
+            handleNewItems(data.items as FeedItemData[]);
+            setUseSSE(true);
+            sseFailCountRef.current = 0;
+          } else if (data.type === 'update' && data.items) {
+            // Prepend new items
+            setItems(prev => {
+              const newItems = (data.items as FeedItemData[]).filter(
+                (item: FeedItemData) => !knownIdsRef.current.has(item.id)
+              );
+              if (newItems.length === 0) return prev;
+
+              for (const item of newItems) {
+                knownIdsRef.current.add(item.id);
+              }
+              setNewItemIds(new Set(newItems.map((i: FeedItemData) => i.id)));
+              setGotMail(true);
+              setTimeout(() => setNewItemIds(new Set()), 2000);
+              setTimeout(() => setGotMail(false), 4000);
+
+              return [...newItems, ...prev].slice(0, limit);
+            });
+          } else if (data.type === 'reconnect') {
+            // Server asked us to reconnect
+            es.close();
+            setTimeout(connectSSE, 1000);
+          } else if (data.type === 'error') {
+            es.close();
+            setUseSSE(false);
+          }
+        } catch {
+          // Ignore parse errors (heartbeats)
+        }
+      };
+
+      es.onerror = () => {
+        sseFailCountRef.current++;
+        es.close();
+        sseRef.current = null;
+        setUseSSE(false);
+
+        // Exponential backoff reconnect: 2s, 4s, 8s, 16s, max 30s
+        if (sseFailCountRef.current <= 5) {
+          const delay = Math.min(2000 * Math.pow(2, sseFailCountRef.current - 1), 30000);
+          setTimeout(connectSSE, delay);
+        }
+        // After 5 failures, fall back to polling permanently
+      };
+    } catch {
+      setUseSSE(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, limit, handleNewItems]);
 
   useEffect(() => {
+    // Initial fetch always
     fetchFeed();
-    const interval = setInterval(fetchFeed, 5000);
-    return () => clearInterval(interval);
-  }, [fetchFeed]);
+
+    // Try SSE for global feed
+    if (!username) {
+      connectSSE();
+    }
+
+    // Polling fallback: 5s if no SSE, 30s if SSE active (as heartbeat check)
+    const interval = setInterval(() => {
+      if (!useSSE || username) {
+        fetchFeed();
+      }
+    }, useSSE && !username ? 30000 : 5000);
+
+    return () => {
+      clearInterval(interval);
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+      }
+    };
+  }, [fetchFeed, connectSSE, useSSE, username]);
 
   if (loading) {
     return (

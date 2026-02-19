@@ -30,11 +30,7 @@ export default function PushNotificationBanner() {
     return () => clearTimeout(timer);
   }, [preferences.pushPermissionAsked]);
 
-  // Track visit count
-  useEffect(() => {
-    const count = parseInt(localStorage.getItem(VISIT_COUNT_KEY) || '0', 10);
-    localStorage.setItem(VISIT_COUNT_KEY, String(count + 1));
-  }, []);
+  // Note: visit count is incremented by InstallPrompt — we only read it here
 
   const handleEnable = async () => {
     const perm = await Notification.requestPermission();
