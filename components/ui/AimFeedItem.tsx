@@ -36,6 +36,8 @@ export interface FeedItemData {
   replyTo: string | null;
   pinned?: boolean;
   createdAt: string;
+  chainHash?: string | null;
+  chainTx?: string | null;
 }
 
 interface AimFeedItemProps {
@@ -182,11 +184,17 @@ function getChainStatus(createdAt: string): { status: 'pending' | 'confirmed' | 
   return { status: 'immutable', label: 'Immutable', color: '#7c3aed', bgColor: '#faf5ff' };
 }
 
-function ChainBadge({ createdAt, itemId }: { createdAt: string; itemId: string }) {
+function ChainBadge({ createdAt, itemId, chainHash, chainTx }: { createdAt: string; itemId: string; chainHash?: string | null; chainTx?: string | null }) {
   const [showModal, setShowModal] = useState(false);
-  const chain = getChainStatus(createdAt);
-  // Generate a deterministic fake tx hash from itemId
-  const txHash = itemId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) + '...' + itemId.slice(-6).replace(/[^a-zA-Z0-9]/g, 'a') + 'So1';
+  
+  // Use real chain data if available, otherwise simulate based on age
+  const chain = chainTx
+    ? { status: 'immutable' as const, label: 'On-chain', color: '#7c3aed', bgColor: '#faf5ff' }
+    : chainHash
+      ? { status: 'confirmed' as const, label: 'Hashed', color: '#15803d', bgColor: '#f0fdf4' }
+      : getChainStatus(createdAt);
+  const txHash = chainTx || (chainHash ? chainHash.slice(0, 16) + '...' : itemId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) + '...' + itemId.slice(-6).replace(/[^a-zA-Z0-9]/g, 'a') + 'So1');
+  const explorerUrl = chainTx ? `https://explorer.solana.com/tx/${chainTx}?cluster=devnet` : null;
 
   return (
     <>
@@ -196,7 +204,7 @@ function ChainBadge({ createdAt, itemId }: { createdAt: string; itemId: string }
         title="On-chain status"
       >
         <span className="text-[9px]" style={{ color: chain.color }}>
-          {chain.status === 'pending' ? '⏳' : chain.status === 'confirmed' ? '⛓️' : '🔒'}
+          {chainTx ? '🔗' : chainHash ? '⛓️' : chain.status === 'pending' ? '⏳' : chain.status === 'confirmed' ? '⛓️' : '🔒'}
         </span>
         <span className="text-[9px] font-bold" style={{ color: chain.color }}>
           {chain.label}
@@ -262,9 +270,15 @@ function ChainBadge({ createdAt, itemId }: { createdAt: string; itemId: string }
 
               <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                 <span className="text-[10px] text-gray-300">Powered by Solana</span>
-                <span className="text-[10px] text-[#14F195] font-bold">
-                  {chain.status === 'pending' ? 'Awaiting confirmation...' : 'View on Solscan →'}
-                </span>
+                {explorerUrl ? (
+                  <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#14F195] font-bold hover:underline">
+                    View on Explorer →
+                  </a>
+                ) : (
+                  <span className="text-[10px] text-[#14F195] font-bold">
+                    {chain.status === 'pending' ? 'Awaiting confirmation...' : 'View on Solscan →'}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -484,7 +498,7 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
         <ReactionBar itemId={item.id} />
         <div className="flex items-center gap-2">
           <span className="text-[9px] text-purple-400 font-bold">1 $AIMS</span>
-          <ChainBadge createdAt={item.createdAt} itemId={item.id} />
+          <ChainBadge createdAt={item.createdAt} itemId={item.id} chainHash={item.chainHash} chainTx={item.chainTx} />
         </div>
       </div>
     </div>

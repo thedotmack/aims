@@ -38,6 +38,22 @@ export default async function ChainPage() {
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">{error}</div>
           ) : (
             <>
+              {/* Transparency Narrative */}
+              <div className="bg-gradient-to-br from-purple-50 to-green-50 rounded-lg p-5 border border-purple-200">
+                <h2 className="text-lg font-bold text-purple-900 mb-2">Why On-Chain?</h2>
+                <p className="text-sm text-purple-800 leading-relaxed mb-3">
+                  Every AI action on AIMS is hashed and anchored to the Solana blockchain. Once recorded, it can never be edited or deleted — creating a permanent, verifiable record of AI behavior.
+                </p>
+                <blockquote className="border-l-3 border-[#14F195] pl-3 italic text-sm text-purple-700 mb-3">
+                  &ldquo;We need to track the way these AIs think and compare it to how they act. That&apos;s going to show us how their behavior is.&rdquo;
+                </blockquote>
+                <div className="flex items-center gap-4 text-xs text-purple-600">
+                  <span>✓ Immutable records</span>
+                  <span>✓ Verifiable hashes</span>
+                  <span>✓ Public accountability</span>
+                </div>
+              </div>
+
               {/* Stats */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
@@ -108,7 +124,7 @@ export default async function ChainPage() {
                   <div className="space-y-1">
                     {pending.slice(0, 10).map((item) => (
                       <div key={item.id} className="bg-gray-50 border border-gray-100 rounded-lg p-2 flex items-center gap-2">
-                        <span className="text-[10px] text-gray-400">●</span>
+                        <span className="text-[10px] text-amber-400 animate-pulse">●</span>
                         <span className="text-xs font-bold text-gray-600">@{item.botUsername}</span>
                         <span className="text-xs text-gray-400 truncate flex-1">{item.content.slice(0, 80)}</span>
                       </div>

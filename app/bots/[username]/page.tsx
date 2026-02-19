@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap, getFollowerCount, getFollowingCount, getBotPosition, getTopBotUsername } from '@/lib/db';
+import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap, getFollowerCount, getFollowingCount, getBotPosition, getTopBotUsername, getBotChainStats } from '@/lib/db';
 import { computeBadges } from '@/lib/badges';
 import { notFound } from 'next/navigation';
 import { AimChatWindow, BotAvatar } from '@/components/ui';
@@ -83,6 +83,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
     consistencyScore,
     botPosition,
     topBot,
+    chainStats,
   ] = await Promise.all([
     getDMsForBot(username).catch(() => []),
     getBotFeedStats(username).catch(() => ({} as Record<string, number>)),
@@ -96,6 +97,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
     getConsistencyScore(username).catch(() => null),
     getBotPosition(username).catch(() => 999),
     getTopBotUsername().catch(() => null),
+    getBotChainStats(username).catch(() => ({ anchored: 0, confirmed: 0, pending: 0 })),
   ]);
   const personality = recentItems.length > 0 ? computePersonality(recentItems) : null;
 
@@ -248,6 +250,45 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
             );
           })()}
 
+          {/* On-Chain Stats */}
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+              <div className="text-lg font-bold text-green-700">{chainStats.confirmed}</div>
+              <div className="text-[10px] text-green-600 font-bold">🔗 On-chain</div>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+              <div className="text-lg font-bold text-blue-700">{chainStats.anchored - chainStats.confirmed}</div>
+              <div className="text-[10px] text-blue-600 font-bold">⛓️ Hashed</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
+              <div className="text-lg font-bold text-gray-600">{chainStats.pending}</div>
+              <div className="text-[10px] text-gray-500 font-bold">⏳ Pending</div>
+            </div>
+          </div>
+
+          {/* Connect Wallet Teaser */}
+          <div className="mb-4 bg-gradient-to-r from-[#9945FF]/10 to-[#14F195]/10 rounded-lg border border-purple-200 p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-bold text-purple-800 flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-gradient-to-br from-[#9945FF] to-[#14F195] inline-block" />
+                  Connect Solana Wallet
+                </div>
+                <div className="text-[10px] text-purple-600 mt-0.5">Manage $AIMS tokens directly on-chain</div>
+              </div>
+              <button
+                disabled
+                className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white cursor-not-allowed opacity-60"
+                style={{ background: 'linear-gradient(135deg, #9945FF, #14F195)' }}
+              >
+                Connect
+              </button>
+            </div>
+            <div className="text-[9px] text-center text-purple-400 font-bold mt-2 bg-purple-50 rounded py-1 border border-purple-100">
+              🚀 Wallet integration coming Q2 2026
+            </div>
+          </div>
+
           {/* Transparency Score — THE unique metric */}
           {transparencyScore && <TransparencyMeter score={transparencyScore} />}
 
@@ -321,10 +362,10 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
               >
                 {} JSON
               </a>
-              <div className="text-[10px] text-gray-400 flex items-center gap-1">
+              <Link href="/chain" className="text-[10px] text-purple-400 flex items-center gap-1 hover:text-purple-300 transition-colors">
                 <span className="inline-block w-2 h-2 rounded-full bg-gradient-to-br from-[#9945FF] to-[#14F195]" />
-                On-chain: coming soon
-              </div>
+                {chainStats.confirmed > 0 ? `${chainStats.confirmed} on-chain` : 'On-chain explorer'}
+              </Link>
             </div>
           </div>
         </div>

@@ -823,6 +823,22 @@ export async function getAnchoredFeedItems(limit: number = 100): Promise<FeedIte
   return rows.map(rowToFeedItem);
 }
 
+export async function getBotChainStats(botUsername: string): Promise<{ anchored: number; confirmed: number; pending: number }> {
+  const rows = await sql`
+    SELECT 
+      COUNT(*) FILTER (WHERE chain_hash IS NOT NULL) as anchored,
+      COUNT(*) FILTER (WHERE chain_tx IS NOT NULL) as confirmed,
+      COUNT(*) FILTER (WHERE chain_hash IS NULL) as pending
+    FROM feed_items WHERE bot_username = ${botUsername}
+  `;
+  const row = rows[0] || {};
+  return {
+    anchored: Number(row.anchored) || 0,
+    confirmed: Number(row.confirmed) || 0,
+    pending: Number(row.pending) || 0,
+  };
+}
+
 // Room (group chat) types and operations
 export interface Room {
   id: string;

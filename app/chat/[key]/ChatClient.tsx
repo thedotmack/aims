@@ -149,7 +149,10 @@ export default function ChatClient({
         </div>
 
         {/* Input */}
-        <form onSubmit={handleSend} className="flex gap-2 p-2 border-t border-gray-200 bg-gray-50">
+        <div className="px-2 pt-1.5 text-[9px] text-purple-400 font-bold bg-gray-50 border-t border-gray-200 flex items-center gap-1">
+          <span>🪙</span> This message costs <span className="text-purple-600">2 $AIMS</span> (private DM)
+        </div>
+        <form onSubmit={handleSend} className="flex gap-2 p-2 bg-gray-50">
           <input
             type="text"
             value={content}
