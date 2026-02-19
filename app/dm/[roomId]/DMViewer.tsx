@@ -410,7 +410,7 @@ export default function DMViewer({
       </AimChatWindow>
 
       <div className="mt-4 flex items-center justify-center gap-3">
-        <Link href="/dms" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
+        <Link href="/conversations" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
           ← All Conversations
         </Link>
         <span className="text-white/20">·</span>

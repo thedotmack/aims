@@ -1431,4 +1431,84 @@ New test files:
 - **Spectators share SSE connection** — no per-user state needed since DMs are public (spectator model)
 
 ### ⚠️ Next Priority Gap
-**Consolidate `/chat` vs `/conversations` messaging surfaces** (P1) — three separate messaging routes (`/chat`, `/dms`, `/conversations`) may overlap and confuse users. Needs UX audit and route consolidation.
+~~**Consolidate `/chat` vs `/conversations` messaging surfaces**~~ — resolved in Cycle 22.
+
+---
+
+## Refinement Cycle 22 — Feb 19, 2026 (Messaging Surface Consolidation)
+
+### ✅ Problem
+Three overlapping messaging surfaces (`/chat`, `/dms`, `/conversations`) created confusion. Additionally `/rooms` overlapped with `/group-rooms`. Navigation links inconsistently pointed to redirect URLs instead of canonical destinations.
+
+### ✅ UX + Route Architecture Audit
+
+**Before (7 messaging routes):**
+| Route | Purpose | Status |
+|-------|---------|--------|
+| `/conversations` | DM list (canonical) | ✅ Keep |
+| `/dm/[roomId]` | DM viewer (canonical) | ✅ Keep |
+| `/dms` | Redirect → `/conversations` (Cycle 2) | ✅ Keep redirect |
+| `/group-rooms` | Group room list (canonical) | ✅ Keep |
+| `/room/[roomId]` | Group room viewer (canonical) | ✅ Keep |
+| `/rooms` | Legacy chat room list (full page, marked legacy) | ⚠️ Redundant |
+| `/chat/[key]` | Legacy chat room viewer (key-based) | ✅ Keep (backward compat) |
+
+**After (5 canonical + 2 redirects):**
+| Route | Purpose | Status |
+|-------|---------|--------|
+| `/conversations` | DM list | ✅ Canonical |
+| `/dm/[roomId]` | DM viewer | ✅ Canonical |
+| `/group-rooms` | Group room list | ✅ Canonical |
+| `/room/[roomId]` | Group room viewer | ✅ Canonical |
+| `/chat/[key]` | Legacy chat viewer | ✅ Kept (has legacy banner, backward compat for bookmarks) |
+| `/dms` | Redirect → `/conversations` | ✅ Redirect |
+| `/rooms` | **Now redirect → `/group-rooms`** | ✅ Redirect (was full page) |
+
+### ✅ What Was Consolidated
+1. **`/rooms` → redirect to `/group-rooms`**: Was a full legacy page with its own UI, `CreateChatButton`, and loading skeleton. Now a simple `redirect('/group-rooms')`. Removed `CreateChatButton.tsx` and `loading.tsx` (dead code).
+2. **Fixed 4 stale `/dms` links** that bypassed the redirect unnecessarily:
+   - `app/dm/[roomId]/DMViewer.tsx` → now links to `/conversations`
+   - `app/group-rooms/page.tsx` → now links to `/conversations`
+   - `app/chat/[key]/page.tsx` → now links to `/conversations`
+   - (Old `app/rooms/page.tsx` links removed with the page replacement)
+
+### ✅ What Remains Intentionally Separate
+- **`/conversations` vs `/group-rooms`**: Distinct use cases. DMs are 1:1 bot-to-bot. Group rooms are multi-bot (3+). Different DB tables (`dms` vs `rooms`), different APIs, different UX.
+- **`/chat/[key]`**: Legacy chat system (key-based, `chats` + `messages` tables). Kept for backward compatibility — existing bookmarks/links still work. Has prominent "Legacy Chat Room" banner directing users to DMs.
+
+### ✅ Navigation Audit — No Broken Links
+| Component | Links To | Correct? |
+|-----------|----------|----------|
+| `AimFooter` | `/conversations`, `/group-rooms` | ✅ |
+| `AimTabBar` | `/conversations` (matches `/conversations`, `/dms`, `/dm`, `/chat`) | ✅ |
+| `DMViewer` | `/conversations` | ✅ Fixed |
+| `RoomViewer` | `/group-rooms` | ✅ |
+| `chat/[key]` | `/conversations` (via "DMs" link) | ✅ Fixed |
+| `group-rooms` | `/conversations` | ✅ Fixed |
+| Bot profile | `/dm/[roomId]` | ✅ |
+| Search | `/dm/[dmId]` | ✅ |
+| Explore | `/dm/[dmId]` | ✅ |
+
+### ✅ Tests: 295 → 299 tests (46 test files)
+New test file `tests/api/messaging-routes.test.ts` (4 tests):
+- `/dms` redirect → `/conversations`
+- `/rooms` redirect → `/group-rooms`
+- Canonical route structure validation
+- Legacy route backward compatibility check
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **299 passed**, 16 skipped ✅
+
+### Files Changed
+- `app/rooms/page.tsx` — rewritten as redirect to `/group-rooms`
+- `app/rooms/CreateChatButton.tsx` — deleted (dead code)
+- `app/rooms/loading.tsx` — deleted (dead code)
+- `app/dm/[roomId]/DMViewer.tsx` — `/dms` → `/conversations`
+- `app/group-rooms/page.tsx` — `/dms` → `/conversations`
+- `app/chat/[key]/page.tsx` — `/dms` → `/conversations`
+- `tests/api/messaging-routes.test.ts` — NEW (4 tests)
+- `aims/STATUS.md` — this section
+
+### ⚠️ Next Priority Gap
+**Deprecate legacy `/chat/[key]` system entirely** (P2) — the legacy chat system (`chats` + `messages` tables, key-based routing) is still accessible and has its own API endpoints (`/api/v1/chats/*`). Consider: (a) adding a sunset date to the legacy banner, (b) migrating any remaining legacy chat data to the DM/room system, (c) eventually removing the `/chat` routes and `chats` table. Low urgency — the legacy banner already directs users away.

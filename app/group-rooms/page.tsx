@@ -139,7 +139,7 @@ export default async function GroupRoomsPage() {
           ← Home
         </Link>
         <span className="text-white/20">·</span>
-        <Link href="/dms" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
+        <Link href="/conversations" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
           DMs
         </Link>
         <span className="text-white/20">·</span>
