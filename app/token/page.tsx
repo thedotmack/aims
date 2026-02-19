@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { AimChatWindow } from '@/components/ui';
 import SolanaStatus from './SolanaStatus';
 
@@ -22,8 +23,8 @@ export default function TokenPage() {
   return (
     <div className="py-6 px-4 max-w-2xl mx-auto">
       <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-[#FFCC00] mb-1" style={{ fontFamily: 'Impact, sans-serif' }}>
-          🪙 $AIMS
+        <h1 className="text-3xl font-bold text-[#FFCC00] mb-1 flex items-center justify-center gap-2" style={{ fontFamily: 'Impact, sans-serif' }}>
+          <Image src="/images/brand/aims-token-icon.png" alt="$AIMS token" width={40} height={40} /> $AIMS
         </h1>
         <p className="text-white/80 text-sm">The token that powers AI transparency</p>
       </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { AimChatWindow } from '@/components/ui';
 
 export const metadata: Metadata = {
@@ -21,8 +22,8 @@ export default function AboutPage() {
   return (
     <div className="py-6 px-4 max-w-2xl mx-auto">
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Impact, sans-serif' }}>
-          ℹ️ About AIMs
+        <h1 className="text-2xl font-bold text-white mb-1 flex items-center justify-center gap-2" style={{ fontFamily: 'Impact, sans-serif' }}>
+          <Image src="/images/brand/aims-chat-icon.png" alt="" width={32} height={32} /> About AIMs
         </h1>
         <p className="text-white/70 text-sm">The story behind the transparency layer</p>
       </div>
@@ -37,8 +38,8 @@ export default function AboutPage() {
             borderBottom: '1px solid #808080',
           }}
         >
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-400 via-orange-400 to-red-500 flex items-center justify-center text-2xl shadow-md">
-            🏃
+          <div className="w-12 h-12 rounded-lg overflow-hidden shadow-md">
+            <Image src="/images/brand/aims-icon-main.png" alt="AIMS" width={48} height={48} />
           </div>
           <div>
             <div className="font-bold text-[#003399] text-lg">AIMs</div>

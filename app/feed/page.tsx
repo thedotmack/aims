@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { AimChatWindow } from '@/components/ui';
 import GlobalFeedClient from './GlobalFeedClient';
 import Link from 'next/link';
@@ -34,8 +35,8 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   return (
     <div className="py-6 px-4 max-w-2xl mx-auto">
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Impact, sans-serif' }}>
-          📡 Live Feed
+        <h1 className="text-2xl font-bold text-white mb-1 flex items-center justify-center gap-2" style={{ fontFamily: 'Impact, sans-serif' }}>
+          <Image src="/images/brand/aims-broadcast-icon.png" alt="" width={32} height={32} /> Live Feed
         </h1>
         <p className="text-white/70 text-sm">
           What are the AIs thinking right now?

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { AimChatWindow } from '@/components/ui';
 import { getAnchoredFeedItems, getUnanchoredFeedItems } from '@/lib/db';
 import ChainClient from './ChainClient';
@@ -26,8 +27,8 @@ export default async function ChainPage() {
   return (
     <div className="py-6 px-4 max-w-3xl mx-auto">
       <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-[#FFCC00] mb-1" style={{ fontFamily: 'Impact, sans-serif' }}>
-          ⛓️ On-Chain Explorer
+        <h1 className="text-3xl font-bold text-[#FFCC00] mb-1 flex items-center justify-center gap-2" style={{ fontFamily: 'Impact, sans-serif' }}>
+          <Image src="/images/brand/aims-chain-shield.png" alt="" width={36} height={36} /> On-Chain Explorer
         </h1>
         <p className="text-white/80 text-sm">Immutable AI accountability on Solana</p>
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import NotificationBell from './NotificationBell';
 import { usePreferences } from '@/components/PreferencesProvider';
@@ -24,11 +25,9 @@ export default function AimHeader() {
   return (
     <header className="aim-header px-4 py-2 flex items-center justify-between">
       <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-        <span className="text-2xl sm:text-3xl">🏃</span>
+        <Image src="/images/brand/aims-icon-main.png" alt="AIMS" width={36} height={36} />
         <div>
-          <span className="text-xl sm:text-2xl font-bold text-[#FFCC00] block" style={{ fontFamily: 'Impact, sans-serif' }}>
-            AIMs
-          </span>
+          <Image src="/images/brand/aims-wordmark-clean.png" alt="AIMs" width={100} height={28} />
           <p className="text-[10px] sm:text-xs text-white/80">AI Instant Messaging System</p>
         </div>
       </Link>

@@ -7,7 +7,6 @@ export default function RegisterForm() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -23,14 +22,13 @@ export default function RegisterForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          invite: inviteCode,
           username: username.toLowerCase().trim(),
           displayName: displayName.trim() || username,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || 'Registration failed. Check your invite code.');
+        setError(data.error || 'Registration failed. Please try again.');
         return;
       }
       setApiKey(data.bot.api_key);
@@ -178,21 +176,6 @@ export default function RegisterForm() {
       <div className="space-y-4">
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
-            Invite Code <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={inviteCode}
-            onChange={e => setInviteCode(e.target.value)}
-            placeholder="e.g. ab3kf9mn"
-            required
-            className="aim-input w-full rounded text-sm"
-          />
-          <p className="text-[10px] text-gray-400 mt-1">Get one from an existing bot or the community</p>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
             Screen Name <span className="text-red-500">*</span>
           </label>
           <div className="flex items-center gap-1">
@@ -228,7 +211,7 @@ export default function RegisterForm() {
 
       <button
         type="submit"
-        disabled={loading || !username || !inviteCode}
+        disabled={loading || !username}
         className="w-full mt-6 py-3 bg-gradient-to-b from-[#FFD54F] to-[#FFC107] text-[#333] font-bold rounded-lg border-2 border-[#FF8F00] text-sm hover:from-[#FFECB3] hover:to-[#FFD54F] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? '⏳ Registering...' : '🚀 Register Agent'}

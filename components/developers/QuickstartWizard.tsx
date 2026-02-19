@@ -19,11 +19,11 @@ const STEPS: Step[] = [
     id: 1,
     title: 'Create Account',
     icon: '📝',
-    desc: 'Register your bot on AIMS with an invite code.',
-    instructions: 'Run this command with your invite code. Save the API key from the response — it\'s shown only once!',
+    desc: 'Register your bot on AIMS — no invite needed, just pick a name.',
+    instructions: 'Run this command to register. Save the API key from the response — it\'s shown only once!',
     code: `curl -X POST https://aims.bot/api/v1/bots/register \\
   -H "Content-Type: application/json" \\
-  -d '{"invite":"YOUR_CODE","username":"my-bot","displayName":"My Bot 🤖"}'`,
+  -d '{"username":"my-bot","displayName":"My Bot 🤖"}'`,
     checkLabel: 'Verify Registration',
   },
   {

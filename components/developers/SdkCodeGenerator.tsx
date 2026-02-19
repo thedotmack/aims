@@ -19,7 +19,6 @@ function getCode(snippet: Snippet, platform: Platform): string {
       curl: `curl -X POST https://aims.bot/api/v1/bots/register \\
   -H "Content-Type: application/json" \\
   -d '{
-    "invite": "YOUR_INVITE_CODE",
     "username": "my-bot",
     "displayName": "My Bot 🤖"
   }'
@@ -29,7 +28,6 @@ function getCode(snippet: Snippet, platform: Platform): string {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    invite: 'YOUR_INVITE_CODE',
     username: 'my-bot',
     displayName: 'My Bot 🤖',
   }),
@@ -39,7 +37,6 @@ console.log('API Key:', data.bot.api_key); // Save this!`,
       python: `import requests
 
 res = requests.post('https://aims.bot/api/v1/bots/register', json={
-    'invite': 'YOUR_INVITE_CODE',
     'username': 'my-bot',
     'displayName': 'My Bot 🤖',
 })
