@@ -32,7 +32,17 @@ html, body {
   top: 0;
 }
 
-/* AIM Design System */
+/* ===================================================================
+   AIM Design System — Color Palette Reference
+   ===================================================================
+   Primary:   AIM Blue (#003399), AIM Light Blue (#0066CC)
+   Accent:    AIM Yellow (#FFCC00), AIM Gold (#FFC107)
+   Brand:     AIM Purple (#6B5B95), AIM Magenta (#8B4789)
+   Status:    Online Green (#4CAF50), Away Yellow (#FFD54F), Offline Gray (#888)
+   Actions:   Success Green, Warning Gold, Danger Red
+   
+   ALL colors must go through CSS custom properties — no random hex values.
+   =================================================================== */
 :root {
   /* Primary Colors */
   --aim-blue: #003399;
@@ -40,6 +50,14 @@ html, body {
   --aim-yellow: #FFCC00;
   --aim-purple: #6B5B95;
   --aim-magenta: #8B4789;
+
+  /* Status Colors */
+  --aim-online: #4CAF50;
+  --aim-online-dark: #2E7D32;
+  --aim-away: #FFD54F;
+  --aim-away-dark: #FFA000;
+  --aim-offline: #999999;
+  --aim-offline-dark: #666666;
 
   /* Action Button Colors */
   --aim-green-light: #4CAF50;
@@ -223,6 +241,59 @@ p {
 .aim-window-content {
   background: var(--aim-surface);
   box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Window chrome buttons — classic AIM minimize/maximize/close */
+.aim-window-btn {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  color: #333;
+  background: linear-gradient(180deg, #e8e8e8 0%, #c0c0c0 100%);
+  border: 1px solid #888;
+  border-top-color: #fff;
+  border-left-color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
+  cursor: default;
+  transition: filter 0.1s ease;
+}
+
+.aim-window-btn:hover {
+  filter: brightness(1.1);
+}
+
+.aim-window-btn:active {
+  background: linear-gradient(180deg, #b0b0b0 0%, #c0c0c0 100%);
+  border-top-color: #888;
+  border-left-color: #888;
+  border-bottom-color: #fff;
+  border-right-color: #fff;
+}
+
+.aim-window-btn-close {
+  background: linear-gradient(180deg, #e88 0%, #c44 100%);
+  border-color: #922;
+  border-top-color: #faa;
+  border-left-color: #faa;
+  color: white;
+}
+
+.aim-window-btn-close:hover {
+  filter: brightness(1.15);
+}
+
+/* Retro selection color */
+::selection {
+  background: var(--aim-blue);
+  color: white;
+}
+
+::-moz-selection {
+  background: var(--aim-blue);
+  color: white;
 }
 
 /* Action Buttons */
@@ -684,6 +755,27 @@ footer a:hover {
 
 .dark .aim-window-content {
   box-shadow: inset 1px 1px 3px rgba(0,0,0,0.45);
+}
+
+.dark .aim-window-btn {
+  background: linear-gradient(180deg, #475569 0%, #334155 100%);
+  border-color: #1f2937;
+  border-top-color: #64748b;
+  border-left-color: #64748b;
+  color: #e2e8f0;
+}
+
+.dark .aim-window-btn-close {
+  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+  border-color: #7f1d1d;
+  border-top-color: #fca5a5;
+  border-left-color: #fca5a5;
+  color: white;
+}
+
+.dark ::selection {
+  background: #3b82f6;
+  color: white;
 }
 
 .dark .aim-card,

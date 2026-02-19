@@ -60,6 +60,7 @@ function playDoorSound(type: 'open' | 'close') {
 export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
   const router = useRouter();
   const [onlineOpen, setOnlineOpen] = useState(true);
+  const [recentOpen, setRecentOpen] = useState(true);
   const [offlineOpen, setOfflineOpen] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const prevBotsRef = useRef<Map<string, boolean>>(new Map());
@@ -134,35 +135,69 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
 
   const favorites = bots.filter(b => bookmarkedUsernames.includes(b.username));
   const online = bots.filter(b => b.isOnline);
-  const offline = bots.filter(b => !b.isOnline);
+  const recentlyActive = bots.filter(b => !b.isOnline && b.lastActivity && (Date.now() - new Date(b.lastActivity).getTime() < 60 * 60 * 1000));
+  const offline = bots.filter(b => !b.isOnline && !recentlyActive.includes(b));
 
   const isThinking = (bot: BuddyBot) => {
     if (!bot.lastActivity) return false;
     return Date.now() - new Date(bot.lastActivity).getTime() < 5 * 60 * 1000;
   };
 
+  // Away = online but has a status message (AIM-style away message)
+  const isAway = (bot: BuddyBot) => bot.isOnline && !!bot.statusMessage;
+
+  const StatusIndicator = ({ bot }: { bot: BuddyBot }) => {
+    if (bot.isOnline && isAway(bot)) {
+      // Away: yellow clock
+      return (
+        <span
+          className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white flex items-center justify-center"
+          style={{ background: 'linear-gradient(180deg, #FFD54F 0%, #FFA000 100%)' }}
+          title="Away"
+        >
+          <svg width="6" height="6" viewBox="0 0 8 8" fill="none">
+            <circle cx="4" cy="4" r="3" stroke="white" strokeWidth="0.8" fill="none" />
+            <path d="M4 2.5V4.5L5.5 5" stroke="white" strokeWidth="0.7" strokeLinecap="round" />
+          </svg>
+        </span>
+      );
+    }
+    if (bot.isOnline) {
+      // Online: green dot with pulse
+      return (
+        <span
+          className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white online-pulse"
+          style={{ background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)' }}
+          title="Online"
+        />
+      );
+    }
+    // Offline: gray dot
+    return (
+      <span
+        className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white"
+        style={{ background: 'linear-gradient(180deg, #bbb 0%, #888 100%)' }}
+        title="Offline"
+      />
+    );
+  };
+
   const BotEntry = React.memo(function BotEntry({ bot }: { bot: BuddyBot }) {
+    const away = isAway(bot);
     return (
       <div
         onClick={() => handleClick(bot.username)}
         className="flex items-center gap-2 px-4 py-1.5 cursor-pointer buddy-entry"
         role="button"
         tabIndex={0}
-        aria-label={`View ${bot.displayName || bot.username}'s profile${bot.isOnline ? ' (online)' : ' (offline)'}`}
+        aria-label={`View ${bot.displayName || bot.username}'s profile${bot.isOnline ? (away ? ' (away)' : ' (online)') : ' (offline)'}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(bot.username); } }}
       >
         <span className="relative flex-shrink-0">
           <BotAvatar username={bot.username} avatarUrl={bot.avatarUrl} size={20} />
-          <span
-            className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white ${bot.isOnline ? 'online-pulse' : ''}`}
-            style={{
-              background: bot.isOnline
-                ? 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)'
-                : 'linear-gradient(180deg, #bbb 0%, #888 100%)',
-            }}
-          />
+          <StatusIndicator bot={bot} />
         </span>
-        <span className="font-bold text-sm text-[#003399] truncate">
+        <span className={`font-bold text-sm truncate ${away ? 'text-[#666] italic' : 'text-[#003399]'}`}>
           {bot.displayName || bot.username}
         </span>
         {isThinking(bot) ? (
@@ -175,8 +210,9 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
             thinking
           </span>
         ) : bot.statusMessage ? (
-          <span className="text-xs text-gray-500 italic truncate flex-1 min-w-0">
-            — {bot.statusMessage}
+          <span className={`text-xs italic truncate flex-1 min-w-0 ${away ? 'text-amber-600' : 'text-gray-500'}`}>
+            {away && <span className="not-italic">💤 </span>}
+            {bot.statusMessage}
           </span>
         ) : null}
       </div>
@@ -238,6 +274,17 @@ export default function AimBuddyList({ bots, onBotClick }: AimBuddyListProps) {
             online.map(bot => <BotEntry key={bot.username} bot={bot} />)
           )}
         </div>
+      )}
+
+      {recentlyActive.length > 0 && (
+        <>
+          <GroupHeader label="Recently Active" count={recentlyActive.length} open={recentOpen} toggle={() => setRecentOpen(!recentOpen)} />
+          {recentOpen && (
+            <div className="py-1">
+              {recentlyActive.map(bot => <BotEntry key={`recent-${bot.username}`} bot={bot} />)}
+            </div>
+          )}
+        </>
       )}
 
       <GroupHeader label="Offline" count={offline.length} open={offlineOpen} toggle={() => setOfflineOpen(!offlineOpen)} />
