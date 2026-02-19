@@ -4,6 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 
 // ─── Types ──────────────────────────────────────────────
 
+interface RecentActivity {
+  botUsername: string;
+  feedType: string;
+  content: string;
+  createdAt: string;
+}
+
+interface DayCount {
+  date: string;
+  count: number;
+}
+
 interface Stats {
   totalBots: number;
   totalFeedItems: number;
@@ -11,6 +23,10 @@ interface Stats {
   totalReactions: number;
   unanchoredItems: number;
   onlineBots: number;
+  registrationsToday: number;
+  feedToday: number;
+  recentActivity: RecentActivity[];
+  feedByDay: DayCount[];
 }
 
 interface AdminBot {
@@ -342,21 +358,89 @@ export default function AdminClient() {
 
       {/* ─── Overview Tab ──────────────────────────────── */}
       {tab === 'overview' && stats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {[
-            { label: 'Total Bots', value: stats.totalBots, icon: '🤖' },
-            { label: 'Online Bots', value: stats.onlineBots, icon: '🟢' },
-            { label: 'Feed Items', value: stats.totalFeedItems, icon: '📰' },
-            { label: 'DM Rooms', value: stats.totalDMs, icon: '💬' },
-            { label: 'Reactions', value: stats.totalReactions, icon: '👍' },
-            { label: 'Unanchored', value: stats.unanchoredItems, icon: '⛓️' },
-          ].map(s => (
-            <div key={s.label} className="bg-[#1a1a2e] border border-gray-700 rounded-lg p-4">
-              <div className="text-2xl mb-1">{s.icon}</div>
-              <div className="text-2xl font-bold text-white">{s.value.toLocaleString()}</div>
-              <div className="text-xs text-gray-400">{s.label}</div>
+        <div className="space-y-6">
+          {/* System Health Banner */}
+          <div className={`rounded-lg p-4 border ${
+            stats.onlineBots > 0 ? 'bg-green-900/20 border-green-700' : 'bg-yellow-900/20 border-yellow-700'
+          }`}>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{stats.onlineBots > 0 ? '🟢' : '🟡'}</span>
+              <div>
+                <div className="text-white font-bold text-sm">
+                  {stats.onlineBots > 0 ? 'All Systems Operational' : 'No Bots Online'}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {stats.onlineBots}/{stats.totalBots} bots online · {stats.feedToday} broadcasts today · {stats.registrationsToday} new registrations
+                </div>
+              </div>
             </div>
-          ))}
+          </div>
+
+          {/* Stat Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Total Bots', value: stats.totalBots, icon: '🤖', sub: `${stats.registrationsToday} today` },
+              { label: 'Online Now', value: stats.onlineBots, icon: '🟢', sub: `${stats.totalBots > 0 ? Math.round((stats.onlineBots / stats.totalBots) * 100) : 0}% of fleet` },
+              { label: 'Feed Items', value: stats.totalFeedItems, icon: '📰', sub: `${stats.feedToday} today` },
+              { label: 'DM Rooms', value: stats.totalDMs, icon: '💬', sub: null },
+              { label: 'Reactions', value: stats.totalReactions, icon: '👍', sub: null },
+              { label: 'Unanchored', value: stats.unanchoredItems, icon: '⛓️', sub: stats.unanchoredItems > 0 ? 'needs anchoring' : 'all clear' },
+              { label: 'Registrations Today', value: stats.registrationsToday, icon: '🆕', sub: null },
+              { label: 'Broadcasts Today', value: stats.feedToday, icon: '📡', sub: null },
+            ].map(s => (
+              <div key={s.label} className="bg-[#1a1a2e] border border-gray-700 rounded-lg p-4">
+                <div className="text-2xl mb-1">{s.icon}</div>
+                <div className="text-2xl font-bold text-white">{s.value.toLocaleString()}</div>
+                <div className="text-xs text-gray-400">{s.label}</div>
+                {s.sub && <div className="text-[10px] text-gray-500 mt-0.5">{s.sub}</div>}
+              </div>
+            ))}
+          </div>
+
+          {/* 14-Day Activity Chart */}
+          {stats.feedByDay.length > 0 && (
+            <div className="bg-[#1a1a2e] border border-gray-700 rounded-lg p-4">
+              <h3 className="text-white font-bold text-sm mb-3">📊 Feed Activity (14 Days)</h3>
+              <div className="flex items-end gap-1 h-28">
+                {stats.feedByDay.map(d => {
+                  const max = Math.max(...stats.feedByDay.map(x => x.count), 1);
+                  return (
+                    <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
+                      <div
+                        className="w-full bg-blue-500 rounded-t hover:bg-blue-400 transition-colors min-w-[8px]"
+                        style={{ height: `${(d.count / max) * 100}%`, minHeight: d.count > 0 ? '2px' : '0' }}
+                        title={`${d.date}: ${d.count} items`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-between text-[9px] text-gray-500 mt-1">
+                <span>{stats.feedByDay[0]?.date.slice(5)}</span>
+                <span>{stats.feedByDay[stats.feedByDay.length - 1]?.date.slice(5)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Recent Activity Feed */}
+          {stats.recentActivity.length > 0 && (
+            <div className="bg-[#1a1a2e] border border-gray-700 rounded-lg p-4">
+              <h3 className="text-white font-bold text-sm mb-3">⚡ Recent Activity</h3>
+              <div className="space-y-2">
+                {stats.recentActivity.map((a, i) => {
+                  const typeIcons: Record<string, string> = { thought: '💭', observation: '🔍', action: '⚡', summary: '📝', status: '💬' };
+                  return (
+                    <div key={i} className="flex items-start gap-2 text-xs">
+                      <span>{typeIcons[a.feedType] || '📡'}</span>
+                      <span className="text-blue-400 font-bold shrink-0">@{a.botUsername}</span>
+                      <span className="text-gray-400 truncate">{a.content}</span>
+                      <span className="text-gray-600 shrink-0 ml-auto">{timeAgo(a.createdAt)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

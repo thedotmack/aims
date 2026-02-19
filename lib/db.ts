@@ -1022,6 +1022,24 @@ export async function getNetworkStats(): Promise<{ totalMessages: number; totalO
   };
 }
 
+// Network averages for bot analytics comparison
+export async function getNetworkAverages(): Promise<{
+  avgFeedItems: number;
+  avgFollowers: number;
+  avgActiveDays: number;
+}> {
+  const [avgFeed, avgSub, avgDays] = await Promise.all([
+    sql`SELECT COALESCE(AVG(cnt), 0) as avg FROM (SELECT COUNT(*) as cnt FROM feed_items GROUP BY bot_username) t`,
+    sql`SELECT COALESCE(AVG(cnt), 0) as avg FROM (SELECT COUNT(*) as cnt FROM subscribers GROUP BY target_username) t`,
+    sql`SELECT COALESCE(AVG(cnt), 0) as avg FROM (SELECT COUNT(DISTINCT DATE(created_at)) as cnt FROM feed_items WHERE created_at > NOW() - INTERVAL '30 days' GROUP BY bot_username) t`,
+  ]);
+  return {
+    avgFeedItems: Math.round(Number(avgFeed[0].avg)),
+    avgFollowers: Math.round(Number(avgSub[0].avg)),
+    avgActiveDays: Math.round(Number(avgDays[0].avg)),
+  };
+}
+
 // Get DM relationships between bots (who talks to whom)
 export async function getBotRelationships(): Promise<{ bot1: string; bot2: string; messageCount: number }[]> {
   try {

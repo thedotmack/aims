@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import { getBotByUsername, getBotAnalytics, getFollowerCount } from '@/lib/db';
+import { getBotByUsername, getBotAnalytics, getFollowerCount, getNetworkAverages } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { AimChatWindow } from '@/components/ui';
 import Link from 'next/link';
 import { getBehaviorTrends, getConsistencyScore } from '@/lib/behavior-analysis';
 import BehaviorTrendsChart from '@/components/ui/BehaviorTrendsChart';
 import ConsistencyScoreView from '@/components/ui/ConsistencyScore';
+import AnalyticsExportButton from '@/components/ui/AnalyticsExportButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,12 +27,14 @@ export default async function BotAnalyticsPage({ params }: { params: Promise<{ u
   let followers = 0;
   let behaviorTrends: Awaited<ReturnType<typeof getBehaviorTrends>> = [];
   let consistency: Awaited<ReturnType<typeof getConsistencyScore>> | null = null;
+  let networkAvg: Awaited<ReturnType<typeof getNetworkAverages>> = { avgFeedItems: 0, avgFollowers: 0, avgActiveDays: 0 };
   try {
-    [analytics, followers, behaviorTrends, consistency] = await Promise.all([
+    [analytics, followers, behaviorTrends, consistency, networkAvg] = await Promise.all([
       getBotAnalytics(username),
       getFollowerCount(username),
       getBehaviorTrends(username),
       getConsistencyScore(username),
+      getNetworkAverages(),
     ]);
   } catch { /* ok */ }
 
@@ -58,6 +61,35 @@ export default async function BotAnalyticsPage({ params }: { params: Promise<{ u
               <div className="text-[10px] text-teal-600 font-bold">Active Days (30d)</div>
             </div>
           </div>
+
+          {/* Network Comparison */}
+          {networkAvg.avgFeedItems > 0 && (
+            <div>
+              <h3 className="font-bold text-sm text-[#003399] mb-2">vs. Network Average</h3>
+              <div className="space-y-2">
+                {[
+                  { label: 'Feed Items', value: totalItems, avg: networkAvg.avgFeedItems },
+                  { label: 'Followers', value: followers, avg: networkAvg.avgFollowers },
+                  { label: 'Active Days (30d)', value: analytics?.itemsPerDay.length || 0, avg: networkAvg.avgActiveDays },
+                ].map(m => {
+                  const pct = m.avg > 0 ? Math.round(((m.value - m.avg) / m.avg) * 100) : 0;
+                  const isAbove = pct >= 0;
+                  return (
+                    <div key={m.label} className="flex items-center justify-between text-xs bg-gray-50 rounded px-3 py-2 border border-gray-100">
+                      <span className="text-gray-600">{m.label}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-gray-800">{m.value}</span>
+                        <span className="text-gray-400">avg {m.avg}</span>
+                        <span className={`font-bold ${isAbove ? 'text-green-600' : 'text-red-500'}`}>
+                          {isAbove ? '↑' : '↓'} {Math.abs(pct)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* By Type */}
           <div>
@@ -138,6 +170,26 @@ export default async function BotAnalyticsPage({ params }: { params: Promise<{ u
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Export */}
+          {analytics && totalItems > 0 && (
+            <div className="flex justify-end">
+              <AnalyticsExportButton
+                username={username}
+                data={{
+                  username,
+                  exportedAt: new Date().toISOString(),
+                  totalItems,
+                  followers,
+                  totalByType: analytics.totalByType,
+                  itemsPerDay: analytics.itemsPerDay,
+                  peakHours: analytics.peakHours,
+                  subscriberGrowth: analytics.subscriberGrowth,
+                  networkAverages: networkAvg,
+                }}
+              />
             </div>
           )}
 
