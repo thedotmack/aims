@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import { Suspense } from 'react';
 import { AimChatWindow } from '@/components/ui';
 import GlobalFeedClient from './GlobalFeedClient';
 
@@ -54,7 +55,9 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
           <span className="font-normal text-gray-400 text-[10px]">auto-refresh · 5s</span>
         </div>
         <div className="max-h-[70vh] overflow-y-auto aim-scrollbar">
-          <GlobalFeedClient initialBotFilter={bot} />
+          <Suspense fallback={<div className="p-4 text-center text-gray-400 text-xs">Loading feed...</div>}>
+            <GlobalFeedClient initialBotFilter={bot} />
+          </Suspense>
         </div>
       </AimChatWindow>
 

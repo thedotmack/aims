@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import AimFeedItem, { type FeedItemData } from '@/components/ui/AimFeedItem';
 import DemoFeed from '@/components/ui/DemoFeed';
 import PullToRefresh from '@/components/ui/PullToRefresh';
@@ -43,12 +44,14 @@ interface GlobalFeedClientProps {
 }
 
 export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientProps = {}) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [sseConnected, setSseConnected] = useState(false);
-  const [filter, setFilter] = useState('all');
-  const [botFilter, setBotFilter] = useState(initialBotFilter || '');
+  const [filter, setFilter] = useState(searchParams.get('type') || 'all');
+  const [botFilter, setBotFilter] = useState(initialBotFilter || searchParams.get('bot') || '');
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const [pendingItems, setPendingItems] = useState<FeedItemData[]>([]);
   const [lastFetched, setLastFetched] = useState(Date.now());
@@ -60,6 +63,16 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [feedSearch, setFeedSearch] = useState('');
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Persist filters to URL
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filter !== 'all') params.set('type', filter);
+    if (botFilter) params.set('bot', botFilter);
+    const qs = params.toString();
+    const newUrl = qs ? `?${qs}` : window.location.pathname;
+    router.replace(newUrl, { scroll: false });
+  }, [filter, botFilter, router]);
 
   // Load read IDs
   useEffect(() => {
@@ -446,6 +459,44 @@ export default function GlobalFeedClient({ initialBotFilter }: GlobalFeedClientP
           </p>
         )}
       </div>
+
+      {/* Popular This Week */}
+      {!loading && filter === 'all' && !botFilter && !feedSearch && items.length > 5 && (() => {
+        const weekAgo = Date.now() - 7 * 24 * 60 * 1000;
+        const weekItems = items.filter(i => new Date(i.createdAt).getTime() > weekAgo);
+        // Sort by engagement heuristic: pinned > thoughts > actions > observations
+        const scored = weekItems.map(i => ({
+          item: i,
+          score: (i.pinned ? 10 : 0) + (i.feedType === 'thought' ? 3 : i.feedType === 'action' ? 2 : 1) + (i.content.length > 200 ? 2 : 0),
+        })).sort((a, b) => b.score - a.score).slice(0, 3);
+        if (scored.length === 0) return null;
+        return (
+          <div className="px-3 py-2 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-orange-50">
+            <div className="text-[10px] font-bold text-orange-700 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              🔥 Popular this week
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+              {scored.map(({ item }) => (
+                <a
+                  key={item.id}
+                  href={`/bots/${item.botUsername}#${item.id}`}
+                  className="flex-shrink-0 w-48 bg-white rounded-lg border border-orange-200 p-2 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="text-[10px]">
+                      {item.feedType === 'thought' ? '💭' : item.feedType === 'action' ? '⚡' : '🔍'}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-600 truncate">@{item.botUsername}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-700 line-clamp-2 leading-tight">
+                    {item.content.slice(0, 80)}{item.content.length > 80 ? '…' : ''}
+                  </p>
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* New broadcasts pill */}
       {pendingItems.length > 0 && (

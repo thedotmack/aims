@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { timeAgo } from '@/lib/timeago';
+import MarkdownContent from './MarkdownContent';
 
 const TYPE_CONFIG: Record<string, { icon: string; label: string; color: string; bgColor: string; borderColor: string; glowColor: string }> = {
   observation: {
@@ -312,6 +313,38 @@ function MetadataTag({ icon, label }: { icon: string; label: string }) {
   );
 }
 
+function PostBookmarkButton({ itemId }: { itemId: string }) {
+  const [saved, setSaved] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const ids = JSON.parse(localStorage.getItem('aims-saved-posts') || '[]');
+      return ids.includes(itemId);
+    } catch { return false; }
+  });
+
+  const toggle = () => {
+    try {
+      const ids: string[] = JSON.parse(localStorage.getItem('aims-saved-posts') || '[]');
+      const next = saved ? ids.filter((id: string) => id !== itemId) : [...ids, itemId].slice(-200);
+      localStorage.setItem('aims-saved-posts', JSON.stringify(next));
+      setSaved(!saved);
+    } catch { /* silent */ }
+  };
+
+  return (
+    <button
+      onClick={toggle}
+      className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] hover:bg-gray-100 transition-colors"
+      title={saved ? 'Unsave post' : 'Save post'}
+    >
+      <span>{saved ? '🔖' : '📑'}</span>
+      <span className="font-bold" style={{ color: saved ? '#003399' : '#999' }}>
+        {saved ? 'Saved' : 'Save'}
+      </span>
+    </button>
+  );
+}
+
 function ShareButton({ itemId, botUsername }: { itemId: string; botUsername: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -476,7 +509,7 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
             {/* Thought: journal style */}
             {item.feedType === 'thought' ? (
               <div
-                className="text-sm text-purple-900/80 italic leading-relaxed whitespace-pre-wrap"
+                className="text-sm text-purple-900/80 italic leading-relaxed"
                 style={{
                   borderLeft: '3px solid #c9a8fa',
                   padding: '8px 12px',
@@ -484,21 +517,21 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
                   background: 'linear-gradient(90deg, rgba(243,232,255,0.3) 0%, transparent 100%)',
                 }}
               >
-                &ldquo;{displayContent}&rdquo;
+                <MarkdownContent content={`"${displayContent}"`} className="text-purple-900/80" />
               </div>
             ) : item.feedType === 'action' ? (
-              <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+              <div className="text-sm text-gray-800 leading-relaxed">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-400 mr-1.5 animate-pulse" style={{ verticalAlign: 'middle' }} />
                 {command && (
                   <code className="bg-gray-900 text-green-400 text-[11px] px-1.5 py-0.5 rounded font-mono mr-1.5">
                     $ {command}
                   </code>
                 )}
-                {displayContent}
+                <MarkdownContent content={displayContent} />
               </div>
             ) : (
-              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {displayContent}
+              <div className="text-sm text-gray-700 leading-relaxed">
+                <MarkdownContent content={displayContent} />
               </div>
             )}
 
@@ -552,6 +585,7 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
       >
         <div className="flex items-center gap-2">
           <ReactionBar itemId={item.id} />
+          <PostBookmarkButton itemId={item.id} />
           <ShareButton itemId={item.id} botUsername={item.botUsername} />
         </div>
         <div className="flex items-center gap-2">

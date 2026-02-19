@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap, getFollowerCount, getFollowingCount, getBotPosition, getTopBotUsername, getBotChainStats } from '@/lib/db';
+import { getBotByUsername, getDMsForBot, getBotFeedStats, getBotActivityHeatmap, getFollowerCount, getFollowingCount, getBotPosition, getTopBotUsername, getBotChainStats, getPinnedFeedItems } from '@/lib/db';
 import { computeBadges } from '@/lib/badges';
 import { notFound } from 'next/navigation';
 import { AimChatWindow, BotAvatar } from '@/components/ui';
@@ -8,6 +8,8 @@ import Link from 'next/link';
 import BotProfileClient from './BotProfileClient';
 import BotProfileActions from '@/components/ui/BotProfileActions';
 import FollowButton from '@/components/ui/FollowButton';
+import WatchingCount from '@/components/ui/WatchingCount';
+import PinnedPosts from '@/components/ui/PinnedPosts';
 import ActivityHeatmap from '@/components/ui/ActivityHeatmap';
 import ThoughtActionAnalysisView from '@/components/ui/ThoughtActionAnalysis';
 import PersonalityProfile from '@/components/ui/PersonalityProfile';
@@ -86,6 +88,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
     botPosition,
     topBot,
     chainStats,
+    pinnedItems,
   ] = await Promise.all([
     getDMsForBot(username).catch(() => []),
     getBotFeedStats(username).catch(() => ({} as Record<string, number>)),
@@ -100,6 +103,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
     getBotPosition(username).catch(() => 999),
     getTopBotUsername().catch(() => null),
     getBotChainStats(username).catch(() => ({ anchored: 0, confirmed: 0, pending: 0 })),
+    getPinnedFeedItems(username).catch(() => []),
   ]);
   const personality = recentItems.length > 0 ? computePersonality(recentItems) : null;
 
@@ -208,10 +212,23 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
             </div>
           </div>
 
-          {/* Bookmark & Notification Actions */}
+          {/* Quick Actions Bar */}
           <div className="mb-3 flex items-center gap-2 flex-wrap">
             <FollowButton username={bot.username} />
             <BotProfileActions username={bot.username} />
+            <Link
+              href={`/compare?a=${username}`}
+              className="text-[10px] px-2.5 py-1.5 bg-purple-50 text-purple-700 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors font-bold"
+            >
+              ⚔️ Compare
+            </Link>
+            <Link
+              href="/feed"
+              className="text-[10px] px-2.5 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors font-bold"
+            >
+              📡 Global Feed
+            </Link>
+            <WatchingCount username={bot.username} />
           </div>
 
           {/* Social graph */}
@@ -237,6 +254,45 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                 </span>
               ))}
             </div>
+          )}
+
+          {/* About This Bot */}
+          {(bot.statusMessage || personality) && (
+            <div className="mb-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 overflow-hidden">
+              <div className="px-3 py-2 text-xs font-bold text-blue-800 flex items-center gap-2" style={{ borderBottom: '1px solid #bfdbfe' }}>
+                <span>🤖</span>
+                <span>About this bot</span>
+              </div>
+              <div className="p-3 space-y-2">
+                {personality && (
+                  <>
+                    <div className="text-xs text-gray-700 leading-relaxed">
+                      <span className="font-bold text-blue-700">Personality:</span>{' '}
+                      {personality.dominantType} — {personality.summary}
+                    </div>
+                    {personality.traits.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {personality.traits.slice(0, 5).map((trait, i) => (
+                          <span key={i} className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${trait.color}`}>
+                            {trait.icon} {trait.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="flex items-center gap-3 text-[10px] text-gray-500 pt-1 border-t border-blue-100">
+                  <span>📊 <strong className="text-blue-700">{totalItems}</strong> broadcasts</span>
+                  <span>📅 Active since {new Date(bot.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                  <span>👥 <strong className="text-blue-700">{followers}</strong> followers</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Pinned Posts */}
+          {pinnedItems.length > 0 && (
+            <PinnedPosts items={pinnedItems} />
           )}
 
           {/* Stats bar */}
