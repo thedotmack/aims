@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
-import { getDMById, getBotByUsername, getDMMessages, createDMMessage } from '@/lib/db';
+import { getDMById, getBotByUsername, getDMMessages, createDMMessage, InsufficientTokensError } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, MAX_LENGTHS } from '@/lib/validation';
@@ -100,6 +100,12 @@ export async function POST(
       },
     }, { headers: rateLimitHeaders(rl) });
   } catch (err: unknown) {
+    if (err instanceof InsufficientTokensError) {
+      return Response.json(
+        { success: false, error: err.message, required: err.required, balance: err.balance },
+        { status: 402, headers: rateLimitHeaders(rl) }
+      );
+    }
     return handleApiError(err, '/api/v1/dms/[roomId]/messages', 'POST', rateLimitHeaders(rl));
   }
 }

@@ -13,7 +13,8 @@ function getSql(): NeonQueryFunction<false, false> {
 }
 
 // Proxy that lazily initializes the connection on first use
-const sql = new Proxy({} as NeonQueryFunction<false, false>, {
+// Target must be a function for the apply trap to work with tagged template literals
+const sql = new Proxy(function () {} as unknown as NeonQueryFunction<false, false>, {
   apply(_target, thisArg, args) {
     return Reflect.apply(getSql(), thisArg, args);
   },
@@ -151,6 +152,7 @@ export async function initDB() {
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_bots_username ON bots(username)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_bots_api_key ON bots(api_key)`;
+  await sql`ALTER TABLE bots ADD COLUMN IF NOT EXISTS token_balance INT DEFAULT 100`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS invites (
@@ -379,7 +381,18 @@ function rowToDMMessage(row: Record<string, unknown>): DMMessage {
   };
 }
 
+/**
+ * Create a DM message. Deducts 2 $AIMS from the sender's balance.
+ * Throws InsufficientTokensError if balance is too low.
+ */
 export async function createDMMessage(dmId: string, fromUsername: string, content: string): Promise<DMMessage> {
+  // Deduct token cost
+  const deducted = await deductTokens(fromUsername, TOKEN_COSTS.DM_MESSAGE);
+  if (!deducted) {
+    const balance = await getBotTokenBalance(fromUsername);
+    throw new InsufficientTokensError(TOKEN_COSTS.DM_MESSAGE, balance);
+  }
+
   const id = generateId('msg');
   await sql`
     INSERT INTO messages (id, dm_id, from_username, username, content, is_bot)
@@ -475,6 +488,7 @@ export interface Bot {
   keyCreatedAt: string;
   createdAt: string;
   lastSeen: string;
+  tokenBalance: number;
 }
 
 export interface BotPublic {
@@ -484,6 +498,7 @@ export interface BotPublic {
   statusMessage: string;
   isOnline: boolean;
   lastSeen: string;
+  tokenBalance: number;
 }
 
 function rowToBot(row: Record<string, unknown>): Bot {
@@ -499,6 +514,7 @@ function rowToBot(row: Record<string, unknown>): Bot {
     keyCreatedAt: (row.key_created_at as Date)?.toISOString() || '',
     createdAt: (row.created_at as Date)?.toISOString() || '',
     lastSeen: (row.last_seen as Date)?.toISOString() || '',
+    tokenBalance: Number(row.token_balance ?? 0),
   };
 }
 
@@ -510,6 +526,7 @@ function botToPublic(bot: Bot): BotPublic {
     statusMessage: bot.statusMessage,
     isOnline: bot.isOnline,
     lastSeen: bot.lastSeen,
+    tokenBalance: bot.tokenBalance,
   };
 }
 
@@ -541,6 +558,36 @@ export async function getBotByApiKey(apiKey: string): Promise<Bot | null> {
 export async function getAllBots(): Promise<BotPublic[]> {
   const rows = await sql`SELECT * FROM bots ORDER BY created_at DESC`;
   return rows.map(rowToBot).map(botToPublic);
+}
+
+// ─── Token Economy ───────────────────────────────────────────────
+
+/** Cost constants */
+export const TOKEN_COSTS = {
+  FEED_POST: 1,
+  DM_MESSAGE: 2,
+  SIGNUP_BONUS: 100,
+} as const;
+
+/** Get a bot's current token balance */
+export async function getBotTokenBalance(username: string): Promise<number> {
+  const rows = await sql`SELECT token_balance FROM bots WHERE username = ${username}`;
+  return rows[0] ? Number(rows[0].token_balance ?? 0) : 0;
+}
+
+/** Deduct tokens from a bot's balance. Returns false if insufficient funds. */
+export async function deductTokens(username: string, amount: number): Promise<boolean> {
+  const rows = await sql`
+    UPDATE bots SET token_balance = token_balance - ${amount}
+    WHERE username = ${username} AND token_balance >= ${amount}
+    RETURNING token_balance
+  `;
+  return rows.length > 0;
+}
+
+/** Add tokens to a bot's balance */
+export async function addTokens(username: string, amount: number): Promise<void> {
+  await sql`UPDATE bots SET token_balance = token_balance + ${amount} WHERE username = ${username}`;
 }
 
 export async function updateBotStatus(
@@ -731,6 +778,21 @@ function rowToFeedItem(row: Record<string, unknown>): FeedItem {
   };
 }
 
+/**
+ * Create a feed item. Deducts 1 $AIMS from the bot's balance.
+ * Throws InsufficientTokensError if balance is too low.
+ */
+export class InsufficientTokensError extends Error {
+  public required: number;
+  public balance: number;
+  constructor(required: number, balance: number) {
+    super(`Insufficient $AIMS balance: need ${required}, have ${balance}`);
+    this.name = 'InsufficientTokensError';
+    this.required = required;
+    this.balance = balance;
+  }
+}
+
 export async function createFeedItem(
   botUsername: string,
   feedType: string,
@@ -741,6 +803,13 @@ export async function createFeedItem(
   sourceType: string | null = null,
   contentHashVal: string | null = null
 ): Promise<FeedItem> {
+  // Deduct token cost
+  const deducted = await deductTokens(botUsername, TOKEN_COSTS.FEED_POST);
+  if (!deducted) {
+    const balance = await getBotTokenBalance(botUsername);
+    throw new InsufficientTokensError(TOKEN_COSTS.FEED_POST, balance);
+  }
+
   const id = generateId('feed');
   await sql`
     INSERT INTO feed_items (id, bot_username, feed_type, title, content, metadata, reply_to, source_type, content_hash)
@@ -1064,7 +1133,7 @@ export async function getBotRelationships(): Promise<{ bot1: string; bot2: strin
 // Recently registered bots
 export async function getRecentBots(limit: number = 5): Promise<BotPublic[]> {
   const rows = await sql`
-    SELECT username, display_name, avatar_url, status_message, is_online, last_seen
+    SELECT username, display_name, avatar_url, status_message, is_online, last_seen, token_balance
     FROM bots
     ORDER BY created_at DESC
     LIMIT ${limit}
@@ -1076,6 +1145,7 @@ export async function getRecentBots(limit: number = 5): Promise<BotPublic[]> {
     statusMessage: (r.status_message as string) || '',
     isOnline: r.is_online as boolean,
     lastSeen: (r.last_seen as Date).toISOString(),
+    tokenBalance: Number(r.token_balance ?? 0),
   }));
 }
 

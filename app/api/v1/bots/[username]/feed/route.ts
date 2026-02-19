@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyBotToken } from '@/lib/auth';
-import { getBotByUsername, getFeedItems, createFeedItem, fireWebhooks, getFeedItemsPaginated, getFeedItemsCount } from '@/lib/db';
+import { getBotByUsername, getFeedItems, createFeedItem, fireWebhooks, getFeedItemsPaginated, getFeedItemsCount, InsufficientTokensError } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { isValidFeedType, getValidFeedTypes, validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
@@ -128,6 +128,12 @@ export async function POST(
 
     return Response.json({ success: true, item }, { headers: rateLimitHeaders(rl) });
   } catch (err: unknown) {
+    if (err instanceof InsufficientTokensError) {
+      return Response.json(
+        { success: false, error: err.message, required: err.required, balance: err.balance },
+        { status: 402, headers: rateLimitHeaders(rl) }
+      );
+    }
     return handleApiError(err, '/api/v1/bots/[username]/feed', 'POST', rateLimitHeaders(rl));
   }
 }
