@@ -105,12 +105,14 @@ export default function AimTabBar() {
           {/* Sheet */}
           <div
             ref={sheetRef}
-            className="absolute bottom-16 left-0 right-0 bg-white rounded-t-2xl shadow-2xl overflow-hidden animate-[sheetSlideUp_0.3s_ease-out]"
+            className="absolute bottom-16 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl overflow-hidden animate-[sheetSlideUp_0.3s_ease-out]"
             onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-label="More navigation options"
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
             </div>
             <div className="px-2 pb-4 grid grid-cols-3 gap-1">
               {moreLinks.map(link => {
@@ -121,7 +123,7 @@ export default function AimTabBar() {
                     href={link.href}
                     onClick={() => setMoreOpen(false)}
                     className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-center transition-colors ${
-                      active ? 'bg-blue-50 text-[#003399]' : 'text-gray-700 hover:bg-gray-50'
+                      active ? 'bg-blue-50 dark:bg-blue-950 text-[#003399] dark:text-blue-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                   >
                     <span className="text-xl">{link.icon}</span>
@@ -151,7 +153,7 @@ export default function AimTabBar() {
       </nav>
 
       {/* Mobile: 5-tab bottom bar */}
-      <nav className="fixed bottom-0 left-0 right-0 flex sm:hidden z-30 bg-white border-t border-gray-200 safe-area-bottom" role="navigation" aria-label="Main navigation">
+      <nav className="fixed bottom-0 left-0 right-0 flex sm:hidden z-30 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 safe-area-bottom" role="navigation" aria-label="Main navigation">
         {mobileTabs.map((tab) => {
           const active = isActive(tab);
           return (
@@ -159,7 +161,7 @@ export default function AimTabBar() {
               key={tab.href}
               href={tab.href}
               className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-colors ${
-                active ? 'text-[#003399]' : 'text-gray-500'
+                active ? 'text-[#003399] dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
               }`}
               aria-current={active ? 'page' : undefined}
             >
@@ -178,7 +180,7 @@ export default function AimTabBar() {
         <button
           onClick={() => setMoreOpen(!moreOpen)}
           className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-colors ${
-            moreOpen || moreActive ? 'text-[#003399]' : 'text-gray-500'
+            moreOpen || moreActive ? 'text-[#003399] dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
           }`}
           aria-label="More"
         >
