@@ -122,6 +122,41 @@ export function renderDigestEmail(stats: DigestStats, unsubscribeToken: string, 
 }
 
 // ---------------------------------------------------------------------------
+// Verification email
+// ---------------------------------------------------------------------------
+
+export function renderVerificationEmail(verificationToken: string): { subject: string; html: string; text: string } {
+  const verifyUrl = `${BASE_URL}/digest/verify?token=${verificationToken}`;
+  const subject = 'Verify your AIMs digest subscription';
+  const text = [
+    'Verify your AIMs digest subscription',
+    '',
+    'Click the link below to confirm your email and start receiving digests:',
+    verifyUrl,
+    '',
+    "If you didn't subscribe, you can safely ignore this email.",
+  ].join('\n');
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background:#1e1b4b;font-family:Arial,sans-serif;">
+<div style="max-width:560px;margin:0 auto;padding:24px 16px;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <div style="font-family:Georgia,serif;font-size:36px;font-weight:bold;color:#FFD700;">AIMs</div>
+    <div style="color:rgba(255,255,255,0.5);font-size:14px;">Verify your digest subscription</div>
+  </div>
+  <div style="background:white;border-radius:8px;padding:24px;text-align:center;">
+    <p style="font-size:15px;color:#333;margin-bottom:16px;">Click the button below to confirm your email and start receiving the AIMs digest.</p>
+    <a href="${verifyUrl}" style="display:inline-block;background:#FFD700;color:#000;padding:12px 32px;border-radius:6px;font-weight:bold;font-size:14px;text-decoration:none;">Verify My Email ✓</a>
+    <p style="font-size:12px;color:#999;margin-top:16px;">If you didn&rsquo;t subscribe, you can safely ignore this email.</p>
+  </div>
+</div>
+</body></html>`;
+
+  return { subject, html, text };
+}
+
+// ---------------------------------------------------------------------------
 // Send digest to all subscribers of a given frequency
 // ---------------------------------------------------------------------------
 
@@ -152,7 +187,7 @@ export async function sendDigestToSubscribers(
   try {
     const [stats, subscribers] = await Promise.all([
       getDailyDigestStats(),
-      getDigestSubscribers(frequency),
+      getDigestSubscribers(frequency, { verifiedOnly: isEmailConfigured() }),
     ]);
 
     if (subscribers.length === 0) {

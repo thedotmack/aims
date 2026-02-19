@@ -257,6 +257,7 @@ export async function initDB() {
   await sql`CREATE INDEX IF NOT EXISTS idx_digest_email ON digest_subscribers(email)`;
   await sql`ALTER TABLE digest_subscribers ADD COLUMN IF NOT EXISTS unsubscribe_token TEXT NOT NULL DEFAULT gen_random_uuid()::TEXT`;
   await sql`ALTER TABLE digest_subscribers ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT false`;
+  await sql`ALTER TABLE digest_subscribers ADD COLUMN IF NOT EXISTS verification_token TEXT DEFAULT gen_random_uuid()::TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS api_logs (
@@ -1616,15 +1617,20 @@ export async function getSocialProofStats(): Promise<{
 }
 
 // Digest subscribers
-export async function subscribeToDigest(email: string, frequency: string): Promise<{ success: boolean; existing?: boolean; unsubscribeToken?: string }> {
+export async function subscribeToDigest(email: string, frequency: string): Promise<{ success: boolean; existing?: boolean; unsubscribeToken?: string; verificationToken?: string; alreadyVerified?: boolean }> {
   try {
-    const existing = await sql`SELECT id, unsubscribe_token FROM digest_subscribers WHERE email = ${email}`;
+    const existing = await sql`SELECT id, unsubscribe_token, verification_token, verified FROM digest_subscribers WHERE email = ${email}`;
     if (existing.length > 0) {
+      // Re-generate verification token on resubscribe if not yet verified
+      if (!existing[0].verified) {
+        const result = await sql`UPDATE digest_subscribers SET frequency = ${frequency}, verification_token = gen_random_uuid()::TEXT WHERE email = ${email} RETURNING unsubscribe_token, verification_token`;
+        return { success: true, existing: true, unsubscribeToken: result[0].unsubscribe_token, verificationToken: result[0].verification_token };
+      }
       await sql`UPDATE digest_subscribers SET frequency = ${frequency} WHERE email = ${email}`;
-      return { success: true, existing: true, unsubscribeToken: existing[0].unsubscribe_token };
+      return { success: true, existing: true, alreadyVerified: true, unsubscribeToken: existing[0].unsubscribe_token };
     }
-    const result = await sql`INSERT INTO digest_subscribers (email, frequency) VALUES (${email}, ${frequency}) RETURNING unsubscribe_token`;
-    return { success: true, unsubscribeToken: result[0]?.unsubscribe_token };
+    const result = await sql`INSERT INTO digest_subscribers (email, frequency) VALUES (${email}, ${frequency}) RETURNING unsubscribe_token, verification_token`;
+    return { success: true, unsubscribeToken: result[0]?.unsubscribe_token, verificationToken: result[0]?.verification_token };
   } catch {
     return { success: false };
   }
@@ -1640,12 +1646,28 @@ export async function unsubscribeFromDigest(token: string): Promise<{ success: b
   }
 }
 
-export async function getDigestSubscribers(frequency: 'daily' | 'weekly'): Promise<Array<{ id: string; email: string; unsubscribe_token: string }>> {
+export async function getDigestSubscribers(frequency: 'daily' | 'weekly', options?: { verifiedOnly?: boolean }): Promise<Array<{ id: string; email: string; unsubscribe_token: string }>> {
   try {
-    const rows = await sql`SELECT id, email, unsubscribe_token FROM digest_subscribers WHERE frequency = ${frequency}`;
+    const rows = options?.verifiedOnly
+      ? await sql`SELECT id, email, unsubscribe_token FROM digest_subscribers WHERE frequency = ${frequency} AND verified = true`
+      : await sql`SELECT id, email, unsubscribe_token FROM digest_subscribers WHERE frequency = ${frequency}`;
     return rows as Array<{ id: string; email: string; unsubscribe_token: string }>;
   } catch {
     return [];
+  }
+}
+
+export async function verifyDigestSubscriber(token: string): Promise<{ success: boolean; email?: string; alreadyVerified?: boolean }> {
+  try {
+    // Check if token exists
+    const existing = await sql`SELECT email, verified FROM digest_subscribers WHERE verification_token = ${token}`;
+    if (existing.length === 0) return { success: false };
+    if (existing[0].verified) return { success: true, email: existing[0].email, alreadyVerified: true };
+    // Mark as verified and clear verification token
+    await sql`UPDATE digest_subscribers SET verified = true, verification_token = NULL WHERE verification_token = ${token}`;
+    return { success: true, email: existing[0].email };
+  } catch {
+    return { success: false };
   }
 }
 

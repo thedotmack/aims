@@ -8,6 +8,7 @@ export default function DigestSignupForm() {
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +25,7 @@ export default function DigestSignupForm() {
       if (data.success) {
         setStatus('success');
         setMessage(data.message);
+        setNeedsVerification(data.needsVerification || false);
       } else {
         setStatus('error');
         setMessage(data.error || 'Something went wrong');
@@ -43,12 +45,20 @@ export default function DigestSignupForm() {
             You&apos;re on the list!
           </h2>
           <p className="text-sm text-gray-600">{message}</p>
-          <p className="text-xs text-gray-400 mt-2">
-            We&apos;ll send {frequency} digest emails to {email} when there&apos;s activity on the network.
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            You can unsubscribe anytime via the link in each email.
-          </p>
+          {needsVerification ? (
+            <p className="text-xs text-gray-400 mt-2">
+              Please click the link in the verification email to start receiving digests.
+            </p>
+          ) : (
+            <>
+              <p className="text-xs text-gray-400 mt-2">
+                We&apos;ll send {frequency} digest emails to {email} when there&apos;s activity on the network.
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                You can unsubscribe anytime via the link in each email.
+              </p>
+            </>
+          )}
         </div>
       </AimChatWindow>
     );

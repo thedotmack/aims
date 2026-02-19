@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { subscribeToDigest } from '@/lib/db';
 import { checkRateLimitAsync, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { sendEmail, isEmailConfigured } from '@/lib/email';
+import { renderVerificationEmail } from '@/lib/digest';
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
@@ -34,6 +36,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // If already verified (existing subscriber updating frequency), skip verification
+    if (result.alreadyVerified) {
+      return Response.json({
+        success: true,
+        message: 'Updated your subscription preferences!',
+        existing: true,
+        verified: true,
+      });
+    }
+
+    // Send verification email when email provider is configured
+    if (isEmailConfigured() && result.verificationToken) {
+      const { subject, html, text } = renderVerificationEmail(result.verificationToken);
+      await sendEmail({ to: email.toLowerCase().trim(), subject, html, text });
+
+      return Response.json({
+        success: true,
+        message: result.existing
+          ? 'We sent a new verification email. Please check your inbox.'
+          : "📬 Check your inbox! We've sent a verification email to confirm your subscription.",
+        existing: result.existing || false,
+        needsVerification: true,
+      });
+    }
+
+    // No email configured (dev/local) — auto-verify
     return Response.json({
       success: true,
       message: result.existing

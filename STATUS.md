@@ -1740,4 +1740,78 @@ New test files:
 - Cron endpoint returns 200 on idempotency skip (to avoid Vercel retry alerts) — check response body for `skipped: true`
 
 ### ⚠️ Next Priority Gap
-**Email verification / double opt-in for digest subscribers** — Currently any email can be subscribed without verification. Implement: subscribe → send verification email with token → mark `verified=true` on click → only send digests to verified subscribers. The `verified` column already exists in `digest_subscribers` (defaults to `false`) but is not enforced.
+~~**Email verification / double opt-in for digest subscribers**~~ — resolved in Cycle 26.
+
+---
+
+## Refinement Cycle 26 — Feb 19, 2026 (Email Verification / Double Opt-In)
+
+### ✅ Problem
+Any email could be subscribed to the digest without verification. The `verified` column existed in `digest_subscribers` (defaulting to `false`) but was never enforced — all subscribers received digests regardless.
+
+### ✅ Solution: Full Double Opt-In Flow
+
+**Subscribe → Verify → Receive flow:**
+1. User subscribes via `/api/v1/digest/subscribe` → row created with `verified=false`, `verification_token` generated
+2. When email is configured (Resend): verification email sent with unique token link → user clicks `/digest/verify?token=...`
+3. Verification endpoint marks `verified=true`, clears `verification_token` (one-time use)
+4. `sendDigestToSubscribers()` now filters `verified=true` only when email is configured
+5. When email is NOT configured (dev/local): no verification required, existing behavior preserved
+
+**DB changes:**
+- Added `verification_token TEXT` column to `digest_subscribers` (auto-generated UUID)
+- `subscribeToDigest()` now returns `verificationToken` and `alreadyVerified`
+- Re-subscribing when unverified regenerates the verification token (new email sent)
+- Already-verified subscribers can update frequency without re-verification
+- New `verifyDigestSubscriber(token)` function: validates token, marks verified, clears token
+
+**New endpoints:**
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/v1/digest/verify` | GET | Verify email via token query param |
+
+**New pages:**
+| Page | Purpose |
+|------|---------|
+| `/digest/verify` | Verification landing page (success, already verified, error states) |
+
+**Email:**
+- Verification email uses existing Resend provider abstraction (`lib/email.ts`)
+- AIM-themed HTML email with "Verify My Email ✓" CTA button
+- Plain text fallback included
+
+**Digest sending updated:**
+- `getDigestSubscribers()` now accepts `{ verifiedOnly?: boolean }` option
+- `sendDigestToSubscribers()` passes `verifiedOnly: true` when `isEmailConfigured()` returns true
+- When email is not configured, all subscribers are included (dev/local compatibility)
+
+### ✅ Tests: 338 → 347 tests (53 test files)
+
+New test file `tests/api/digest-verification.test.ts` (9 tests):
+- Subscribe returns `needsVerification=true` when email configured
+- Subscribe skips verification for already-verified subscribers
+- Subscribe skips verification when email not configured (dev mode)
+- Verify valid token → 200, email returned
+- Verify invalid token → 404
+- Verify missing token → 400
+- Verify already-verified token → success with `alreadyVerified=true`
+- Digest sending passes `verifiedOnly=true` when email configured
+- Digest sending skips when email not configured
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **347 passed**, 16 skipped ✅
+
+### Files Changed
+- `lib/db.ts` — added `verification_token` column, updated `subscribeToDigest()`, new `verifyDigestSubscriber()`, updated `getDigestSubscribers()` with `verifiedOnly` option
+- `lib/digest.ts` — new `renderVerificationEmail()`, updated `sendDigestToSubscribers()` to filter verified-only
+- `app/api/v1/digest/subscribe/route.ts` — sends verification email, returns `needsVerification` flag
+- `app/api/v1/digest/verify/route.ts` — NEW (GET endpoint for token verification)
+- `app/digest/verify/page.tsx` — NEW (verification landing page)
+- `app/digest/verify/VerifyClient.tsx` — NEW (client component with loading/success/error states)
+- `app/digest/DigestSignupForm.tsx` — updated success UI to show verification messaging
+- `tests/api/digest-verification.test.ts` — NEW (9 tests)
+- `aims/STATUS.md` — this section
+
+### ⚠️ Next Priority Gap
+**Seed data / demo bots for first-time visitors** — While `lib/seed.ts` exists with seed data and the admin panel has a "Seed Demo Data" button, there's no automatic seeding for fresh deployments. First-time visitors see an empty feed. Consider auto-seeding when the database is empty (triggered by the first visit or a startup hook) so the product feels alive immediately.
