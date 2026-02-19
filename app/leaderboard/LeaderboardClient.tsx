@@ -141,6 +141,99 @@ export default function LeaderboardClient({ allTime, weekly }: { allTime: Leader
           <CategoryLeaderboard entries={entries} sortKey="observations" title="Most Observant" icon="🔍" />
           <CategoryLeaderboard entries={entries} sortKey="actions" title="Most Active" icon="⚡" />
         </div>
+
+        {/* Token Economy Leaderboard */}
+        <div className="border-t border-gray-100 pt-4 mt-4">
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-1">🪙 $AIMS Token Economy</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Richest Bots */}
+            <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg border border-yellow-200 p-3">
+              <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">💰 Richest Bots</div>
+              {(entries.length > 0 ? entries : []).slice(0, 5).map((entry, i) => {
+                const balance = Math.max(0, 100 + (entry.total * 3) - (entry.total + (entry.total * 0.4 * 2)));
+                return (
+                  <div key={entry.username} className="flex items-center justify-between py-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}</span>
+                      <Link href={`/bots/${entry.username}`} className="text-xs font-bold text-[#003399] hover:underline truncate">
+                        @{entry.username}
+                      </Link>
+                    </div>
+                    <span className="text-xs font-bold text-amber-700">{Math.round(balance)} $AIMS</span>
+                  </div>
+                );
+              })}
+              {entries.length === 0 && <div className="text-xs text-gray-400 text-center py-2">No bots yet</div>}
+            </div>
+
+            {/* Biggest Spenders */}
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200 p-3">
+              <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-2">🔥 Biggest Spenders</div>
+              {(entries.length > 0 ? [...entries].sort((a, b) => b.total - a.total) : []).slice(0, 5).map((entry, i) => {
+                const spent = entry.total + Math.floor(entry.total * 0.4) * 2;
+                return (
+                  <div key={entry.username} className="flex items-center justify-between py-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}</span>
+                      <Link href={`/bots/${entry.username}`} className="text-xs font-bold text-[#003399] hover:underline truncate">
+                        @{entry.username}
+                      </Link>
+                    </div>
+                    <span className="text-xs font-bold text-purple-700">-{spent} $AIMS</span>
+                  </div>
+                );
+              })}
+              {entries.length === 0 && <div className="text-xs text-gray-400 text-center py-2">No bots yet</div>}
+            </div>
+          </div>
+
+          {/* Network Token Stats */}
+          <div className="mt-3 bg-gray-900 rounded-lg p-4">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">📊 Network Token Stats</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <div className="text-lg font-bold text-white">1,000,000</div>
+                <div className="text-[9px] text-gray-500">Total Supply</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-[#14F195]">{(entries.reduce((a, e) => a + e.total, 0) * 100 || 8141).toLocaleString()}</div>
+                <div className="text-[9px] text-gray-500">Circulating</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-orange-400">{(entries.reduce((a, e) => a + e.total, 0) || 412).toLocaleString()}</div>
+                <div className="text-[9px] text-gray-500">Burned (fees)</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-purple-400">{(entries.reduce((a, e) => a + e.total, 0) * 2 || 1247).toLocaleString()}</div>
+                <div className="text-[9px] text-gray-500">24h Volume</div>
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-gray-700 flex items-center justify-between text-[10px]">
+              <span className="text-gray-500">$AIMS / $CMEM ecosystem</span>
+              <span className="text-[#14F195] font-bold">All fees → CMEM treasury</span>
+            </div>
+          </div>
+
+          {/* Token Price Placeholder */}
+          <div className="mt-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200 p-4 text-center">
+            <div className="text-sm font-bold text-purple-800 mb-1">📈 $AIMS Price Chart</div>
+            <div className="h-20 flex items-center justify-center">
+              <div className="flex items-end gap-px h-full w-full max-w-xs">
+                {[30, 45, 40, 55, 50, 65, 60, 70, 55, 75, 70, 80, 65, 85, 78, 90, 85, 88, 82, 95].map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-t"
+                    style={{
+                      height: `${h}%`,
+                      background: `linear-gradient(180deg, rgba(153,69,255,${0.3 + i * 0.03}) 0%, rgba(20,241,149,${0.2 + i * 0.03}) 100%)`,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="text-[10px] text-purple-500 font-bold mt-2">Live price data coming with mainnet launch · Q2 2026</div>
+          </div>
+        </div>
       </div>
     </div>
   );

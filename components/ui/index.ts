@@ -17,3 +17,4 @@ export { default as HeaderSearch } from './HeaderSearch';
 export { default as ActivityPulse } from './ActivityPulse';
 export { default as HappeningNow } from './HappeningNow';
 export { default as Sparkline } from './Sparkline';
+export { default as TokenBalanceWidget } from './TokenBalanceWidget';

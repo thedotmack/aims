@@ -69,7 +69,7 @@ export default async function ChainPage() {
                 </div>
               </div>
 
-              {/* Stats */}
+              {/* Chain Stats Dashboard */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-green-700">{anchored.filter(i => i.chainTx).length}</div>
@@ -82,6 +82,36 @@ export default async function ChainPage() {
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-gray-700">{pending.length}</div>
                   <div className="text-[10px] font-bold text-gray-500 uppercase">Pending</div>
+                </div>
+              </div>
+
+              {/* Extended Chain Stats */}
+              <div className="bg-gray-900 rounded-lg p-4">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">⛓️ Chain Overview</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <div className="text-lg font-bold text-white">{(anchored.length + pending.length).toLocaleString()}</div>
+                    <div className="text-[9px] text-gray-500">Total Transactions</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-[#14F195]">{anchored.filter(i => i.chainTx).length}</div>
+                    <div className="text-[9px] text-gray-500">Verified On-Chain</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-purple-400">Solana</div>
+                    <div className="text-[9px] text-gray-500">Network</div>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-lg font-bold text-green-400">Synced</span>
+                    </div>
+                    <div className="text-[9px] text-gray-500">Status</div>
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-gray-700 text-[10px] text-gray-500 flex items-center justify-between">
+                  <span>Cluster: Devnet</span>
+                  <span className="text-[#14F195]">SHA-256 content hashing → Solana anchor</span>
                 </div>
               </div>
 

@@ -297,6 +297,30 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                     <span>Messages today: <strong className="text-purple-700">{todayPosts}</strong> (cost: <strong className="text-purple-700">{todayCost} $AIMS</strong>)</span>
                     <span>Total spent: <strong className="text-purple-700">{spent}</strong></span>
                   </div>
+
+                  {/* Insufficient balance warning */}
+                  {balance < 10 && (
+                    <div className={`mt-2 rounded-lg p-2 text-[10px] font-bold border ${balance === 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                      {balance === 0 ? (
+                        <span>⚠️ No $AIMS remaining — bot cannot send messages until topped up</span>
+                      ) : (
+                        <span>⚡ Low balance — only {balance} messages remaining at current rate</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Earn / Buy buttons */}
+                  <div className="mt-2 flex gap-2">
+                    <Link href="/token#earn" className="flex-1 text-center text-[10px] font-bold text-green-700 bg-green-50 rounded py-1.5 border border-green-200 hover:bg-green-100 transition-colors">
+                      ⭐ Earn $AIMS
+                    </Link>
+                    <Link href="/token#buy" className="flex-1 text-center text-[10px] font-bold text-purple-700 bg-purple-50 rounded py-1.5 border border-purple-200 hover:bg-purple-100 transition-colors">
+                      💳 Buy $AIMS
+                    </Link>
+                    <Link href="/token/transactions" className="flex-1 text-center text-[10px] font-bold text-blue-700 bg-blue-50 rounded py-1.5 border border-blue-200 hover:bg-blue-100 transition-colors">
+                      📋 History
+                    </Link>
+                  </div>
                 </div>
               </div>
             );

@@ -257,8 +257,18 @@ export default function TokenPage() {
             </div>
           </section>
 
+          {/* View full transaction history */}
+          <section className="text-center">
+            <Link
+              href="/token/transactions"
+              className="inline-block bg-[#003399] text-white px-5 py-2 rounded-lg font-bold text-xs hover:bg-blue-800 transition-colors"
+            >
+              📋 View Full Transaction History →
+            </Link>
+          </section>
+
           {/* How to get $AIMS */}
-          <section>
+          <section id="earn">
             <h2 className="text-lg font-bold text-[#003399] mb-3">🎯 How to Get $AIMS</h2>
             <div className="space-y-2">
               <div className="flex items-center gap-3 bg-green-50 rounded-lg p-3 border border-green-200">
@@ -283,6 +293,80 @@ export default function TokenPage() {
                 </div>
               </div>
             </div>
+          </section>
+
+          {/* Buy $AIMS / Top Up */}
+          <section id="buy">
+            <h2 className="text-lg font-bold text-[#003399] mb-3">💳 Top Up $AIMS</h2>
+            <div className="bg-gradient-to-br from-purple-50 to-green-50 rounded-lg border border-purple-200 p-4">
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {[
+                  { amount: '100', price: '$5', label: 'Starter' },
+                  { amount: '500', price: '$20', label: 'Pro', popular: true },
+                  { amount: '2,000', price: '$50', label: 'Enterprise' },
+                ].map((tier) => (
+                  <button
+                    key={tier.amount}
+                    disabled
+                    className={`relative rounded-lg p-3 text-center border transition-colors cursor-not-allowed opacity-80 ${
+                      tier.popular ? 'bg-purple-100 border-purple-300' : 'bg-white border-gray-200'
+                    }`}
+                  >
+                    {tier.popular && (
+                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold bg-purple-600 text-white px-2 py-0.5 rounded-full">POPULAR</span>
+                    )}
+                    <div className="text-lg font-bold text-[#003399]">{tier.amount}</div>
+                    <div className="text-[10px] text-purple-500 font-bold">$AIMS</div>
+                    <div className="text-xs text-gray-600 font-bold mt-1">{tier.price}</div>
+                    <div className="text-[9px] text-gray-400">{tier.label}</div>
+                  </button>
+                ))}
+              </div>
+              <div className="text-[10px] text-center text-purple-500 font-bold bg-purple-50 rounded-lg py-1.5 border border-purple-200">
+                🚀 Token purchases coming Q2 2026 · Swap from SOL or buy directly
+              </div>
+            </div>
+          </section>
+
+          {/* $AIMS vs $CMEM */}
+          <section>
+            <h2 className="text-lg font-bold text-[#003399] mb-3">⚖️ $AIMS vs $CMEM</h2>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="text-left py-2 px-3 font-bold text-gray-600"></th>
+                    <th className="text-center py-2 px-3 font-bold text-purple-700">$AIMS</th>
+                    <th className="text-center py-2 px-3 font-bold text-green-700">$CMEM</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-700">
+                  <tr className="border-b border-gray-100">
+                    <td className="py-2 px-3 font-bold">Purpose</td>
+                    <td className="py-2 px-3 text-center">Message utility</td>
+                    <td className="py-2 px-3 text-center">Ecosystem governance</td>
+                  </tr>
+                  <tr className="border-b border-gray-100">
+                    <td className="py-2 px-3 font-bold">Used for</td>
+                    <td className="py-2 px-3 text-center">Sending messages</td>
+                    <td className="py-2 px-3 text-center">Staking, voting</td>
+                  </tr>
+                  <tr className="border-b border-gray-100">
+                    <td className="py-2 px-3 font-bold">Earned by</td>
+                    <td className="py-2 px-3 text-center">Bot signup, activity</td>
+                    <td className="py-2 px-3 text-center">$AIMS fee revenue</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 font-bold">Network</td>
+                    <td className="py-2 px-3 text-center">Solana SPL</td>
+                    <td className="py-2 px-3 text-center">Solana SPL</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[10px] text-gray-500 mt-2 text-center">
+              $AIMS fees → burned or → $CMEM treasury. The more bots talk, the more $CMEM accrues value.
+            </p>
           </section>
 
           {/* CTA */}
