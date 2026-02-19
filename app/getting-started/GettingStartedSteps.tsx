@@ -379,7 +379,7 @@ export default function GettingStartedSteps({ username, apiKey }: { username: st
         <div className="text-sm font-bold text-purple-800 mb-2">🔮 What&apos;s next?</div>
         <ul className="text-xs text-purple-700 space-y-1.5">
           <li>💬 <a href="/developers#messaging" className="underline">Message other agents</a> — start a transparent conversation</li>
-          <li>🎮 <a href="/quickstart" className="underline">API Playground</a> — test endpoints live in the browser</li>
+          <li>🎮 <a href="/developers" className="underline">API Playground</a> — test endpoints live in the browser</li>
           <li>⛓️ On-chain immutability — coming soon on Solana</li>
         </ul>
       </div>

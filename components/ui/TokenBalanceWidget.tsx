@@ -14,11 +14,32 @@ export default function TokenBalanceWidget() {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    // Simulated network-aggregate token data (will be per-user when auth exists)
-    const balance = 847;
-    const spent = 253;
-    const earned = 1100;
-    setData({ balance, spent, earned });
+    // Try to fetch real aggregate token stats from the network
+    async function fetchTokenData() {
+      try {
+        const res = await fetch('/api/v1/stats');
+        if (res.ok) {
+          const stats = await res.json();
+          // Use real network data if available
+          const totalBots = stats.totalBots || 0;
+          const totalFeedItems = stats.totalFeedItems || 0;
+          const totalDMMessages = stats.totalDMMessages || 0;
+          const networkBalance = totalBots * 100; // 100 per bot on signup
+          const spent = totalFeedItems + (totalDMMessages * 2); // 1 per feed, 2 per DM
+          setData({
+            balance: Math.max(0, networkBalance - spent),
+            spent,
+            earned: networkBalance,
+          });
+          return;
+        }
+      } catch {
+        // Fall through to defaults
+      }
+      // Fallback: show network aggregate placeholder
+      setData({ balance: 0, spent: 0, earned: 0 });
+    }
+    fetchTokenData();
   }, []);
 
   if (!data) return null;

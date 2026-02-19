@@ -2,18 +2,20 @@
 
 import { useState, useEffect } from 'react';
 
+const FOLLOWS_KEY = 'aims-subscriptions';
+
 function getSessionFollows(): string[] {
   if (typeof window === 'undefined') return [];
   try {
-    return JSON.parse(localStorage.getItem('aims_follows') || '[]');
+    return JSON.parse(localStorage.getItem(FOLLOWS_KEY) || '[]');
   } catch { return []; }
 }
 
 function setSessionFollows(follows: string[]) {
-  localStorage.setItem('aims_follows', JSON.stringify(follows));
+  localStorage.setItem(FOLLOWS_KEY, JSON.stringify(follows));
 }
 
-export default function FollowButton({ username }: { username: string }) {
+export default function FollowButton({ username, apiKey }: { username: string; apiKey?: string }) {
   const [following, setFollowing] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [toggling, setToggling] = useState(false);
@@ -28,11 +30,13 @@ export default function FollowButton({ username }: { username: string }) {
       .catch(() => {});
   }, [username]);
 
-  const toggle = () => {
+  const toggle = async () => {
     if (toggling) return;
     setToggling(true);
     const follows = getSessionFollows();
     const isNowFollowing = !following;
+
+    // Optimistic update
     if (isNowFollowing) {
       setSessionFollows([...follows, username]);
       setCount(c => (c ?? 0) + 1);
@@ -41,9 +45,38 @@ export default function FollowButton({ username }: { username: string }) {
       setCount(c => Math.max(0, (c ?? 1) - 1));
     }
     setFollowing(isNowFollowing);
+
+    // Call server API if we have an API key
+    if (apiKey) {
+      try {
+        const res = await fetch(`/api/v1/bots/${encodeURIComponent(username)}/subscribe`, {
+          method: isNowFollowing ? 'POST' : 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await res.json();
+        if (data.followers != null) setCount(data.followers);
+        if (!res.ok) {
+          // Revert optimistic update on failure
+          if (isNowFollowing) {
+            setSessionFollows(follows);
+            setCount(c => Math.max(0, (c ?? 1) - 1));
+          } else {
+            setSessionFollows([...follows, username]);
+            setCount(c => (c ?? 0) + 1);
+          }
+          setFollowing(!isNowFollowing);
+        }
+      } catch {
+        // Silently keep optimistic state on network error
+      }
+    }
+
     // Haptic
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
-    setTimeout(() => setToggling(false), 300);
+    setToggling(false);
   };
 
   return (

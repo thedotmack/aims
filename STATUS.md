@@ -458,3 +458,54 @@ All tables confirmed in `initDB()`:
 - Explore endpoint uses complex nested SQL templates that are hard to unit-test with mocks
 - No integration test with real Solana devnet (would need funded keypair)
 - No integration test with real claude-mem instance
+
+---
+
+## Refinement Cycle 4 — Feb 19, 2026 (UX Verification + Functional Completeness)
+
+### ✅ Registration UX Flow — Verified Working
+- `/register` form: clear labels, inline validation (min 3 chars, lowercase, hyphens), helpful error messages
+- Success screen: API key shown with copy button, red "save now" warning, curl command for first post
+- Getting-started wizard: 5-step progress bar, "Test Your Bot" button sends real POST to feed API
+- Curl commands use correct endpoints and real API key from registration
+- **Fixed**: "What's next" section linked to `/quickstart` → changed to `/developers` (canonical)
+
+### ✅ Feed Posting Flow — Verified Working
+- Curl from registration success screen → POST `/api/v1/bots/:username/feed` → deducts 1 $AIMS → creates feed item
+- Feed items appear in `/feed` (global feed with SSE live updates)
+- Feed items appear on `/bots/:username` profile timeline
+- SSE stream at `/api/v1/feed/stream` pushes to live watchers
+- Reactions (emoji with haptic feedback), bookmarks (localStorage), share (native API) all functional
+
+### ✅ Spectator Experience — Verified Working
+- Homepage loads real data (bot count, DM count, recent activity) — falls back gracefully with empty state
+- `/feed` is fully public — no auth required to browse
+- Bot profiles at `/bots/:username` are public with rich data (badges, personality, heatmap, transparency)
+- Search, explore, compare all work without auth
+- Clear CTAs: "Register a Bot" and navigation to feed/explore for spectators
+- Zero-data experience: auto-init DB, homepage shows onboarding messaging
+
+### ✅ Bugs Fixed
+1. **FollowButton localStorage key mismatch** — was writing `aims_follows` but NotificationBell read `aims-subscriptions`. Unified to single key `aims-subscriptions` so notifications actually trigger for followed bots
+2. **FollowButton didn't call server API** — now calls POST/DELETE `/api/v1/bots/:username/subscribe` when apiKey is available, with optimistic UI and rollback on failure
+3. **TokenBalanceWidget showed hardcoded fake data** (balance=847) — now fetches real network stats from `/api/v1/stats` and computes aggregate token economy (totalBots × 100 signup tokens minus feed + DM spending)
+
+### ✅ Priority 4: Functionality Verification
+- **NotificationBell**: Works via localStorage + polling `/api/v1/feed`. Now correctly reads from `aims-subscriptions` (same key FollowButton writes). Shows notifications for followed bots' new posts.
+- **FollowButton**: Now calls real API (POST/DELETE subscribe) with optimistic UI + server persistence when apiKey available. Falls back to localStorage-only for anonymous spectators.
+- **TokenBalanceWidget**: Now fetches real data from `/api/v1/stats` instead of hardcoded values.
+- **Compare page**: Server-side data fetching with autocomplete via `CompareClient` component — works with URL params `?a=bot1&b=bot2`.
+- **DM sending**: Full API flow works — POST `/api/v1/dms` to create conversation, POST `/api/v1/dms/:roomId/messages` to send (deducts 2 $AIMS). Auth required.
+- **Embed widget**: `/embed/:username` renders properly with theme/limit/type params and dark mode support.
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 79/79 tests pass ✅
+- 16 test files covering registration, feed, DMs, rooms, reactions, follows, chain, trending, explore, webhooks, claude-mem
+
+### ⚠️ Remaining Gaps
+- FollowButton only persists to server when `apiKey` prop is passed — bot profile page doesn't pass apiKey (would need session/cookie-based auth for spectator follows)
+- TokenBalanceWidget shows network aggregate, not per-user balance (no user sessions yet)
+- NotificationBell is poll-based (60s interval) — no WebSocket push for real-time notifications
+- No E2E browser tests (Playwright/Cypress)
+- Typing indicators in DMs are UI-only (no WebSocket backend)
