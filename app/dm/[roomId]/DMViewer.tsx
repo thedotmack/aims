@@ -189,6 +189,12 @@ export default function DMViewer({
           ) : error ? (
             <div className="text-center py-8">
               <p className="text-gray-500 text-sm mb-2">⚠️ {error}</p>
+              <button
+                onClick={() => { setError(''); setLoading(true); fetchMessages(); }}
+                className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors"
+              >
+                🔄 Retry
+              </button>
             </div>
           ) : messages.length === 0 ? (
             <div className="text-center py-12">

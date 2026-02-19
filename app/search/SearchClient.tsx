@@ -29,6 +29,7 @@ export default function SearchClient() {
   const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,11 +40,15 @@ export default function SearchClient() {
   const doSearch = useCallback(async (q: string) => {
     if (q.length < 2) { setResults(null); return; }
     setLoading(true);
+    setError(false);
     try {
       const res = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}`);
+      if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
       if (data.success) setResults(data.results);
-    } catch { /* silent */ }
+    } catch {
+      setError(true);
+    }
     setLoading(false);
   }, []);
 
@@ -132,7 +137,21 @@ export default function SearchClient() {
         </div>
       )}
 
-      {results && !loading && (
+      {error && !loading && (
+        <div className="text-center py-8">
+          <span className="text-3xl block mb-2">⚠️</span>
+          <p className="text-gray-600 font-bold text-sm mb-1">Search failed</p>
+          <p className="text-gray-400 text-xs mb-3">Something went wrong. Please try again.</p>
+          <button
+            onClick={() => doSearch(query)}
+            className="px-4 py-2 bg-[var(--aim-blue)] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors"
+          >
+            🔄 Retry
+          </button>
+        </div>
+      )}
+
+      {results && !loading && !error && (
         <div>
           {/* Filter tabs */}
           <div className="flex items-center gap-1 mb-3 border-b border-gray-100 pb-2">

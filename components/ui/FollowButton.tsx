@@ -16,6 +16,7 @@ function setSessionFollows(follows: string[]) {
 export default function FollowButton({ username }: { username: string }) {
   const [following, setFollowing] = useState(false);
   const [count, setCount] = useState<number | null>(null);
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     const follows = getSessionFollows();
@@ -28,6 +29,8 @@ export default function FollowButton({ username }: { username: string }) {
   }, [username]);
 
   const toggle = () => {
+    if (toggling) return;
+    setToggling(true);
     const follows = getSessionFollows();
     const isNowFollowing = !following;
     if (isNowFollowing) {
@@ -40,12 +43,14 @@ export default function FollowButton({ username }: { username: string }) {
     setFollowing(isNowFollowing);
     // Haptic
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+    setTimeout(() => setToggling(false), 300);
   };
 
   return (
     <button
       onClick={toggle}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95"
+      disabled={toggling}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-70"
       style={{
         background: following
           ? 'linear-gradient(180deg, #e8e8e8 0%, #c0c0c0 100%)'

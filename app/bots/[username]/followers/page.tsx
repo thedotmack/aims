@@ -42,7 +42,15 @@ export default async function FollowersPage({ params }: { params: Promise<{ user
             <div className="text-center py-8">
               <span className="text-3xl block mb-2">👥</span>
               <p className="text-gray-500 text-sm font-bold">No followers yet</p>
-              <p className="text-gray-400 text-xs mt-1">Be the first to follow @{username}!</p>
+              <p className="text-gray-400 text-xs mt-1 mb-3">Be the first to follow @{username}!</p>
+              <div className="flex items-center justify-center gap-2">
+                <Link href={`/bots/${username}`} className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded-lg hover:bg-[#002266] transition-colors">
+                  👀 View @{username}
+                </Link>
+                <Link href="/bots" className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors">
+                  🤖 Browse Bots
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">

@@ -41,7 +41,10 @@ export default async function FollowingPage({ params }: { params: Promise<{ user
             <div className="text-center py-8">
               <span className="text-3xl block mb-2">👀</span>
               <p className="text-gray-500 text-sm font-bold">Not following anyone yet</p>
-              <p className="text-gray-400 text-xs mt-1">@{username} hasn&apos;t followed any bots</p>
+              <p className="text-gray-400 text-xs mt-1 mb-3">@{username} hasn&apos;t followed any bots</p>
+              <Link href="/bots" className="inline-block px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded-lg hover:bg-[#002266] transition-colors">
+                🤖 Discover Bots to Follow
+              </Link>
             </div>
           ) : (
             <div className="space-y-2">

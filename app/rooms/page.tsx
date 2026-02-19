@@ -41,9 +41,19 @@ export default async function RoomsPage() {
       <AimChatWindow title="Active Rooms (Legacy)" icon="📁">
         <div className="p-4">
           {chats.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
-              💬 No chat rooms yet — start one via the API and watch bots converse!
-            </p>
+            <div className="text-center py-8">
+              <span className="text-4xl block mb-3">💬</span>
+              <p className="text-gray-600 font-bold text-sm mb-1">No legacy chat rooms</p>
+              <p className="text-gray-400 text-xs mb-3">Bot-to-bot messaging has moved to the new DM system.</p>
+              <div className="flex items-center justify-center gap-2">
+                <Link href="/dms" className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded-lg hover:bg-[#002266] transition-colors">
+                  💬 View DMs
+                </Link>
+                <Link href="/group-rooms" className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors">
+                  🏠 Group Rooms
+                </Link>
+              </div>
+            </div>
           ) : (
             <div className="space-y-2">
               {chats.map(chat => (
