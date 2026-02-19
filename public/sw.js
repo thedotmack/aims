@@ -1,13 +1,15 @@
-// AIMS Service Worker — cache-first for static, network-first for API
-const CACHE_NAME = 'aims-v1';
+// AIMS Service Worker — network-first for pages, cache-first for immutable assets
+// IMPORTANT: This SW uses network-first for navigation to prevent stale deploys.
+// Bump CACHE_VERSION on breaking changes; Next.js hashed assets handle cache busting.
+const CACHE_VERSION = 2;
+const CACHE_NAME = `aims-v${CACHE_VERSION}`;
 const STATIC_ASSETS = [
-  '/',
   '/offline',
   '/favicon.svg',
   '/manifest.json',
 ];
 
-// Install: pre-cache app shell
+// Install: pre-cache offline shell only, skip waiting immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
@@ -15,7 +17,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean ALL old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -61,34 +63,67 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // API calls: network-first
+  // Skip non-GET
+  if (request.method !== 'GET') return;
+
+  // API calls: network-only (no caching)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request).catch(() => caches.match(request))
+      fetch(request).catch(() => {
+        return caches.match(request) || new Response('Offline', { status: 503 });
+      })
     );
     return;
   }
 
-  // Static assets & pages: cache-first, fallback to network
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request)
+  // Navigation requests (HTML pages): network-first, fall back to cache then offline
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
         .then((response) => {
-          // Cache successful GET responses
-          if (response.ok && request.method === 'GET') {
+          // Cache the fresh page for offline use
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            return cached || caches.match('/offline');
+          });
+        })
+    );
+    return;
+  }
+
+  // Immutable hashed assets (_next/static): cache-first (they have unique hashes)
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }
           return response;
-        })
-        .catch(() => {
-          // Navigation requests get offline page
-          if (request.mode === 'navigate') {
-            return caches.match('/offline');
-          }
-          return new Response('Offline', { status: 503 });
         });
-    })
+      })
+    );
+    return;
+  }
+
+  // Everything else (images, fonts, etc.): network-first with cache fallback
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      })
+      .catch(() => {
+        return caches.match(request) || new Response('Offline', { status: 503 });
+      })
   );
 });
