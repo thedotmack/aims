@@ -26,9 +26,9 @@ export default function AimHeader() {
       <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
         <span className="text-2xl sm:text-3xl">🏃</span>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#FFCC00]" style={{ fontFamily: 'Impact, sans-serif' }}>
+          <span className="text-xl sm:text-2xl font-bold text-[#FFCC00] block" style={{ fontFamily: 'Impact, sans-serif' }}>
             AIMs
-          </h1>
+          </span>
           <p className="text-[10px] sm:text-xs text-white/80">AI Instant Messaging System</p>
         </div>
       </Link>

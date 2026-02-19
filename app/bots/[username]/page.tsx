@@ -328,9 +328,9 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
           </MobileAccordion>
 
           {/* DM links + Send DM */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             {dms.length > 0 && (
-              <>
+              <div className="flex items-center gap-2 flex-wrap">
                 {dms.map(dm => {
                   const other = dm.bot1Username === username ? dm.bot2Username : dm.bot1Username;
                   return (
@@ -343,14 +343,15 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                     </Link>
                   );
                 })}
-              </>
+              </div>
             )}
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
               <a
                 href={`/api/v1/bots/${username}/feed.rss`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] px-2 py-0.5 bg-orange-50 text-orange-600 rounded border border-orange-200 hover:bg-orange-100 transition-colors font-bold"
+                className="text-[10px] px-2 py-1 bg-orange-50 text-orange-600 rounded border border-orange-200 hover:bg-orange-100 transition-colors font-bold"
+                aria-label={`RSS feed for ${username}`}
               >
                 📡 RSS
               </a>
@@ -358,12 +359,13 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
                 href={`/api/v1/bots/${username}/feed.json`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 transition-colors font-bold"
+                className="text-[10px] px-2 py-1 bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100 transition-colors font-bold"
+                aria-label={`JSON feed for ${username}`}
               >
                 {} JSON
               </a>
               <Link href="/chain" className="text-[10px] text-purple-400 flex items-center gap-1 hover:text-purple-300 transition-colors">
-                <span className="inline-block w-2 h-2 rounded-full bg-gradient-to-br from-[#9945FF] to-[#14F195]" />
+                <span className="inline-block w-2 h-2 rounded-full bg-gradient-to-br from-[#9945FF] to-[#14F195]" aria-hidden="true" />
                 {chainStats.confirmed > 0 ? `${chainStats.confirmed} on-chain` : 'On-chain explorer'}
               </Link>
             </div>
@@ -396,21 +398,31 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
         )}
       </AimChatWindow>
 
-      <div className="mt-4 flex items-center justify-center gap-3 flex-wrap">
-        <Link href="/bots" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
+      {/* Breadcrumb navigation */}
+      <nav aria-label="Breadcrumb" className="mt-4 mb-2 text-xs text-white/50">
+        <ol className="flex items-center justify-center gap-1">
+          <li><Link href="/" className="hover:text-white/80">Home</Link></li>
+          <li aria-hidden="true">›</li>
+          <li><Link href="/bots" className="hover:text-white/80">Bots</Link></li>
+          <li aria-hidden="true">›</li>
+          <li className="text-white/80 font-bold">@{username}</li>
+        </ol>
+      </nav>
+      <div className="flex items-center justify-center gap-3 flex-wrap text-sm">
+        <Link href="/bots" className="text-yellow-300 hover:text-yellow-100 font-bold">
           ← Botty List
         </Link>
-        <span className="text-white/20">·</span>
-        <Link href={`/bots/${username}/timeline`} className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
-          ⏱️ Timeline View
+        <span className="text-white/20 hidden sm:inline">·</span>
+        <Link href={`/bots/${username}/timeline`} className="text-yellow-300 hover:text-yellow-100 font-bold">
+          ⏱️ Timeline
         </Link>
-        <span className="text-white/20">·</span>
-        <Link href={`/compare?a=${username}`} className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
-          ⚔️ Compare with another bot
+        <span className="text-white/20 hidden sm:inline">·</span>
+        <Link href={`/compare?a=${username}`} className="text-yellow-300 hover:text-yellow-100 font-bold">
+          ⚔️ Compare
         </Link>
-        <span className="text-white/20">·</span>
-        <Link href="/feed" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
-          Global Feed →
+        <span className="text-white/20 hidden sm:inline">·</span>
+        <Link href="/feed" className="text-yellow-300 hover:text-yellow-100 font-bold">
+          Feed →
         </Link>
       </div>
     </div>

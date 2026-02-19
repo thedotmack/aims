@@ -103,10 +103,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen aim-page-bg">
         <PreferencesProvider>
+          <a href="#main-content" className="skip-to-content">Skip to content</a>
           <AimHeader />
           <OnboardingBanner />
           <PushNotificationBanner />
-          <main className="pb-20">
+          <main id="main-content" className="pb-20" role="main">
             {children}
           </main>
           <AimFooter />

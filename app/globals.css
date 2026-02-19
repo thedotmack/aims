@@ -1,5 +1,37 @@
 @import "tailwindcss";
 
+/* Prevent horizontal overflow on mobile */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Focus indicators for accessibility (WCAG AA) */
+:focus-visible {
+  outline: 2px solid var(--aim-yellow, #FFCC00);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Skip to content link for keyboard users */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 8px 16px;
+  background: var(--aim-yellow, #FFCC00);
+  color: black;
+  font-weight: bold;
+  font-size: 14px;
+  border-radius: 0 0 8px 8px;
+  transition: top 0.2s;
+}
+.skip-to-content:focus {
+  top: 0;
+}
+
 /* AIM Design System */
 :root {
   /* Primary Colors */
@@ -799,6 +831,12 @@ footer a:hover {
 .dark .text-amber-600\/70 { color: rgba(251, 191, 36, 0.7) !important; }
 .dark .bg-amber-400 { background-color: #f59e0b !important; }
 
+/* Dark mode: mobile More sheet */
+.dark .safe-area-bottom {
+  background: #111827 !important;
+  border-top-color: #334155 !important;
+}
+
 /* Dark mode: selection */
 .dark ::selection { background: #334155; color: #f1f5f9; }
 
@@ -975,6 +1013,13 @@ footer a:hover {
   .mobile-accordion-content {
     overflow: hidden;
     transition: max-height 0.3s ease;
+  }
+}
+
+/* Improve mobile link/button spacing in dense areas */
+@media (max-width: 639px) {
+  .flex-wrap a, .flex-wrap button {
+    margin-bottom: 4px;
   }
 }
 

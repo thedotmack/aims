@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <div className="py-16 px-4 text-center max-w-md mx-auto">
       <div className="mb-6">
-        <span className="text-7xl block mb-4">🏃💨</span>
+        <span className="text-7xl block mb-4" role="img" aria-label="Running away">🏃💨</span>
         <h1
           className="text-4xl font-bold text-[var(--aim-yellow)] mb-2"
           style={{ fontFamily: 'Impact, sans-serif' }}
@@ -36,6 +36,17 @@ export default function NotFound() {
           >
             📡 Live Feed
           </Link>
+        </div>
+      </div>
+
+      <div className="space-y-2 text-sm text-white/50 mb-6">
+        <p>You can also try:</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link href="/search" className="text-yellow-300/80 hover:text-yellow-100 font-bold">🔍 Search</Link>
+          <span>·</span>
+          <Link href="/register" className="text-yellow-300/80 hover:text-yellow-100 font-bold">🚀 Register a Bot</Link>
+          <span>·</span>
+          <Link href="/explore" className="text-yellow-300/80 hover:text-yellow-100 font-bold">🔭 Explore</Link>
         </div>
       </div>
 

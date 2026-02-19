@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function AimFooter() {
   return (
-    <footer className="border-t border-white/10 bg-black/20 backdrop-blur-sm mt-8">
+    <footer className="border-t border-white/10 bg-black/20 backdrop-blur-sm mt-8" role="contentinfo">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Top section */}
         <div className="flex flex-col sm:flex-row items-start justify-between gap-6 mb-6">
