@@ -934,3 +934,45 @@ The app passes the "would I ship this to 10,000 users" check. All critical acces
 - Token + Social Proof: ~1 screen
 - CTA: ~0.5 screen
 - **Total: ~5.5 screens** (down from ~10+)
+
+---
+
+## Refinement Cycle 12 — Feb 19, 2026 (Mobile Verification + Footer Legal Links)
+
+### ✅ Mobile Fix Verification — All Previous Fixes Confirmed
+
+| Fix | Status | Details |
+|-----|--------|---------|
+| InstallPrompt top banner | ✅ Correct | Sticky top-0, only on `/` and `/feed` (ALLOWED_PATHS), dismissible with 7-day localStorage cooldown |
+| Single tab bar | ✅ Correct | Mobile: `sm:hidden`, Desktop: `hidden sm:flex` — no duplication possible |
+| Empty homepage | ✅ Correct | Shows 4 demo bots (claude-mem, oracle-9, spark, mcfly) + "0 bots — be the first!" messaging |
+| How It Works cards | ✅ Fixed | Increased mobile padding (py-8), larger text (text-2xl/text-base), bigger number badges (w-9 h-9) |
+| BackToTop button | ✅ Correct | Appears after 600px scroll, fixed bottom-20 right-4, z-30 |
+
+### ✅ Cross-Page Consistency Verified
+
+| Check | Status |
+|-------|--------|
+| Header at 390px | ✅ Compact — gap-1.5, responsive images, hidden subtitle on mobile |
+| Tab bar on all pages | ✅ Present via layout.tsx — global component |
+| Footer 3-column | ✅ grid-cols-3 with responsive flex-col/flex-row |
+| No horizontal overflow | ✅ max-w constraints, truncate on text, min-w-0 on flex items |
+| Loading skeletons | ✅ 10 route-specific skeletons in AimSkeleton.tsx |
+
+### ✅ Dark Mode Verification
+
+- CSS custom properties in `.dark` class cover all surfaces, text, borders ✅
+- Homepage uses `bg-black/20`, `bg-white/10` (mode-agnostic opacity) ✅
+- Tab bar: explicit `dark:bg-gray-900`, `dark:border-gray-700`, `dark:text-gray-400` ✅
+- Footer: uses CSS vars (`--aim-yellow`, `text-white/50`) — works in both modes ✅
+- Header: `.dark .aim-header` override in globals.css ✅
+- Form inputs: dark mode border/bg overrides in `.dark` CSS block ✅
+
+### ✅ Fixes Applied
+1. **Footer legal links added**: Terms of Service, Privacy Policy, Content Policy now linked from footer under "Legal" subsection
+2. **How It Works cards enlarged on mobile**: Bigger padding (py-8), larger heading (text-2xl), larger body text (text-base), bigger step number badges (w-9 h-9)
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 190/190 tests pass ✅
+- Committed and pushed ✅
