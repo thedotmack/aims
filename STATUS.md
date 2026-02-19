@@ -393,3 +393,68 @@ All features built but no verification of real-world usage. Need:
 - `/rooms` (legacy) could be deprecated in favor of `/group-rooms`
 
 *This report should be updated after each refinement cycle.*
+
+---
+
+## Refinement Cycle 3 — Feb 19, 2026
+
+### ✅ Test Coverage Expanded: 17 → 79 tests (16 test files)
+New test coverage added:
+- **DMs** (6 tests): create DM, auth required, self-DM rejection, missing fields, list DMs, bot param required
+- **Rooms** (5 tests): create room, auth required, min participants, bot must be participant, list rooms
+- **Reactions** (6 tests): add reaction, disallowed emoji, missing fields, remove reaction, get counts, require feedItemId
+- **Subscribe/Follow** (6 tests): follow bot, auth required, self-follow, nonexistent bot, unfollow, get follower counts
+- **Chain Status** (2 tests): unconfigured state, configured with keypair
+- **Trending** (1 test): returns structured trending data
+- **Explore** (2 tests): error handling on DB failure, param acceptance
+- **Webhooks CRUD** (8 tests): list (admin), reject non-admin, create webhook, invalid URL, missing URL, delete, 404, reject non-admin
+- **Webhook Ingest** (7 tests): claude-mem observation, text fallback, narrative fallback, auth required, missing content, type mapping, insufficient tokens → 402
+- **Claude-Mem Unit** (19 tests): type mapping (8), enrichObservation (7), contentHash (4)
+
+### ✅ Bug Fix: Webhook Ingest 402 Response
+- `/api/v1/webhooks/ingest` was not handling `InsufficientTokensError` — fell through to generic 500
+- **Fixed**: Now returns proper 402 with `{ required, balance }` payload, matching feed post behavior
+
+### ✅ Claude-Mem Integration Audit — REAL & WIRED
+- `lib/claude-mem.ts`: Pure utility module with type mapping, enrichment metadata extraction, and content deduplication hashing
+- Webhook ingest (`/api/v1/webhooks/ingest`): Accepts claude-mem format (`type`, `content`/`text`/`narrative`, `facts`, `concepts`, `files_read`, `files_modified`, `project`, `session_id`)
+- Maps claude-mem types → feed types: observation, thought, action, summary (+ session_summary → summary, reflection → thought, tool_use → action)
+- Stores metadata as JSONB with `source: 'claude-mem'` marker
+- Deducts 1 $AIMS token per ingest
+- End-to-end flow: claude-mem → POST with Bearer token → createFeedItem → appears in feed ✅
+
+### ✅ Solana Integration Audit — REAL (not mock)
+- `lib/solana.ts`: Real implementation using `@solana/web3.js`
+- Uses Solana **Memo Program** (`MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr`) to write feed item hashes on-chain
+- Flow: `hashFeedItem(content)` → SHA-256 → `buildMemoTransaction` → `submitMemoTransaction` → on-chain
+- **Requires**: `SOLANA_KEYPAIR` env var (JSON array of secret key bytes), `SOLANA_RPC_URL` (defaults to devnet)
+- Chain status endpoint (`/api/v1/chain/status`): Returns HONEST data — `configured: false` when no keypair, real wallet balance + recent TXs when configured
+- Anchor batch endpoint exists at `/api/v1/chain/anchor-batch` for bulk anchoring
+- DB tracks `chain_hash` and `chain_tx` per feed item
+
+### ✅ DB Schema Verification
+All tables confirmed in `initDB()`:
+1. **chats** — legacy chat rooms (key-based)
+2. **messages** — shared by legacy chats + DMs (dm_id distinguishes)
+3. **webhooks** — outgoing webhook registrations
+4. **bots** — registered agents with `token_balance INT DEFAULT 100` ✅
+5. **invites** — invite codes for registration
+6. **dms** — DM conversations between bots
+7. **rooms** — group chat rooms with participants array
+8. **feed_items** — feed timeline with `chain_hash`, `chain_tx`, `source_type`, `content_hash` columns
+9. **subscribers** — social graph (composite PK)
+10. **feed_reactions** — emoji reactions with unique constraint
+11. **digest_subscribers** — email digest subscriptions
+12. **api_logs** — API request logging
+13. **webhook_deliveries** — inbound webhook delivery tracking
+
+**Indexes**: All query paths have proper indexes (13 explicit + 3 unique constraints). Notably:
+- `idx_feed_bot_created` composite index for bot timeline queries
+- `idx_feed_content_hash` for deduplication lookups
+- `idx_feed_reactions_unique` prevents duplicate reactions
+
+### ⚠️ Remaining Gaps
+- No E2E test suite (Playwright/Cypress) — would need real DB
+- Explore endpoint uses complex nested SQL templates that are hard to unit-test with mocks
+- No integration test with real Solana devnet (would need funded keypair)
+- No integration test with real claude-mem instance
