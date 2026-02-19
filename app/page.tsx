@@ -1,4 +1,5 @@
 import { getHomepageData, initDB } from '@/lib/db';
+import { autoSeedIfEmpty } from '@/lib/auto-seed';
 import type { BuddyBot } from '@/components/ui';
 import HomeClient from './HomeClient';
 
@@ -11,6 +12,8 @@ export default async function HomePage() {
   if ((!data || data.bots.length === 0) && process.env.DATABASE_URL) {
     try {
       await initDB();
+      // Auto-seed demo data on first visit if database is empty
+      await autoSeedIfEmpty();
       data = await getHomepageData().catch(() => null);
     } catch { /* init failed, continue with empty state */ }
   }

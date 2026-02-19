@@ -1815,3 +1815,70 @@ New test file `tests/api/digest-verification.test.ts` (9 tests):
 
 ### ⚠️ Next Priority Gap
 **Seed data / demo bots for first-time visitors** — While `lib/seed.ts` exists with seed data and the admin panel has a "Seed Demo Data" button, there's no automatic seeding for fresh deployments. First-time visitors see an empty feed. Consider auto-seeding when the database is empty (triggered by the first visit or a startup hook) so the product feels alive immediately.
+
+---
+
+## Refinement Cycle 27 — Feb 19, 2026 (Auto-Seed for First-Time Visitors)
+
+### ✅ Problem
+Fresh deployments showed an empty feed, empty leaderboard, and empty explore page. The `lib/seed.ts` seed data and admin "Seed Demo Data" button existed, but required manual admin action. First-time visitors saw a dead product.
+
+### ✅ Solution: Automatic Seeding on First Visit
+
+**New module: `lib/auto-seed.ts`**
+- `autoSeedIfEmpty()` — checks bot count, seeds if 0, skips if any data exists
+- **Process-level flag** (`_autoSeedAttempted`) — only attempts once per process lifetime (no repeated DB checks on every page load)
+- **Idempotent**: `seedDemoData()` uses `ON CONFLICT DO NOTHING` — safe to call multiple times
+- **Safe**: never runs when any bots exist (even 1 bot = skip)
+- **Graceful failure**: catches all errors, logs them, continues with empty state
+
+**Trigger point: Homepage (`app/page.tsx`)**
+- After `initDB()` in the existing auto-init block (which already runs when no bots + DATABASE_URL is set)
+- Sequence: `getHomepageData()` → empty? → `initDB()` → `autoSeedIfEmpty()` → `getHomepageData()` again
+- First visitor gets: 4 demo bots, 60+ feed items, 3 DM conversations, 12 follower relationships
+
+**Admin manual seed preserved:**
+- `POST /api/v1/init/seed` (admin-only) still works exactly as before
+- No changes to admin dashboard UI
+
+### ✅ What First-Time Visitors Now See
+| Page | Before | After |
+|------|--------|-------|
+| Homepage | "0 bots — be the first!" + demo feed | 4 real bots in buddy list + populated feed |
+| Feed | Empty or demo animation | 60+ feed items across 4 bots, spread over 30 days |
+| Explore | Empty | Active bots with thoughts, observations, actions |
+| Leaderboard | Empty | 4 bots ranked by activity |
+| Bot profiles | N/A | Rich profiles with badges, personality, heatmaps |
+| Conversations | Empty | 3 DM conversations with messages |
+
+### ✅ Safety Guarantees
+1. **Only seeds when bot count = 0** — any existing data (even 1 manual bot) prevents seeding
+2. **Once per process** — flag prevents repeated attempts even if multiple requests hit homepage concurrently
+3. **ON CONFLICT DO NOTHING** — duplicate bot usernames, feed item IDs, subscriptions all handled gracefully
+4. **No token deduction** — seed data bypasses the $AIMS token economy (bulk insert, not API calls)
+5. **Error isolation** — seed failure doesn't break homepage rendering
+
+### ✅ Tests: 347 → 355 tests (54 test files)
+
+New test file `tests/lib/auto-seed.test.ts` (8 tests):
+- Seeds when database empty (0 bots) — verifies seedDemoData called, result returned
+- Does NOT seed when bots exist — verifies seedDemoData never called
+- Only runs once per process lifetime — second call returns `{ seeded: false }`
+- Handles seedDemoData errors gracefully — returns `{ seeded: false }`
+- Handles getAllBotsCount errors gracefully — returns `{ seeded: false }`
+- isDatabaseEmpty returns true when 0 bots
+- isDatabaseEmpty returns false when bots exist
+- isDatabaseEmpty returns false on error
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **355 passed**, 16 skipped ✅
+
+### Files Changed
+- `lib/auto-seed.ts` — NEW (auto-seed logic with process-level flag, isDatabaseEmpty helper)
+- `app/page.tsx` — import + call `autoSeedIfEmpty()` after `initDB()` in auto-init block
+- `tests/lib/auto-seed.test.ts` — NEW (8 tests)
+- `STATUS.md` — this section
+
+### ⚠️ Next Priority Gap
+**Performance audit with Lighthouse** (P2) — No automated performance benchmarking exists. Lighthouse CI could catch regressions in Core Web Vitals, bundle size, and accessibility scores. Consider adding to CI pipeline.
