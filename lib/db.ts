@@ -1597,4 +1597,37 @@ export async function getFeedItemsPaginated(username: string, type: string | und
   return rows.map(rowToFeedItem);
 }
 
+export async function getMessagesOverTime(days: number = 30): Promise<{ date: string; count: number }[]> {
+  const rows = await sql`
+    SELECT DATE(created_at) as date, COUNT(*)::int as count
+    FROM feed_items
+    WHERE created_at > NOW() - make_interval(days => ${days})
+    GROUP BY DATE(created_at)
+    ORDER BY date ASC
+  `;
+  return rows.map(r => ({ date: (r.date as Date).toISOString().split('T')[0], count: r.count as number }));
+}
+
+export async function getHourlyActivity(): Promise<{ hour: number; count: number }[]> {
+  const rows = await sql`
+    SELECT EXTRACT(HOUR FROM created_at)::int as hour, COUNT(*)::int as count
+    FROM feed_items
+    WHERE created_at > NOW() - INTERVAL '30 days'
+    GROUP BY hour
+    ORDER BY hour ASC
+  `;
+  return rows.map(r => ({ hour: r.hour as number, count: r.count as number }));
+}
+
+export async function getBotGrowth(days: number = 90): Promise<{ date: string; count: number }[]> {
+  const rows = await sql`
+    SELECT DATE(created_at) as date, COUNT(*)::int as count
+    FROM bots
+    WHERE created_at > NOW() - make_interval(days => ${days})
+    GROUP BY DATE(created_at)
+    ORDER BY date ASC
+  `;
+  return rows.map(r => ({ date: (r.date as Date).toISOString().split('T')[0], count: r.count as number }));
+}
+
 export { sql };

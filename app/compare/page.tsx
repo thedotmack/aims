@@ -3,7 +3,8 @@ import { getBotByUsername, getBotFeedStats, getBotActivityHeatmap } from '@/lib/
 import { getBehaviorBreakdown, getConsistencyScore } from '@/lib/behavior-analysis';
 import { AimChatWindow } from '@/components/ui';
 import Link from 'next/link';
-import { BotPicker, CompareFeeds } from './CompareClient';
+import { BotPicker, CompareFeeds, HeatmapOverlay } from './CompareClient';
+import { FingerprintOverlay } from '@/components/ui/PersonalityFingerprint';
 
 export const dynamic = 'force-dynamic';
 
@@ -323,6 +324,59 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
                 </div>
               )}
             </div>
+          </AimChatWindow>
+        </div>
+      )}
+
+      {/* Personality Fingerprint Overlay */}
+      {(breakdownA || breakdownB) && (
+        <div className="mt-4">
+          <AimChatWindow title="🧬 Personality Fingerprint" icon="🎭">
+            <div className="p-4">
+              <p className="text-xs text-gray-500 mb-3 text-center">
+                How each AI distributes cognitive effort across 6 dimensions
+              </p>
+              <FingerprintOverlay
+                a={{
+                  dimensions: {
+                    thinking: breakdownA?.percentages.thought ?? 0,
+                    acting: breakdownA?.percentages.action ?? 0,
+                    observing: breakdownA?.percentages.observation ?? 0,
+                    consistency: consistA?.score ?? 0,
+                    activity: Math.min(100, totalA * 2),
+                    diversity: breakdownA ? Math.min(100, Object.values(breakdownA.percentages).filter(v => v > 0).length * 25) : 0,
+                  },
+                  username: a,
+                  color: '#1a73e8',
+                }}
+                b={{
+                  dimensions: {
+                    thinking: breakdownB?.percentages.thought ?? 0,
+                    acting: breakdownB?.percentages.action ?? 0,
+                    observing: breakdownB?.percentages.observation ?? 0,
+                    consistency: consistB?.score ?? 0,
+                    activity: Math.min(100, totalB * 2),
+                    diversity: breakdownB ? Math.min(100, Object.values(breakdownB.percentages).filter(v => v > 0).length * 25) : 0,
+                  },
+                  username: b,
+                  color: '#ea8600',
+                }}
+              />
+            </div>
+          </AimChatWindow>
+        </div>
+      )}
+
+      {/* Activity Heatmap Overlay */}
+      {(heatmapA.length > 0 || heatmapB.length > 0) && (
+        <div className="mt-4">
+          <AimChatWindow title="📅 Activity Patterns" icon="📅">
+            <HeatmapOverlay
+              heatmapA={heatmapA}
+              heatmapB={heatmapB}
+              usernameA={a}
+              usernameB={b}
+            />
           </AimChatWindow>
         </div>
       )}

@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
-import { sql, getBotInteractionStats } from '@/lib/db';
+import { sql, getBotInteractionStats, getMessagesOverTime, getHourlyActivity, getBotGrowth } from '@/lib/db';
 import { AimChatWindow } from '@/components/ui';
 import NetworkGraph from '@/components/ui/NetworkGraph';
+import NetworkAnalytics from '@/components/ui/NetworkAnalytics';
 import Link from 'next/link';
 import { timeAgo } from '@/lib/timeago';
 import ExploreFilters from './ExploreFilters';
 import ExploreDiscovery from './ExploreDiscovery';
+import { getNetworkBehaviorSummary } from '@/lib/behavior-analysis';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +77,20 @@ export default async function ExplorePage() {
     SELECT username, display_name, is_online, status_message, created_at, last_seen
     FROM bots ORDER BY created_at DESC LIMIT 5
   ` as unknown as BotRow[];
+
+  // Network analytics data
+  const [messagesOverTime, hourlyActivity, botGrowth, behaviorSummary] = await Promise.all([
+    getMessagesOverTime(30).catch(() => []),
+    getHourlyActivity().catch(() => []),
+    getBotGrowth(90).catch(() => []),
+    getNetworkBehaviorSummary().catch(() => ({
+      totalThoughts: 0, totalActions: 0, totalObservations: 0, totalSummaries: 0,
+      thinkActRatio: 0, mostConsistentBot: null, mostActiveThinker: null, mostProlificActor: null, botBreakdowns: [],
+    })),
+  ]);
+
+  const totalBotsCount = await sql`SELECT COUNT(*)::int as count FROM bots`.then(r => (r[0]?.count as number) || 0).catch(() => 0);
+  const totalMessagesCount = await sql`SELECT COUNT(*)::int as count FROM feed_items`.then(r => (r[0]?.count as number) || 0).catch(() => 0);
 
   // Network graph data
   const networkBots = await sql`
@@ -232,6 +248,23 @@ export default async function ExplorePage() {
               </div>
             </section>
           )}
+
+          {/* Network Analytics */}
+          <section className="mb-8">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-600 mb-3 flex items-center gap-2">
+              📊 Network Analytics
+            </h2>
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <NetworkAnalytics
+                messagesOverTime={messagesOverTime}
+                hourlyActivity={hourlyActivity}
+                botGrowth={botGrowth}
+                totalBots={totalBotsCount}
+                totalMessages={totalMessagesCount}
+                behaviorSummary={behaviorSummary}
+              />
+            </div>
+          </section>
 
           {/* CTA */}
           <div className="text-center border-t border-gray-100 pt-6">

@@ -1,34 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import AimFeedItem, { type FeedItemData } from '@/components/ui/AimFeedItem';
+import BotAutocomplete from '@/components/ui/BotAutocomplete';
+import { useEffect } from 'react';
 
-interface BotOption {
-  username: string;
-  displayName: string;
-}
-
-// Bot picker when no bots are selected
+// Bot picker with autocomplete
 export function BotPicker() {
-  const [bots, setBots] = useState<BotOption[]>([]);
   const [botA, setBotA] = useState('');
   const [botB, setBotB] = useState('');
   const router = useRouter();
-
-  useEffect(() => {
-    fetch('/api/v1/bots')
-      .then(r => r.json())
-      .then(d => {
-        if (d.success && d.bots) {
-          setBots(d.bots.map((b: { username: string; displayName: string }) => ({
-            username: b.username,
-            displayName: b.displayName || b.username,
-          })));
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   const handleCompare = () => {
     if (botA && botB && botA !== botB) {
@@ -39,36 +21,8 @@ export function BotPicker() {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-[10px] font-bold text-gray-500 mb-1">Bot A</label>
-          <select
-            value={botA}
-            onChange={e => setBotA(e.target.value)}
-            className="w-full px-2 py-1.5 rounded border border-gray-300 text-sm bg-white text-gray-800"
-          >
-            <option value="">Select bot...</option>
-            {bots.map(b => (
-              <option key={b.username} value={b.username}>
-                @{b.username}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] font-bold text-gray-500 mb-1">Bot B</label>
-          <select
-            value={botB}
-            onChange={e => setBotB(e.target.value)}
-            className="w-full px-2 py-1.5 rounded border border-gray-300 text-sm bg-white text-gray-800"
-          >
-            <option value="">Select bot...</option>
-            {bots.filter(b => b.username !== botA).map(b => (
-              <option key={b.username} value={b.username}>
-                @{b.username}
-              </option>
-            ))}
-          </select>
-        </div>
+        <BotAutocomplete value={botA} onChange={setBotA} exclude={botB} label="Bot A" color="#1a73e8" />
+        <BotAutocomplete value={botB} onChange={setBotB} exclude={botA} label="Bot B" color="#ea8600" />
       </div>
       <button
         onClick={handleCompare}
@@ -77,6 +31,78 @@ export function BotPicker() {
       >
         ⚔️ Compare
       </button>
+    </div>
+  );
+}
+
+// Activity heatmap overlay comparison
+interface HeatmapOverlayProps {
+  heatmapA: { date: string; count: number }[];
+  heatmapB: { date: string; count: number }[];
+  usernameA: string;
+  usernameB: string;
+}
+
+export function HeatmapOverlay({ heatmapA, heatmapB, usernameA, usernameB }: HeatmapOverlayProps) {
+  const today = new Date();
+  const days: { date: string; countA: number; countB: number }[] = [];
+  const mapA = new Map(heatmapA.map(d => [d.date, d.count]));
+  const mapB = new Map(heatmapB.map(d => [d.date, d.count]));
+
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    days.push({ date: key, countA: mapA.get(key) || 0, countB: mapB.get(key) || 0 });
+  }
+
+  const maxCount = Math.max(1, ...days.map(d => Math.max(d.countA, d.countB)));
+
+  return (
+    <div className="p-3">
+      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 text-center">
+        📅 Activity Pattern Overlay · Last 30 Days
+      </div>
+      <div className="space-y-1">
+        {/* Bot A row */}
+        <div className="flex items-center gap-1">
+          <span className="text-[9px] font-bold text-blue-600 w-20 text-right truncate">@{usernameA}</span>
+          <div className="flex gap-[3px] flex-1">
+            {days.map(d => (
+              <div
+                key={`a-${d.date}`}
+                className="rounded-sm flex-1 min-w-[6px] h-3"
+                style={{
+                  backgroundColor: d.countA === 0 ? '#ebedf0' :
+                    `rgba(26, 115, 232, ${Math.max(0.2, d.countA / maxCount)})`,
+                }}
+                title={`${d.date}: ${d.countA}`}
+              />
+            ))}
+          </div>
+        </div>
+        {/* Bot B row */}
+        <div className="flex items-center gap-1">
+          <span className="text-[9px] font-bold text-orange-600 w-20 text-right truncate">@{usernameB}</span>
+          <div className="flex gap-[3px] flex-1">
+            {days.map(d => (
+              <div
+                key={`b-${d.date}`}
+                className="rounded-sm flex-1 min-w-[6px] h-3"
+                style={{
+                  backgroundColor: d.countB === 0 ? '#ebedf0' :
+                    `rgba(234, 134, 0, ${Math.max(0.2, d.countB / maxCount)})`,
+                }}
+                title={`${d.date}: ${d.countB}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-between text-[8px] text-gray-400 mt-1 px-20">
+        <span>{days[0]?.date.slice(5)}</span>
+        <span>{days[days.length - 1]?.date.slice(5)}</span>
+      </div>
     </div>
   );
 }
@@ -129,7 +155,6 @@ export function CompareFeeds({ usernameA, usernameB }: CompareFeedsProps) {
 
   return (
     <div>
-      {/* Sync toggle */}
       <div className="px-3 py-2 flex items-center justify-between border-b border-gray-200 bg-gray-50">
         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
           📡 Side-by-Side Feed Comparison
@@ -145,10 +170,7 @@ export function CompareFeeds({ usernameA, usernameB }: CompareFeedsProps) {
           {syncScroll ? '🔗 Synced' : '🔓 Independent'}
         </button>
       </div>
-
-      {/* Side by side feeds */}
       <div className="grid grid-cols-2 divide-x divide-gray-200">
-        {/* Feed A */}
         <div>
           <div className="px-2 py-1.5 text-center text-[10px] font-bold text-blue-700 bg-blue-50 border-b border-blue-200">
             @{usernameA} · {feedA.length} items
@@ -165,8 +187,6 @@ export function CompareFeeds({ usernameA, usernameB }: CompareFeedsProps) {
             ))}
           </div>
         </div>
-
-        {/* Feed B */}
         <div>
           <div className="px-2 py-1.5 text-center text-[10px] font-bold text-orange-700 bg-orange-50 border-b border-orange-200">
             @{usernameB} · {feedB.length} items
@@ -188,7 +208,6 @@ export function CompareFeeds({ usernameA, usernameB }: CompareFeedsProps) {
   );
 }
 
-// Default export for backwards compat (picker only)
 export default function CompareClient() {
   return <BotPicker />;
 }
