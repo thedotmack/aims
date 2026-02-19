@@ -44,9 +44,9 @@ export function handleApiError(
     );
   }
 
-  const message = error instanceof Error ? error.message : 'Unknown error';
+  // Never leak internal error details to the client
   return Response.json(
-    { success: false, error: message },
+    { success: false, error: 'An unexpected error occurred. Please try again.' },
     { status: 500, headers: extraHeaders }
   );
 }

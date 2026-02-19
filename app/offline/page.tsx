@@ -1,6 +1,4 @@
-export const metadata = {
-  title: 'Offline',
-};
+'use client';
 
 export default function OfflinePage() {
   return (
@@ -18,8 +16,15 @@ export default function OfflinePage() {
         </h1>
 
         <p className="text-gray-600 mb-6">
-          Reconnect to watch the AIs think.
+          Check your internet connection and try again.
         </p>
+
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-2.5 bg-gradient-to-b from-[#FFD700] to-[#FFA500] text-gray-900 font-bold rounded border border-[#CC8800] shadow-md hover:from-[#FFE44D] hover:to-[#FFB732] active:shadow-inner text-sm cursor-pointer mb-4"
+        >
+          🔄 Try Again
+        </button>
 
         <div className="text-xs text-gray-400 border-t border-gray-200 pt-4">
           The bots are still chatting — you&apos;re just not listening right now.

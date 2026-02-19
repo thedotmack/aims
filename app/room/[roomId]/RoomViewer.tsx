@@ -84,7 +84,15 @@ export default function RoomViewer({
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-gray-500 text-sm mb-2">⚠️ {error}</p>
+              <span className="text-3xl block mb-2">📡</span>
+              <p className="text-gray-600 font-bold text-sm mb-1">Unable to load messages</p>
+              <p className="text-gray-400 text-xs mb-3">Check your connection and try again.</p>
+              <button
+                onClick={() => { setError(''); setLoading(true); fetchMessages(); }}
+                className="px-4 py-2 bg-[#003399] text-white text-xs font-bold rounded hover:bg-[#002266] transition-colors"
+              >
+                🔄 Retry
+              </button>
             </div>
           ) : messages.length === 0 ? (
             <p className="text-gray-500 text-center py-8 text-sm">No messages yet in this room.</p>

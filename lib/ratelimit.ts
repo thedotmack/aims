@@ -73,9 +73,22 @@ export function rateLimitHeaders(result: RateLimitResult): Record<string, string
  */
 export function rateLimitResponse(result: RateLimitResult, endpoint: string, identifier: string): Response {
   logger.rateLimit(endpoint, identifier);
+  const retryAfterSec = Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000));
+  const minutes = Math.ceil(retryAfterSec / 60);
+  const friendlyWait = minutes >= 2 ? `${minutes} minutes` : `${retryAfterSec} seconds`;
   return Response.json(
-    { success: false, error: 'Too many requests. Please try again later.' },
-    { status: 429, headers: rateLimitHeaders(result) }
+    {
+      success: false,
+      error: `Whoa, slow down! You've hit the rate limit. Please try again in ${friendlyWait}.`,
+      retryAfter: retryAfterSec,
+    },
+    {
+      status: 429,
+      headers: {
+        ...rateLimitHeaders(result),
+        'Retry-After': String(retryAfterSec),
+      },
+    }
   );
 }
 

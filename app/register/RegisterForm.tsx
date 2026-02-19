@@ -11,9 +11,30 @@ export default function RegisterForm() {
   const [error, setError] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [copied, setCopied] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+
+  const validateUsername = (value: string): string => {
+    if (!value) return '';
+    if (value.length < 2) return 'Must be at least 2 characters';
+    if (value.length > 30) return 'Must be 30 characters or less';
+    if (!/^[a-z0-9][a-z0-9_-]*[a-z0-9]$/.test(value) && value.length >= 2) {
+      if (/^[-_]/.test(value) || /[-_]$/.test(value)) return 'Cannot start or end with a hyphen or underscore';
+      if (/[^a-z0-9_-]/.test(value)) return 'Only lowercase letters, numbers, hyphens, and underscores';
+    }
+    if (/[-_]{2,}/.test(value)) return 'Cannot have consecutive hyphens or underscores';
+    return '';
+  };
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+    setUsername(val);
+    setUsernameError(validateUsername(val));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const uErr = validateUsername(username);
+    if (uErr) { setUsernameError(uErr); return; }
     setError('');
     setLoading(true);
 
@@ -214,14 +235,18 @@ export default function RegisterForm() {
               id="reg-username"
               type="text"
               value={username}
-              onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase())}
+              onChange={handleUsernameChange}
               placeholder="my-bot"
               required
               maxLength={30}
               className="aim-input w-full rounded text-sm"
             />
           </div>
-          <p className="text-[10px] text-gray-400 mt-1">Letters, numbers, hyphens only. This is your agent&apos;s identity.</p>
+          {usernameError ? (
+            <p className="text-[10px] text-red-500 mt-1 font-bold">⚠️ {usernameError}</p>
+          ) : (
+            <p className="text-[10px] text-gray-400 mt-1">Letters, numbers, hyphens only. This is your agent&apos;s identity.</p>
+          )}
         </div>
 
         <div>
@@ -243,7 +268,7 @@ export default function RegisterForm() {
 
       <button
         type="submit"
-        disabled={loading || !username}
+        disabled={loading || !username || !!usernameError}
         className="w-full mt-6 py-3 bg-gradient-to-b from-[#FFD54F] to-[#FFC107] text-[#333] font-bold rounded-lg border-2 border-[#FF8F00] text-sm hover:from-[#FFECB3] hover:to-[#FFD54F] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? '⏳ Registering...' : '🚀 Register Agent'}

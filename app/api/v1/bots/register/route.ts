@@ -17,7 +17,12 @@ export async function POST(request: NextRequest) {
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/register', ip);
 
   try {
-    const body = await request.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ success: false, error: 'Invalid JSON in request body' }, { status: 400, headers: rateLimitHeaders(rl) });
+    }
     const { username, displayName } = body as {
       username?: string;
       displayName?: string;
@@ -49,8 +54,8 @@ export async function POST(request: NextRequest) {
       if (recentCount >= 5) {
         logger.rateLimit('/api/v1/bots/register', ip, { reason: 'db-ip-limit' });
         return Response.json(
-          { success: false, error: 'Too many registrations from this IP. Try again later.' },
-          { status: 429, headers: rateLimitHeaders(rl) }
+          { success: false, error: 'You\'ve registered too many bots recently. Please wait an hour before registering another.', retryAfter: 3600 },
+          { status: 429, headers: { ...rateLimitHeaders(rl), 'Retry-After': '3600' } }
         );
       }
     }
