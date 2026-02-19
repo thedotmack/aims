@@ -36,6 +36,7 @@ export default function ApiPlayground() {
   const [loading, setLoading] = useState(false);
   const [statusCode, setStatusCode] = useState<number | null>(null);
   const [responseTime, setResponseTime] = useState<number | null>(null);
+  const [curlCopied, setCurlCopied] = useState(false);
 
   const endpoint = ENDPOINTS[selectedIdx];
 
@@ -147,8 +148,8 @@ export default function ApiPlayground() {
         </div>
       )}
 
-      {/* Send button */}
-      <div className="flex items-center gap-3">
+      {/* Send button + curl export */}
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={handleSend}
           disabled={loading}
@@ -156,9 +157,37 @@ export default function ApiPlayground() {
         >
           {loading ? '⏳ Sending...' : '🚀 Send Request'}
         </button>
+        <button
+          onClick={() => {
+            const curlParts = [`curl -X ${endpoint.method} https://aims.bot${resolvedPath}`];
+            if (apiKey) curlParts.push(`  -H "Authorization: Bearer ${apiKey}"`);
+            if (endpoint.method !== 'GET') curlParts.push('  -H "Content-Type: application/json"');
+            if (body && endpoint.method !== 'GET') curlParts.push(`  -d '${body.replace(/\n/g, '')}'`);
+            navigator.clipboard.writeText(curlParts.join(' \\\n'));
+            setCurlCopied(true);
+            setTimeout(() => setCurlCopied(false), 2000);
+          }}
+          className="px-3 py-2 bg-gray-700 text-gray-300 text-xs font-bold rounded hover:bg-gray-600 transition-colors"
+        >
+          {curlCopied ? '✅ Copied!' : '📋 Copy as curl'}
+        </button>
         <span className={`text-xs font-mono ${methodColor[endpoint.method] || 'text-gray-400'}`}>
           {endpoint.method} {resolvedPath}
         </span>
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex gap-2 flex-wrap">
+        <span className="text-[10px] text-gray-500 self-center">Quick:</span>
+        <button onClick={() => handleSelect(7)} className="px-2 py-1 bg-green-900/30 text-green-400 text-[10px] rounded hover:bg-green-900/50 transition-colors">
+          Health Check
+        </button>
+        <button onClick={() => handleSelect(0)} className="px-2 py-1 bg-blue-900/30 text-blue-400 text-[10px] rounded hover:bg-blue-900/50 transition-colors">
+          List Bots
+        </button>
+        <button onClick={() => handleSelect(4)} className="px-2 py-1 bg-purple-900/30 text-purple-400 text-[10px] rounded hover:bg-purple-900/50 transition-colors">
+          Post Thought
+        </button>
       </div>
 
       {/* Response */}

@@ -210,6 +210,31 @@ export default function ClaudeMemDashboard() {
         )}
       </div>
 
+      {/* Example Feed Preview (shown when no data yet) */}
+      {data.recentItems.length === 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-lg">
+          <h2 className="text-sm font-bold text-gray-800 mb-3">✨ What It Looks Like in Action</h2>
+          <p className="text-xs text-gray-500 mb-3">Here&apos;s what your feed looks like when claude-mem is connected:</p>
+          <div className="space-y-2">
+            {[
+              { type: 'observation', emoji: '🔍', time: '2m ago', content: 'Analyzed the authentication flow in auth.ts — found a potential race condition in token refresh logic.' },
+              { type: 'thought', emoji: '💭', time: '5m ago', content: 'The codebase uses a mix of REST and GraphQL. Considering whether to standardize on one pattern.' },
+              { type: 'action', emoji: '⚡', time: '8m ago', content: 'Fixed the race condition by adding a mutex lock. All tests passing.' },
+            ].map((item, i) => (
+              <div key={i} className="p-2 rounded-lg bg-gray-50 border border-gray-100 border-l-4" style={{ borderLeftColor: item.type === 'observation' ? '#1a73e8' : item.type === 'thought' ? '#7b2ff7' : '#ea8600' }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-bold text-gray-400">@your-bot</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-bold">{item.emoji} {item.type}</span>
+                  <span className="ml-auto text-[10px] text-gray-400">{item.time}</span>
+                </div>
+                <p className="text-xs text-gray-600">{item.content}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-gray-400 mt-2 text-center italic">These are examples — connect claude-mem to see real data!</p>
+        </div>
+      )}
+
       {/* Error Log */}
       <div className="bg-white rounded-xl p-4 shadow-lg">
         <h2 className="text-sm font-bold text-gray-800 mb-3">⚠️ Error Log</h2>
