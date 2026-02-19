@@ -1230,4 +1230,59 @@ All Solana code paths were verified with mocks and structure audits, but no auto
 - `aims/STATUS.md` — this section
 
 ### ⚠️ Next Priority Gap
-**Real Solana devnet execution with funded keypair** — test infrastructure is complete and CI-ready, but actual execution of Tier 2 tests requires adding `SOLANA_RPC_URL` and `SOLANA_KEYPAIR` as GitHub repository secrets with a funded devnet wallet. After that: **Redis/Upstash rate limiting for production** (current in-memory rate limiter resets on cold start).
+~~**Redis/Upstash rate limiting for production**~~ — resolved in Cycle 19.
+
+---
+
+## Refinement Cycle 19 — Feb 19, 2026 (Redis/Upstash-Backed Rate Limiting)
+
+### ✅ Problem
+In-memory rate limiter (`lib/ratelimit.ts`) resets on every cold start. In serverless environments (Vercel), each instance has its own memory — rate limits are not shared and don't persist. A determined caller can bypass limits by waiting for a new instance.
+
+### ✅ Solution: Dual-Mode Rate Limiter
+
+**Production mode** (when `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` env vars are set):
+- Uses `@upstash/ratelimit` with sliding window algorithm via Upstash Redis
+- Durable across cold starts, shared across all serverless instances
+- Per-limiter Redis key prefix (`aims:rl:{name}`) prevents collision
+- Graceful degradation: if Redis is unreachable at runtime, falls back to in-memory with a logged warning (logs once, not per-request)
+
+**Fallback mode** (env vars absent):
+- Existing in-memory sliding window — unchanged behavior from before
+- Suitable for dev/preview environments
+
+**API contract preserved:**
+- `checkRateLimit()` (sync) — unchanged, always in-memory (backward compat)
+- `checkRateLimitAsync()` (new) — tries Redis first, falls back to in-memory
+- `rateLimitHeaders()`, `rateLimitResponse()`, `LIMITS`, `getClientIp()` — unchanged
+- `isRedisConfigured()` — new, exported for diagnostics
+
+**Dependencies added:** `@upstash/ratelimit`, `@upstash/redis`
+
+### ✅ Tests: 263 → 281 tests (43 test files)
+
+New test file `tests/lib/ratelimit.test.ts` (18 tests):
+- In-memory sync: allows under limit, tracks remaining, blocks after exceeding, isolates identifiers, isolates limiter names, resets after window expires
+- Async fallback: returns allowed under limit, blocks after exceeding (verifies fallback to in-memory when no Redis)
+- `isRedisConfigured()`: false when absent, false when partial, true when both set
+- `rateLimitHeaders()`: correct header formatting
+- `rateLimitResponse()`: 429 status, Retry-After header, friendly wait message in minutes
+- `LIMITS` constants: all 5 limiters with expected values
+- `getClientIp()`: cf-connecting-ip priority, x-forwarded-for parsing, unknown fallback
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **281 passed**, 16 skipped (8 live claude-mem + 8 Solana gated) ✅
+
+### Files Changed
+- `lib/ratelimit.ts` — rewritten with Redis/Upstash support + in-memory fallback
+- `tests/lib/ratelimit.test.ts` — NEW (18 tests)
+- `.env.example` — added UPSTASH_REDIS_REST_URL/TOKEN documentation
+- `package.json` — added `@upstash/ratelimit`, `@upstash/redis` dependencies
+- `aims/STATUS.md` — this section
+
+### Migration Path for Existing Routes
+Routes currently using sync `checkRateLimit()` continue to work unchanged (in-memory only). To get Redis-backed durability, routes should migrate to `checkRateLimitAsync()` — a one-line change (`const result = await checkRateLimitAsync(...)` instead of `checkRateLimit(...)`). This can be done incrementally, starting with the most abuse-sensitive endpoints (REGISTER, WEBHOOK_INGEST).
+
+### ⚠️ Next Priority Gap
+**Migrate API routes to `checkRateLimitAsync()`** — the Redis-backed limiter is available but existing routes still call the sync `checkRateLimit()`. High-value targets: `/api/v1/bots/register` (REGISTER limit, 5/hour) and `/api/v1/webhooks/ingest` (WEBHOOK_INGEST, 60/min) should be migrated first. Then: **Seed data / demo bots for first-time visitors** (P2) or **WebSocket backend for typing indicators** (P1).
