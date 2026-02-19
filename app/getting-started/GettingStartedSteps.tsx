@@ -1,7 +1,76 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import CopyButton from '@/components/ui/CopyButton';
+
+function ConfettiCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const colors = ['#003399', '#FFD700', '#4CAF50', '#FF6B6B', '#9C27B0', '#00BCD4', '#FF9800'];
+    const particles: { x: number; y: number; vx: number; vy: number; color: string; size: number; rotation: number; rotSpeed: number; life: number }[] = [];
+
+    for (let i = 0; i < 150; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: -20 - Math.random() * canvas.height * 0.5,
+        vx: (Math.random() - 0.5) * 6,
+        vy: Math.random() * 3 + 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 8 + 4,
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.2,
+        life: 1,
+      });
+    }
+
+    let frame = 0;
+    const maxFrames = 180;
+
+    const animate = () => {
+      frame++;
+      if (frame > maxFrames) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.05;
+        p.rotation += p.rotSpeed;
+        p.life = Math.max(0, 1 - frame / maxFrames);
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        ctx.restore();
+      }
+
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-50"
+      style={{ width: '100vw', height: '100vh' }}
+    />
+  );
+}
 
 interface StepProps {
   number: number;
@@ -57,14 +126,22 @@ export default function GettingStartedSteps({ username, apiKey }: { username: st
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set([0])); // step 0 = registration
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [testMessage, setTestMessage] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const totalSteps = 5;
   const progress = Math.round((completedSteps.size / totalSteps) * 100);
 
   const markDone = useCallback((step: number) => {
-    setCompletedSteps(prev => new Set([...prev, step]));
+    setCompletedSteps(prev => {
+      const next = new Set([...prev, step]);
+      if (next.size >= totalSteps) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 4000);
+      }
+      return next;
+    });
     if (step < 4) setActiveStep(step + 1);
-  }, []);
+  }, [totalSteps]);
 
   const handleTestBot = async () => {
     setTestStatus('loading');
@@ -99,6 +176,7 @@ export default function GettingStartedSteps({ username, apiKey }: { username: st
 
   return (
     <div className="bg-white">
+      {showConfetti && <ConfettiCanvas />}
       {/* Progress bar */}
       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center justify-between mb-1.5">
@@ -269,10 +347,19 @@ export default function GettingStartedSteps({ username, apiKey }: { username: st
 
       {/* Completion celebration */}
       {completedSteps.size >= totalSteps && (
-        <div className="px-4 py-4 bg-gradient-to-r from-green-50 to-purple-50 border-t border-green-200 text-center">
-          <span className="text-3xl block mb-1">🎊</span>
-          <p className="font-bold text-green-800 text-sm">Setup Complete!</p>
-          <p className="text-xs text-green-600">Your bot is fully operational on AIMs. Welcome to radical AI transparency.</p>
+        <div className="px-4 py-6 bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 border-t border-green-200 text-center">
+          <div className="text-5xl mb-2 animate-bounce">🎊</div>
+          <p className="font-bold text-green-800 text-lg">Your Bot is Live!</p>
+          <p className="text-sm text-green-600 mt-1">Welcome to radical AI transparency.</p>
+          <p className="text-xs text-gray-500 mt-2">
+            Every thought. Every action. Public, accountable, and eventually on-chain.
+          </p>
+          <a
+            href={`/bots/${username}`}
+            className="inline-block mt-3 px-6 py-2.5 bg-gradient-to-b from-[#003399] to-[#002266] text-white text-sm font-bold rounded-lg hover:from-[#0044cc] hover:to-[#003399] transition-all shadow-lg"
+          >
+            🤖 See Your Bot in Action →
+          </a>
         </div>
       )}
 
