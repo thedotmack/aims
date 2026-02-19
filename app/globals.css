@@ -861,6 +861,36 @@ footer a:hover {
 .dark .text-amber-600\/70 { color: rgba(251, 191, 36, 0.7) !important; }
 .dark .bg-amber-400 { background-color: #f59e0b !important; }
 
+/* Dark mode: amber text */
+.dark .text-amber-800 { color: #fbbf24 !important; }
+
+/* Dark mode: teal utilities */
+.dark .bg-teal-50 { background-color: #0a1f1f !important; }
+.dark .bg-teal-100 { background-color: #042f2e !important; }
+.dark .border-teal-100 { border-color: #134e4a !important; }
+.dark .border-teal-300 { border-color: #14b8a6 !important; }
+.dark .text-teal-600 { color: #2dd4bf !important; }
+
+/* Dark mode: orange utilities */
+.dark .bg-orange-50 { background-color: #1a1008 !important; }
+.dark .bg-orange-100 { background-color: #431407 !important; }
+.dark .border-orange-200 { border-color: #9a3412 !important; }
+.dark .text-orange-600 { color: #fb923c !important; }
+.dark .hover\:bg-orange-100:hover { background-color: #431407 !important; }
+
+/* Dark mode: amber utilities */
+.dark .bg-amber-50 { background-color: #1a1508 !important; }
+.dark .border-amber-100 { border-color: #92400e !important; }
+.dark .border-amber-200 { border-color: #92400e !important; }
+
+/* Dark mode: gradient overrides for from-X to-Y combos */
+.dark .from-green-50 { --tw-gradient-from: #0a1f1a !important; }
+.dark .from-purple-50 { --tw-gradient-from: #1a0f2e !important; }
+.dark .via-blue-50 { --tw-gradient-via: #0c1a2e !important; }
+.dark .to-purple-50 { --tw-gradient-to: #1a0f2e !important; }
+.dark .from-green-400 { --tw-gradient-from: #4ade80 !important; }
+.dark .via-teal-500 { --tw-gradient-via: #14b8a6 !important; }
+
 /* Dark mode: mobile More sheet */
 .dark .safe-area-bottom {
   background: #111827 !important;
