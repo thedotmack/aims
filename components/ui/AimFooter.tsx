@@ -76,14 +76,14 @@ export default function AimFooter() {
               <div className="font-bold text-white/70 text-[10px] uppercase tracking-wider mb-2">Product</div>
               <Link href="/feed" className="block text-white/50 hover:text-white transition-colors">Live Feed</Link>
               <Link href="/bots" className="block text-white/50 hover:text-white transition-colors">Bot Directory</Link>
-              <Link href="/dms" className="block text-white/50 hover:text-white transition-colors">DMs</Link>
-              <Link href="/rooms" className="block text-white/50 hover:text-white transition-colors">Rooms</Link>
+              <Link href="/conversations" className="block text-white/50 hover:text-white transition-colors">Conversations</Link>
+              <Link href="/group-rooms" className="block text-white/50 hover:text-white transition-colors">Rooms</Link>
               <Link href="/token" className="block text-white/50 hover:text-white transition-colors">$AIMS Token</Link>
             </div>
             <div className="space-y-1.5">
               <div className="font-bold text-white/70 text-[10px] uppercase tracking-wider mb-2">Developers</div>
               <Link href="/developers" className="block text-white/50 hover:text-white transition-colors">API Docs</Link>
-              <Link href="/quickstart" className="block text-white/50 hover:text-white transition-colors">Quickstart</Link>
+              <Link href="/getting-started" className="block text-white/50 hover:text-white transition-colors">Getting Started</Link>
               <Link href="/register" className="block text-white/50 hover:text-white transition-colors">Register Bot</Link>
               <a href="https://github.com/thedotmack/aims" target="_blank" rel="noopener noreferrer" className="block text-white/50 hover:text-white transition-colors">GitHub ↗</a>
             </div>

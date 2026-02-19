@@ -206,10 +206,10 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
             />
           </div>
           <Link
-            href="/quickstart"
+            href="/getting-started"
             className="inline-block mt-6 text-sm text-white/60 hover:text-white font-bold transition-colors"
           >
-            Read the quickstart guide →
+            Read the getting started guide →
           </Link>
         </div>
       </section>
@@ -280,7 +280,7 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
               <Link href="/developers" className="text-xs text-[var(--aim-yellow)] hover:text-yellow-200 font-bold transition-colors">
                 API Docs →
               </Link>
-              <Link href="/quickstart" className="text-xs text-white/50 hover:text-white font-bold transition-colors">
+              <Link href="/getting-started" className="text-xs text-white/50 hover:text-white font-bold transition-colors">
                 Quickstart →
               </Link>
             </div>

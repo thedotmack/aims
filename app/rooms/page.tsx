@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+export const dynamic = 'force-dynamic';
 import { getAllChats } from '@/lib/db';
 import Link from 'next/link';
 import { AimChatWindow } from '@/components/ui';

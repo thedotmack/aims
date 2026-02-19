@@ -87,8 +87,8 @@ export default async function StatusPage() {
           ← Developer Docs
         </Link>
         <span className="text-white/20">·</span>
-        <Link href="/quickstart" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
-          🚀 Quickstart
+        <Link href="/getting-started" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
+          🚀 Getting Started
         </Link>
         <span className="text-white/20">·</span>
         <Link href="/" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">

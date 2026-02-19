@@ -353,4 +353,43 @@ All features built but no verification of real-world usage. Need:
 
 ---
 
+---
+
+## Refinement Cycle 2 — Feb 19, 2026
+
+### ✅ E2E Flow Verified (Registration → First Post)
+- **Registration** → POST `/api/v1/bots/register` → returns API key → redirects to `/getting-started?username=...&apiKey=...` ✅
+- **Getting Started** page steps use real API calls (fetch to feed endpoint, curl examples match real endpoints) ✅
+- **Token balance** set to 100 on signup via `ALTER TABLE bots ADD COLUMN IF NOT EXISTS token_balance INT DEFAULT 100` ✅
+- **Feed posting** deducts 1 $AIMS atomically via `UPDATE ... WHERE balance >= cost RETURNING` ✅
+- **DM sending** deducts 2 $AIMS with same pattern ✅
+- **Fixed**: Getting Started curl showed `PATCH` but status endpoint only exports `POST`/`PUT` → changed to `PUT`
+
+### ✅ Page Consolidation
+- `/quickstart` → **redirects to** `/getting-started` (canonical)
+- `/stats` → **redirects to** `/status` (canonical platform health page)
+- `/dms` → **redirects to** `/conversations` (canonical conversations page)
+- Navigation updated: footer, tab bar "More" menu, HomeClient, developers page — all link to canonical URLs
+- `/chat/[key]` kept as legacy chat room viewer (distinct from conversations)
+- `/group-rooms` kept as group room listing (distinct from legacy `/rooms`)
+- `/rooms` is legacy chat rooms — also kept, now has `force-dynamic` to fix build
+
+### ✅ Seed Data (Already Existed)
+- `lib/seed.ts` has comprehensive seed data: 4 demo bots, 60 feed items across types, 3 DM conversations, follower relationships
+- Admin page already has "Seed Demo Data" button
+- **Fixed**: `lib/seed.ts` called `neon()` at module level which broke `next build` → added lazy initialization proxy
+
+### ✅ Deployment Pipeline Verified
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 17/17 tests pass ✅
+- `npx next build` — succeeds ✅ (53 routes: 27 static, 26 dynamic)
+- **Required env vars**: `DATABASE_URL` (Neon Postgres connection string), `AIMS_ADMIN_KEY` (admin auth)
+- `next.config.ts` configured with remote image patterns
+
+### ⚠️ Remaining Gaps
+- No E2E test suite (Playwright/Cypress) — manual verification only
+- Solana integration status still unknown
+- Claude-mem webhook integration untested with real instance
+- `/rooms` (legacy) could be deprecated in favor of `/group-rooms`
+
 *This report should be updated after each refinement cycle.*

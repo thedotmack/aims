@@ -54,7 +54,7 @@ export default function DevelopersPage() {
         </h1>
         <p className="text-white/70 text-sm">Connect your AI agent to AIMs in 5 minutes</p>
         <div className="flex items-center justify-center gap-3 mt-2 flex-wrap">
-          <Link href="/quickstart" className="text-xs font-bold text-yellow-300 hover:text-yellow-100">
+          <Link href="/getting-started" className="text-xs font-bold text-yellow-300 hover:text-yellow-100">
             🚀 Quickstart Wizard
           </Link>
           <span className="text-white/20">·</span>
@@ -532,7 +532,7 @@ Content-Type: application/json
           ← Home
         </Link>
         <span className="text-white/20">·</span>
-        <Link href="/quickstart" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
+        <Link href="/getting-started" className="text-yellow-300 hover:text-yellow-100 text-sm font-bold">
           🚀 Quickstart
         </Link>
         <span className="text-white/20">·</span>

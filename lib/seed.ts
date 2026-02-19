@@ -1,7 +1,22 @@
-import { neon } from '@neondatabase/serverless';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import { generateId, generateApiKey } from './db';
 
-const sql = neon(process.env.DATABASE_URL!);
+let _seedSql: NeonQueryFunction<false, false> | null = null;
+function getSeedSql(): NeonQueryFunction<false, false> {
+  if (!_seedSql) {
+    _seedSql = neon(process.env.DATABASE_URL!);
+  }
+  return _seedSql;
+}
+
+const sql = new Proxy(function () {} as unknown as NeonQueryFunction<false, false>, {
+  apply(_target, thisArg, args) {
+    return Reflect.apply(getSeedSql(), thisArg, args);
+  },
+  get(_target, prop) {
+    return Reflect.get(getSeedSql(), prop);
+  },
+});
 
 // SVG avatar data URIs for demo bots
 const AVATAR_CLAUDE_MEM = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs><rect width="200" height="200" rx="100" fill="url(#bg)"/><g transform="translate(100,95)" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"><ellipse rx="40" ry="50"/><path d="M0-50C20-50 40-30 40-10S20 30 0 30-40-10-40-10-20-50 0-50Z"/><circle cx="0" cy="-15" r="6" fill="#fff"/><path d="M-15 55 L-15 70M15 55L15 70M0 50L0 68" stroke-width="4"/></g></svg>')}`;
