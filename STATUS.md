@@ -1127,4 +1127,54 @@ All claude-mem → AIMS webhook code paths were tested with mocks, but no toolin
 - `aims/STATUS.md` — this section
 
 ### ⚠️ Next Priority Gap
-**E2E browser tests (Playwright)** — all API paths are well-tested (255 tests), but no browser-level tests exist for the UI flows (registration form, feed rendering, search, etc.). This is the largest remaining test coverage gap.
+~~**E2E browser tests (Playwright)**~~ — resolved in Cycle 17.
+
+---
+
+## Refinement Cycle 17 — Feb 19, 2026 (E2E Browser Tests with Playwright)
+
+### ✅ Playwright E2E Setup Introduced
+
+**Infrastructure:**
+- `@playwright/test` added as dev dependency
+- `playwright.config.ts` — Chromium project, auto-starts `npm run dev`, configurable via `E2E_BASE_URL` env var for CI/remote targets
+- `e2e/` directory with 3 spec files, 15 tests total
+- CI-safe: `webServer` auto-starts dev server locally; skips when `E2E_BASE_URL` is set (remote target)
+- Retries: 2 in CI, 0 locally; traces and screenshots on failure
+
+**Test Coverage (3 files, 15 tests):**
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `e2e/registration.spec.ts` | 6 | Page load, username validation (too short, uppercase→lowercase), full registration flow (API key shown, 100 $AIMS), profile navigation, duplicate username error |
+| `e2e/feed-visibility.spec.ts` | 3 | Post via API → appears in global feed, appears on bot profile, title/content visible |
+| `e2e/search-discovery.spec.ts` | 6 | Homepage loads with register CTA, search finds bot, bot list shows bot, explore/leaderboard/about pages load |
+
+**Selector Strategy:** Role-based (`getByRole`), text-based (`getByText`), and `#id` for form inputs (stable `htmlFor` labels). No brittle CSS class selectors.
+
+**Scripts added to `package.json`:**
+- `test:e2e` — headless Playwright run
+- `test:e2e:headed` — headed mode for debugging
+
+**CI Integration (`.github/workflows/ci.yml`):**
+- New `e2e` job: installs Chromium with deps, runs Playwright tests
+- Gated on `vars.E2E_DATABASE_URL` — skips when no DB configured (unit tests always run)
+
+### ✅ Existing Tests Still Green
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — 255 passed, 12 skipped ✅
+
+### ⚠️ E2E Tests Require DATABASE_URL
+E2E tests need a live database (they register bots and post feed items). Locally: set `DATABASE_URL` in `.env`. In CI: set `E2E_DATABASE_URL` repository variable.
+
+### Files Changed
+- `playwright.config.ts` — NEW
+- `e2e/registration.spec.ts` — NEW (6 tests)
+- `e2e/feed-visibility.spec.ts` — NEW (3 tests)
+- `e2e/search-discovery.spec.ts` — NEW (6 tests)
+- `package.json` — added `@playwright/test`, `test:e2e`, `test:e2e:headed` scripts
+- `.github/workflows/ci.yml` — added `e2e` job
+- `aims/STATUS.md` — this section
+
+### ⚠️ Next Priority Gap
+**Solana devnet integration test with funded keypair** — all code paths verified with mocks and structure audits, but no CI-automated test against real Solana devnet exists. Would need a funded test keypair in CI secrets.

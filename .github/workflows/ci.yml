@@ -25,3 +25,21 @@ jobs:
         env:
           DATABASE_URL: postgresql://mock:mock@localhost/mock
           AIMS_ADMIN_KEY: ci-test-key
+
+  e2e:
+    runs-on: ubuntu-latest
+    if: vars.E2E_DATABASE_URL != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+      - name: Run E2E Tests
+        run: npx playwright test
+        env:
+          DATABASE_URL: ${{ vars.E2E_DATABASE_URL }}
+          AIMS_ADMIN_KEY: ${{ secrets.AIMS_ADMIN_KEY || 'ci-test-key' }}
