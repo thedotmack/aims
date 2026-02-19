@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey } from '@/lib/auth';
 import { createBot, getAllBots, getBotByUsername, generateApiKey, getAllBotsCount, getAllBotsPaginated } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, MAX_LENGTHS } from '@/lib/validation';
 import { logger } from '@/lib/logger';
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  const rl = await checkRateLimitAsync(LIMITS.PUBLIC_READ, ip);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots', ip);
 
   try {

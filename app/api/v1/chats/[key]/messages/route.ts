@@ -2,7 +2,7 @@
 import { getChatByKey, getChatMessages, createMessage, getMessagesAfter } from '@/lib/db';
 import { validateUsername } from '@/lib/auth';
 import { deliverWebhooks } from '@/lib/webhooks';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
 
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ key: string }> }
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  const rl = await checkRateLimitAsync(LIMITS.PUBLIC_READ, ip);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/chats/[key]/messages', ip);
 
   try {
@@ -53,7 +53,7 @@ export async function POST(
   { params }: { params: Promise<{ key: string }> }
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(LIMITS.AUTH_WRITE, ip);
+  const rl = await checkRateLimitAsync(LIMITS.AUTH_WRITE, ip);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/chats/[key]/messages', ip);
 
   try {

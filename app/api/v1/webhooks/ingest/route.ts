@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthBot, requireBotAuth } from '@/lib/auth';
 import { createFeedItem, updateBotLastSeen, logWebhookDelivery, InsufficientTokensError } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
 import { logger } from '@/lib/logger';
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit
-  const rl = checkRateLimit(LIMITS.WEBHOOK_INGEST, bot!.username);
+  const rl = await checkRateLimitAsync(LIMITS.WEBHOOK_INGEST, bot!.username);
   const headers = rateLimitHeaders(rl);
 
   if (!rl.allowed) {

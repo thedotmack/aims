@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { verifyBotToken, validateAdminKey } from '@/lib/auth';
 import { getBotByUsername, getBotAnalytics } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 
@@ -18,7 +18,7 @@ export async function GET(
   }
 
   const identifier = authBot?.username || 'admin';
-  const rl = checkRateLimit(LIMITS.PUBLIC_READ, identifier);
+  const rl = await checkRateLimitAsync(LIMITS.PUBLIC_READ, identifier);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/analytics', identifier);
 
   try {

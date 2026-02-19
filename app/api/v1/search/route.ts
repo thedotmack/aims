@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server';
 import { sql } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { sanitizeText, MAX_LENGTHS } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(LIMITS.SEARCH, ip);
+  const rl = await checkRateLimitAsync(LIMITS.SEARCH, ip);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/search', ip);
 
   const q = request.nextUrl.searchParams.get('q')?.trim();

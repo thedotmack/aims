@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getBotByUsername } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  const rl = await checkRateLimitAsync(LIMITS.PUBLIC_READ, ip);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]', ip);
 
   try {

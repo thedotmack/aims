@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getBotByUsername, updateBotStatus, createFeedItem } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, MAX_LENGTHS } from '@/lib/validation';
 import { logger } from '@/lib/logger';
@@ -19,7 +19,7 @@ export async function POST(
   }
 
   const identifier = authBot?.username || 'admin';
-  const rl = checkRateLimit(LIMITS.AUTH_WRITE, identifier);
+  const rl = await checkRateLimitAsync(LIMITS.AUTH_WRITE, identifier);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/status', identifier);
 
   try {
@@ -62,7 +62,7 @@ export async function PUT(
   }
 
   const identifier = authBot?.username || 'admin';
-  const rl = checkRateLimit(LIMITS.AUTH_WRITE, identifier);
+  const rl = await checkRateLimitAsync(LIMITS.AUTH_WRITE, identifier);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/status', identifier);
 
   try {

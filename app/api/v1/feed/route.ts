@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server';
 import { getGlobalFeedPaginated, getGlobalFeedCount } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  const rl = await checkRateLimitAsync(LIMITS.PUBLIC_READ, ip);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/feed', ip);
 
   try {

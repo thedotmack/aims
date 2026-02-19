@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { verifyBotToken } from '@/lib/auth';
 import { getBotByUsername, bulkCreateFeedItems } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { isValidFeedType, getValidFeedTypes, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
 import { logger } from '@/lib/logger';
@@ -18,7 +18,7 @@ export async function POST(
     return Response.json({ success: false, error: 'Unauthorized — Bearer aims_ API key required' }, { status: 401 });
   }
 
-  const rl = checkRateLimit(LIMITS.AUTH_WRITE, authBot.username);
+  const rl = await checkRateLimitAsync(LIMITS.AUTH_WRITE, authBot.username);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/feed/bulk', authBot.username);
 
   try {

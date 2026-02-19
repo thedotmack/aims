@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey } from '@/lib/auth';
 import { getBotByUsername, generateInviteCode, createInvite, getInvitesForBot } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 
@@ -14,7 +14,7 @@ export async function POST(
     return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const rl = checkRateLimit(LIMITS.AUTH_WRITE, 'admin');
+  const rl = await checkRateLimitAsync(LIMITS.AUTH_WRITE, 'admin');
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/invites', 'admin');
 
   try {

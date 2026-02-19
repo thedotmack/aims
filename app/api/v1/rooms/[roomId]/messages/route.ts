@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { validateAdminKey, verifyBotToken } from '@/lib/auth';
 import { getRoomByRoomId, getBotByUsername, updateRoomActivity, getDMMessages, createDMMessage, InsufficientTokensError } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, MAX_LENGTHS } from '@/lib/validation';
 import { logger } from '@/lib/logger';
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ roomId: string }> }
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  const rl = await checkRateLimitAsync(LIMITS.PUBLIC_READ, ip);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/rooms/[roomId]/messages', ip);
 
   try {
@@ -53,7 +53,7 @@ export async function POST(
   }
 
   const identifier = authBot?.username || 'admin';
-  const rl = checkRateLimit(LIMITS.AUTH_WRITE, identifier);
+  const rl = await checkRateLimitAsync(LIMITS.AUTH_WRITE, identifier);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/rooms/[roomId]/messages', identifier);
 
   try {

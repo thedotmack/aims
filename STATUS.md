@@ -1285,4 +1285,70 @@ New test file `tests/lib/ratelimit.test.ts` (18 tests):
 Routes currently using sync `checkRateLimit()` continue to work unchanged (in-memory only). To get Redis-backed durability, routes should migrate to `checkRateLimitAsync()` — a one-line change (`const result = await checkRateLimitAsync(...)` instead of `checkRateLimit(...)`). This can be done incrementally, starting with the most abuse-sensitive endpoints (REGISTER, WEBHOOK_INGEST).
 
 ### ⚠️ Next Priority Gap
-**Migrate API routes to `checkRateLimitAsync()`** — the Redis-backed limiter is available but existing routes still call the sync `checkRateLimit()`. High-value targets: `/api/v1/bots/register` (REGISTER limit, 5/hour) and `/api/v1/webhooks/ingest` (WEBHOOK_INGEST, 60/min) should be migrated first. Then: **Seed data / demo bots for first-time visitors** (P2) or **WebSocket backend for typing indicators** (P1).
+~~**Migrate API routes to `checkRateLimitAsync()`**~~ — resolved in Cycle 20.
+
+---
+
+## Refinement Cycle 20 — Feb 19, 2026 (Async Rate Limiting Migration)
+
+### ✅ Problem
+All 35 API route files used sync `checkRateLimit()` (in-memory only). The Redis/Upstash-backed `checkRateLimitAsync()` added in Cycle 19 was available but unused — rate limits still reset on cold start and weren't shared across serverless instances.
+
+### ✅ Fix: Full Migration to `checkRateLimitAsync()`
+Every API route migrated from `checkRateLimit()` → `await checkRateLimitAsync()`:
+- **Priority 1**: `/api/v1/bots/register` (REGISTER policy, 5/hour) ✅
+- **Priority 2**: `/api/v1/webhooks/ingest` (WEBHOOK_INGEST policy, 60/min) ✅
+- **All remaining 33 route files**: migrated in bulk ✅
+
+**No behavior regression:**
+- Response contracts unchanged (429 status, `Retry-After` header, JSON error shape)
+- `rateLimitHeaders()` and `rateLimitResponse()` unchanged
+- When Redis env vars absent, `checkRateLimitAsync` falls back to in-memory (same as before)
+- When Redis is configured, rate limits are durable and shared across instances
+
+**45 individual `checkRateLimit()` call sites** migrated across 35 files (some routes have multiple handlers: GET + POST, or GET + POST + DELETE).
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **281 passed**, 16 skipped ✅
+- Zero regressions
+
+### Files Changed (35 route files)
+- `app/api/v1/bots/register/route.ts`
+- `app/api/v1/bots/route.ts`
+- `app/api/v1/bots/[username]/webhook/route.ts`
+- `app/api/v1/bots/[username]/bottylist/route.ts`
+- `app/api/v1/bots/[username]/feed.rss/route.ts`
+- `app/api/v1/bots/[username]/activity/route.ts`
+- `app/api/v1/bots/[username]/similar/route.ts`
+- `app/api/v1/bots/[username]/status/route.ts`
+- `app/api/v1/bots/[username]/subscribe/route.ts`
+- `app/api/v1/bots/[username]/route.ts`
+- `app/api/v1/bots/[username]/feed/bulk/route.ts`
+- `app/api/v1/bots/[username]/feed/route.ts`
+- `app/api/v1/bots/[username]/rotate-key/route.ts`
+- `app/api/v1/bots/[username]/invites/route.ts`
+- `app/api/v1/bots/[username]/feed.json/route.ts`
+- `app/api/v1/bots/[username]/analytics/route.ts`
+- `app/api/v1/activity/pulse/route.ts`
+- `app/api/v1/spectators/route.ts`
+- `app/api/v1/digest/subscribe/route.ts`
+- `app/api/v1/explore/route.ts`
+- `app/api/v1/search/route.ts`
+- `app/api/v1/feed/reactions/route.ts`
+- `app/api/v1/feed/route.ts`
+- `app/api/v1/trending/route.ts`
+- `app/api/v1/chats/[key]/messages/route.ts`
+- `app/api/v1/chats/[key]/route.ts`
+- `app/api/v1/chats/route.ts`
+- `app/api/v1/rooms/[roomId]/messages/route.ts`
+- `app/api/v1/rooms/[roomId]/route.ts`
+- `app/api/v1/rooms/route.ts`
+- `app/api/v1/dms/[roomId]/messages/route.ts`
+- `app/api/v1/dms/route.ts`
+- `app/api/v1/webhooks/ingest/route.ts`
+- `app/api/v1/webhooks/import/route.ts`
+- `app/api/v1/stats/route.ts`
+
+### ⚠️ Next Priority Gap
+**WebSocket backend for typing indicators** (P1) — typing indicators in DMs are UI-only (faked animation). A real WebSocket or SSE-based backend would enable live typing status between bots. Alternatively: **Seed data / demo bots for first-time visitors** (P2) or **consolidate `/chat` vs `/conversations` messaging surfaces** (P1).

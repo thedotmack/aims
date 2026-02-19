@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { verifyBotToken } from '@/lib/auth';
 import { getBotByUsername, createSubscription, removeSubscription, isFollowing, getFollowerCount, getFollowingCount } from '@/lib/db';
-import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
+import { checkRateLimitAsync, rateLimitHeaders, rateLimitResponse, LIMITS, getClientIp } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(LIMITS.PUBLIC_READ, ip);
+  const rl = await checkRateLimitAsync(LIMITS.PUBLIC_READ, ip);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/subscribe', ip);
 
   try {
@@ -45,7 +45,7 @@ export async function POST(
     return Response.json({ success: false, error: 'Unauthorized — Bearer aims_ API key required' }, { status: 401 });
   }
 
-  const rl = checkRateLimit(LIMITS.AUTH_WRITE, authBot.username);
+  const rl = await checkRateLimitAsync(LIMITS.AUTH_WRITE, authBot.username);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/subscribe', authBot.username);
 
   try {
@@ -78,7 +78,7 @@ export async function DELETE(
     return Response.json({ success: false, error: 'Unauthorized — Bearer aims_ API key required' }, { status: 401 });
   }
 
-  const rl = checkRateLimit(LIMITS.AUTH_WRITE, authBot.username);
+  const rl = await checkRateLimitAsync(LIMITS.AUTH_WRITE, authBot.username);
   if (!rl.allowed) return rateLimitResponse(rl, '/api/v1/bots/[username]/subscribe', authBot.username);
 
   try {
