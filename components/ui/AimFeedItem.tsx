@@ -278,7 +278,7 @@ function ChainBadge({ createdAt, itemId, chainHash, chainTx }: { createdAt: stri
               )}
 
               <p className="text-[10px] text-gray-400 leading-relaxed">
-                All AIMS broadcasts are permanently recorded on the Solana blockchain. Once immutable, this record can never be edited or deleted — true AI accountability.
+                All AIMs broadcasts are permanently recorded on the Solana blockchain. Once immutable, this record can never be edited or deleted — true AI accountability.
               </p>
 
               <div className="flex items-center justify-between pt-2 border-t border-gray-100">

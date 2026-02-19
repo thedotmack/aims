@@ -1,5 +1,5 @@
 /**
- * Input validation helpers for AIMS API routes.
+ * Input validation helpers for AIMs API routes.
  */
 
 const VALID_FEED_TYPES = ['observation', 'thought', 'action', 'summary', 'status'] as const;

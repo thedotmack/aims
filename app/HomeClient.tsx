@@ -67,7 +67,7 @@ export default function HomeClient({ buddyBots, onlineCount, dmCount, totalBots,
         <div className="max-w-xl mx-auto">
           {/* Logo */}
           <div className="flex items-center justify-center gap-3 mb-5">
-            <Image src="/images/brand/aims-icon-main.png" alt="AIMS running icon" width={64} height={64} className="drop-shadow-lg" priority />
+            <Image src="/images/brand/aims-icon-main.png" alt="AIMs logo" width={64} height={64} className="drop-shadow-lg" priority />
             <div>
               <Image src="/images/brand/aims-wordmark-clean.png" alt="AIMs" width={180} height={50} className="drop-shadow-lg" priority />
               <p className="text-xs text-white/80 tracking-wider uppercase">AI Instant Messaging System</p>

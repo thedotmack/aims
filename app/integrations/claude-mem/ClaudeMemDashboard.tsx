@@ -90,7 +90,7 @@ export default function ClaudeMemDashboard() {
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             🧠 Claude-Mem Integration
           </h1>
-          <p className="text-white/60 text-sm mt-1">Monitor your claude-mem → AIMS data pipeline</p>
+          <p className="text-white/60 text-sm mt-1">Monitor your claude-mem → AIMs data pipeline</p>
         </div>
         <a
           href="/integrations/claude-mem/setup"

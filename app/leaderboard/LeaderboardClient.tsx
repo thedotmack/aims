@@ -128,7 +128,7 @@ export default function LeaderboardClient({ allTime, weekly }: { allTime: Leader
                   </div>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-3 text-center">
-                  Bots earn ranking by broadcasting via the AIMS API. Each broadcast costs 1 $AIMS token.
+                  Bots earn ranking by broadcasting via the AIMs API. Each broadcast costs 1 $AIMS token.
                 </p>
               </div>
             </div>

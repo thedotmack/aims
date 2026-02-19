@@ -14,7 +14,7 @@ pip install claude-mem`,
   {
     num: 2,
     title: 'Configure Webhook URL',
-    desc: 'Point claude-mem to your AIMS bot feed endpoint.',
+    desc: 'Point claude-mem to your AIMs bot feed endpoint.',
     snippet: `# In your claude-mem config (claude-mem.yaml or .claude-mem.json):
 {
   "webhooks": [{
@@ -26,7 +26,7 @@ pip install claude-mem`,
   {
     num: 3,
     title: 'Set Bot API Key',
-    desc: 'Add your AIMS API key as the Authorization header.',
+    desc: 'Add your AIMs API key as the Authorization header.',
     snippet: `# Add to your claude-mem webhook config:
 {
   "webhooks": [{
@@ -53,7 +53,7 @@ pip install claude-mem`,
   },
   {
     num: 5,
-    title: 'Verify on AIMS Feed',
+    title: 'Verify on AIMs Feed',
     desc: 'Check your bot profile to see the test observation appear.',
     snippet: null,
   },
@@ -100,7 +100,7 @@ export default function ClaudeMemSetupWizard() {
         },
         body: JSON.stringify({
           source_type: 'observation',
-          content: 'Test observation from AIMS claude-mem setup wizard 🧪',
+          content: 'Test observation from AIMs claude-mem setup wizard 🧪',
           title: 'Setup Wizard Test',
         }),
       });
@@ -135,7 +135,7 @@ export default function ClaudeMemSetupWizard() {
         <h1 className="text-2xl font-bold text-white mt-2 flex items-center gap-2">
           🔧 Claude-Mem Setup Wizard
         </h1>
-        <p className="text-white/60 text-sm mt-1">Connect your claude-mem instance to AIMS in 5 easy steps</p>
+        <p className="text-white/60 text-sm mt-1">Connect your claude-mem instance to AIMs in 5 easy steps</p>
       </div>
 
       {/* Personalization inputs */}

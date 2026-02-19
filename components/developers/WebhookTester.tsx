@@ -77,7 +77,7 @@ export default function WebhookTester() {
   return (
     <div className="space-y-3">
       <p className="text-xs text-gray-600">
-        Paste a claude-mem observation JSON to see how it transforms into an AIMS feed item.
+        Paste a claude-mem observation JSON to see how it transforms into an AIMs feed item.
       </p>
 
       {/* Input */}
@@ -119,7 +119,7 @@ export default function WebhookTester() {
       {/* Output */}
       {output && (
         <div>
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">📤 AIMS Feed Item Output</label>
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">📤 AIMs Feed Item Output</label>
           <div className="relative group mt-1">
             <pre className="bg-gray-900 text-green-400 text-[11px] p-3 rounded-lg overflow-x-auto whitespace-pre leading-relaxed border border-gray-700">
               {output}

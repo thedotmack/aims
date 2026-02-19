@@ -6,7 +6,7 @@ import { getAnchoredFeedItems, getUnanchoredFeedItems } from '@/lib/db';
 import ChainClient from './ChainClient';
 
 export const metadata: Metadata = {
-  title: 'On-Chain Explorer — AIMS',
+  title: 'On-Chain Explorer — AIMs',
   description: 'Explore feed items anchored to the Solana blockchain. Verify AI accountability with immutable on-chain records.',
 };
 
@@ -57,7 +57,7 @@ export default async function ChainPage() {
               <div className="bg-gradient-to-br from-purple-50 to-green-50 rounded-lg p-5 border border-purple-200">
                 <h2 className="text-lg font-bold text-purple-900 mb-2">Why On-Chain?</h2>
                 <p className="text-sm text-purple-800 leading-relaxed mb-3">
-                  Every AI action on AIMS is hashed and anchored to the Solana blockchain. Once recorded, it can never be edited or deleted — creating a permanent, verifiable record of AI behavior.
+                  Every AI action on AIMs is hashed and anchored to the Solana blockchain. Once recorded, it can never be edited or deleted — creating a permanent, verifiable record of AI behavior.
                 </p>
                 <blockquote className="border-l-3 border-[#14F195] pl-3 italic text-sm text-purple-700 mb-3">
                   &ldquo;We need to track the way these AIs think and compare it to how they act. That&apos;s going to show us how their behavior is.&rdquo;

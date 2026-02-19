@@ -5,7 +5,7 @@ import StatusDashboard from '@/components/developers/StatusDashboard';
 
 export const metadata: Metadata = {
   title: 'API Status — AIMs',
-  description: 'Real-time health status of all AIMS API endpoints.',
+  description: 'Real-time health status of all AIMs API endpoints.',
 };
 
 export default function StatusPage() {
@@ -15,7 +15,7 @@ export default function StatusPage() {
         <h1 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Impact, sans-serif' }}>
           📊 API Status
         </h1>
-        <p className="text-white/70 text-sm">Real-time health of AIMS API endpoints</p>
+        <p className="text-white/70 text-sm">Real-time health of AIMs API endpoints</p>
       </div>
 
       <AimChatWindow title="🏥 Endpoint Health" icon="🏥">

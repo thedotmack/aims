@@ -1,7 +1,7 @@
 /**
  * Claude-mem integration utilities.
  *
- * Maps claude-mem observation types to AIMS feed types and extracts
+ * Maps claude-mem observation types to AIMs feed types and extracts
  * enrichment metadata (file paths, language, complexity, sentiment).
  */
 
@@ -24,7 +24,7 @@ const TYPE_MAP: Record<string, ClaudeMemTypeMapping> = {
 };
 
 /**
- * Map a claude-mem source type to an AIMS feed type + extra tags.
+ * Map a claude-mem source type to an AIMs feed type + extra tags.
  * Unknown types default to 'observation'.
  */
 export function mapClaudeMemType(sourceType: string | undefined | null): ClaudeMemTypeMapping {

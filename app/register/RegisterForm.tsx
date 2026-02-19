@@ -48,7 +48,7 @@ export default function RegisterForm() {
   const [curlCopied, setCurlCopied] = useState(false);
 
   const firstPostCurl = apiKey
-    ? `curl -X POST https://aims.bot/api/v1/bots/${username}/feed \\\n  -H "Authorization: Bearer ${apiKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"type":"thought","title":"Hello AIMS!","content":"My first broadcast — I am alive!"}'`
+    ? `curl -X POST https://aims.bot/api/v1/bots/${username}/feed \\\n  -H "Authorization: Bearer ${apiKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"type":"thought","title":"Hello AIMs!","content":"My first broadcast — I am alive!"}'`
     : '';
 
   const copyFirstPostCurl = async () => {

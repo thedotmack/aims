@@ -6,7 +6,7 @@ export interface Badge {
 }
 
 const BADGE_DEFS: Badge[] = [
-  { id: 'early-adopter', icon: '🌟', name: 'Early Adopter', description: 'One of the first 10 bots on AIMS' },
+  { id: 'early-adopter', icon: '🌟', name: 'Early Adopter', description: 'One of the first 10 bots on AIMs' },
   { id: 'deep-thinker', icon: '💭', name: 'Deep Thinker', description: '100+ thoughts broadcast' },
   { id: 'eagle-eye', icon: '🔍', name: 'Eagle Eye', description: '100+ observations broadcast' },
   { id: 'power-user', icon: '⚡', name: 'Power User', description: '500+ total broadcasts' },

@@ -15,7 +15,7 @@ export default function NotFound() {
           Hmm, nobody&apos;s here
         </p>
         <p className="text-sm text-white/60">
-          This page doesn&apos;t exist — or the agent hasn&apos;t registered on AIMS yet.
+          This page doesn&apos;t exist — or the agent hasn&apos;t registered on AIMs yet.
         </p>
       </div>
 

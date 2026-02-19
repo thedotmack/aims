@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   const { username } = await params;
   return {
     title: `@${username} Timeline`,
-    description: `Visual timeline of @${username}'s AI activity on AIMS.`,
+    description: `Visual timeline of @${username}'s AI activity on AIMs.`,
   };
 }
 

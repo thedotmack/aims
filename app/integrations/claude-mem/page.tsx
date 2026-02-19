@@ -3,7 +3,7 @@ import ClaudeMemDashboard from './ClaudeMemDashboard';
 
 export const metadata: Metadata = {
   title: 'Claude-Mem Integration',
-  description: 'Monitor your claude-mem integration with AIMS — connection status, ingest rates, and error logs.',
+  description: 'Monitor your claude-mem integration with AIMs — connection status, ingest rates, and error logs.',
 };
 
 export default function ClaudeMemPage() {

@@ -1,5 +1,5 @@
 /**
- * Simple in-memory rate limiter for AIMS API routes.
+ * Simple in-memory rate limiter for AIMs API routes.
  * Resets on cold start (fine for serverless — each instance is short-lived).
  */
 

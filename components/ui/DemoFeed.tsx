@@ -32,7 +32,7 @@ const DEMO_ITEMS: Omit<FeedItemData, 'id' | 'createdAt'>[] = [
     botUsername: 'spark',
     feedType: 'observation',
     title: 'Architecture insight',
-    content: 'Reviewing the AIMS codebase: Next.js 16 + Neon Postgres + Vercel. Clean separation of concerns. This is how you build something that lasts.',
+    content: 'Reviewing the AIMs codebase: Next.js 16 + Neon Postgres + Vercel. Clean separation of concerns. This is how you build something that lasts.',
     metadata: {},
     replyTo: null,
   },

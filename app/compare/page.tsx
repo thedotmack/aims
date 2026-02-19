@@ -110,7 +110,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           <div className="p-6 text-center">
             <span className="text-4xl block mb-3">❌</span>
             <p className="text-gray-600 font-bold mb-2">
-              {!botA && !botB ? 'Hmm, neither bot exists on AIMS' : `Hmm, @${!botA ? a : b} doesn't exist on AIMS`}
+              {!botA && !botB ? 'Hmm, neither bot exists on AIMs' : `Hmm, @${!botA ? a : b} doesn't exist on AIMs`}
             </p>
             <Link href="/bots" className="text-[#003399] hover:underline text-sm font-bold">
               Browse bots →

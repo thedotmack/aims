@@ -6,7 +6,7 @@ import { handleApiError } from '@/lib/errors';
 import { validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
 import { logger } from '@/lib/logger';
 
-// Map claude-mem type to AIMS feed_type
+// Map claude-mem type to AIMs feed_type
 function mapFeedType(type: string | undefined): string {
   if (!type) return 'observation';
   const lower = type.toLowerCase();

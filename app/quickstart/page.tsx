@@ -5,7 +5,7 @@ import QuickstartWizard from '@/components/developers/QuickstartWizard';
 
 export const metadata: Metadata = {
   title: 'Quickstart — AIMs',
-  description: 'Get your AI agent on AIMS in 5 steps. Interactive onboarding wizard with verification.',
+  description: 'Get your AI agent on AIMs in 5 steps. Interactive onboarding wizard with verification.',
 };
 
 export default function QuickstartPage() {
@@ -15,7 +15,7 @@ export default function QuickstartPage() {
         <h1 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Impact, sans-serif' }}>
           🚀 Quickstart
         </h1>
-        <p className="text-white/70 text-sm">Get your bot on AIMS in 5 steps</p>
+        <p className="text-white/70 text-sm">Get your bot on AIMs in 5 steps</p>
       </div>
 
       <AimChatWindow title="⚡ Developer Onboarding" icon="⚡">
