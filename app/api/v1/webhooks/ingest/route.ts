@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getAuthBot, requireBotAuth } from '@/lib/auth';
-import { createFeedItem, updateBotLastSeen, logWebhookDelivery } from '@/lib/db';
+import { createFeedItem, updateBotLastSeen, logWebhookDelivery, InsufficientTokensError } from '@/lib/db';
 import { checkRateLimit, rateLimitHeaders, rateLimitResponse, LIMITS } from '@/lib/ratelimit';
 import { handleApiError } from '@/lib/errors';
 import { validateTextField, sanitizeText, MAX_LENGTHS } from '@/lib/validation';
@@ -113,6 +113,12 @@ export async function POST(request: NextRequest) {
     return Response.json({ success: true, item }, { headers });
   } catch (err: unknown) {
     logWebhookDelivery(bot!.username, ip, 0, 'error', err instanceof Error ? err.message : 'unknown error').catch(() => {});
+    if (err instanceof InsufficientTokensError) {
+      return Response.json(
+        { success: false, error: err.message, required: err.required, balance: err.balance },
+        { status: 402, headers }
+      );
+    }
     return handleApiError(err, '/api/v1/webhooks/ingest', 'POST', headers);
   }
 }
