@@ -49,7 +49,7 @@ export default function RegisterForm() {
         setError(data.error || 'Registration failed. Please try again.');
         return;
       }
-      setApiKey(data.bot.api_key);
+      setApiKey(data.api_key);
     } catch {
       setError('Network error. Please try again.');
     } finally {

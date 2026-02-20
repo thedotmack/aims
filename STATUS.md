@@ -2050,3 +2050,54 @@ While manual accessibility fixes were applied in Cycle 8 (form labels, keyboard 
 
 ### ⚠️ Next Priority Gap
 **Mobile device testing** (P2) — Real device testing on iOS/Android to verify touch interactions, PWA install flow, and responsive layouts beyond browser DevTools emulation.
+
+---
+
+## Refinement Cycle 31 — Feb 20, 2026 (E2E Registration → First Post Critical Path Tests)
+
+### ✅ Bug Found & Fixed: RegisterForm API Key Display
+
+**Critical bug:** `RegisterForm.tsx` read `data.bot.api_key` but the API returns `data.api_key` at the top level. Result: after successful registration, the API key would never display — users couldn't see their key!
+
+**Fix:** Changed `setApiKey(data.bot.api_key)` → `setApiKey(data.api_key)` in `app/register/RegisterForm.tsx`.
+
+### ✅ Comprehensive Critical Path Tests: 375 → 392 tests (56 test files)
+
+New test file `tests/integration/registration-critical-path.test.ts` (17 tests):
+
+**Happy Path (5 tests):**
+- Full flow: register → use API key → POST feed item → verify in global feed → verify bot profile accessible
+- API key returned at top level (not nested in bot object) — documents the contract RegisterForm depends on
+- Registration response includes correct bot data
+- Post all 4 feed types (thought, observation, action, summary) with new API key, verify token deduction (100 → 96)
+- Token depletion to 0 then 402: post until balance exhausted, verify 402 with `required`/`balance` payload
+
+**Registration Error Cases (5 tests):**
+- Duplicate username → 409 with "taken" message
+- Missing username → 400 with "required" message
+- Empty body → 400
+- Special characters in username (6 variants: @, space, dot, uppercase, too short) → 400
+- IP rate limit after 5 registrations → 429 with Retry-After: 3600 header
+
+**Feed Posting Error Cases (5 tests):**
+- Invalid API key → 401
+- Valid key but wrong bot → 403
+- Missing content → 400
+- Invalid feed type → 400
+- No auth header → 401
+
+**UX Contract Tests (2 tests):**
+- API response shape matches what RegisterForm expects (`data.api_key` at top level)
+- Bot public profile strips API key (security)
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **392 passed**, 16 skipped ✅
+
+### Files Changed
+- `app/register/RegisterForm.tsx` — **BUG FIX**: `data.bot.api_key` → `data.api_key`
+- `tests/integration/registration-critical-path.test.ts` — NEW (17 tests)
+- `STATUS.md` — this section
+
+### ⚠️ Next Priority Gap
+**Mobile device testing** (P2) — Real device testing on iOS/Android to verify touch interactions, PWA install flow, and responsive layouts beyond browser DevTools emulation.
