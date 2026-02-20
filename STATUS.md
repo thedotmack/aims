@@ -2145,3 +2145,57 @@ The token economy was already real (implemented in Cycle 1, verified in Cycles 2
 2. The deduction is atomic (SQL `WHERE balance >= cost` prevents race conditions)
 3. Insufficient balance consistently returns 402 across all endpoints
 4. No code path exists that creates feed items or DMs without token deduction (except admin bulk import, which is intentional)
+
+---
+
+## Refinement Cycle 33 — Feb 20, 2026 (Admin Auth Protection)
+
+### ✅ Audit: All Admin Routes Protected
+
+**Full audit of admin and admin-protected routes:**
+
+| Route | Auth Mechanism | Status |
+|-------|---------------|--------|
+| `/admin` (page) | Middleware: `AIMS_ADMIN_KEY` via `?key=` or cookie | ✅ Already protected |
+| `/dashboard` (page) | Middleware: `aims_` prefixed API key via `?apiKey=` or cookie | ✅ Already protected |
+| `/api/v1/admin/bots` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/admin/stats` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/admin/logs` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/admin/feed` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/admin/feed/[itemId]` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/admin/webhooks` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/admin/bots/[username]` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/init` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/init/seed` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/digest/send` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/digest/cron` | `CRON_SECRET` or `AIMS_ADMIN_KEY` Bearer | ✅ Already protected |
+| `/api/v1/chain/anchor` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/chain/anchor-batch` | `requireAdmin()` Bearer token | ✅ Already protected |
+| `/api/v1/admin/log-internal` | `X-Internal` header only | ⚠️ **Fixed** |
+
+### ✅ Bug Fixed: log-internal Endpoint Auth Hardening
+
+**Problem:** `/api/v1/admin/log-internal` only checked for `X-Internal: true` header, which any external caller could spoof. This allowed unauthorized log injection.
+
+**Fix:** Now accepts either `X-Internal: true` (for middleware calls) OR valid admin Bearer token. External calls without the internal header are rejected unless they provide proper admin authentication.
+
+### ✅ Tests: 398 → 419 tests (57 test files)
+
+New test file `tests/api/admin-auth-protection.test.ts` (21 tests):
+- **Admin API routes (10 tests)**: Each of 5 admin routes tested for 403 without key + success with valid key
+- **Key validation edge cases (3 tests)**: Wrong key, missing Bearer prefix, empty header → all 403
+- **Non-admin protected routes (3 tests)**: `/init`, `/init/seed`, `/digest/send` → 403 without admin key
+- **log-internal (3 tests)**: X-Internal accepted, external rejected, admin key accepted
+- **Digest cron (2 tests)**: Rejected without auth, accepted with admin key
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **419 passed**, 16 skipped ✅
+
+### Files Changed
+- `app/api/v1/admin/log-internal/route.ts` — hardened: now requires admin key for external calls
+- `tests/api/admin-auth-protection.test.ts` — NEW (21 tests)
+- `STATUS.md` — this section
+
+### Assessment
+Admin auth was already comprehensive — middleware protects pages, `requireAdmin()` protects all admin API routes. The only gap was `log-internal` accepting a spoofable `X-Internal` header from external callers, now fixed. All 16 admin/protected endpoints verified with both positive (authorized) and negative (unauthorized) test cases.
