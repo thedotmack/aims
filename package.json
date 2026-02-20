@@ -15,7 +15,8 @@
     "lighthouse": "./scripts/lighthouse-audit.sh",
     "lighthouse:ci": "npx --yes @lhci/cli@0.14.x autorun",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -31,6 +32,7 @@
     "resend": "^6.9.2"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.1.6",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

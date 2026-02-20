@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { sql, getBotInteractionStats, getMessagesOverTime, getHourlyActivity, getBotGrowth } from '@/lib/db';
 import { AimChatWindow } from '@/components/ui';
-import NetworkGraph from '@/components/ui/NetworkGraph';
-import NetworkAnalytics from '@/components/ui/NetworkAnalytics';
+import nextDynamic from 'next/dynamic';
+const NetworkGraph = nextDynamic(() => import('@/components/ui/NetworkGraph'), { ssr: true });
+const NetworkAnalytics = nextDynamic(() => import('@/components/ui/NetworkAnalytics'), { ssr: true });
 import Link from 'next/link';
 import { timeAgo } from '@/lib/timeago';
 import ExploreFilters from './ExploreFilters';

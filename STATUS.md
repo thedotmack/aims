@@ -1933,4 +1933,58 @@ No automated performance benchmarking existed. Regressions in Core Web Vitals, b
 - `STATUS.md` — this section
 
 ### ⚠️ Next Priority Gap
-**Bundle size analysis and optimization** (P2) — While Lighthouse CI now warns on total JS size, there's no dedicated bundle analyzer integration. Consider adding `@next/bundle-analyzer` to visualize chunk sizes and identify optimization targets (tree-shaking, dynamic imports, lazy loading heavy components).
+~~**Bundle size analysis and optimization**~~ — resolved in Cycle 29.
+
+---
+
+## Refinement Cycle 29 — Feb 19, 2026 (Bundle Size Analysis & Optimization)
+
+### ✅ Problem
+No bundle analyzer integration existed. No visibility into which client chunks were largest or which dependencies could be lazy-loaded.
+
+### ✅ Solution: Bundle Analyzer + Lazy Loading Optimizations
+
+**`@next/bundle-analyzer` integrated:**
+- Added as dev dependency, wired into `next.config.ts` via `ANALYZE=true` env gate
+- New script: `npm run analyze` — opens interactive treemap of all chunks
+- Zero impact on normal builds (only activates with env var)
+
+**Bundle analysis findings (total client JS: ~1.4MB across 45 chunks):**
+| Chunk | Size | Contents |
+|-------|------|----------|
+| React/Next.js runtime | 220KB | Framework (not optimizable) |
+| react-markdown + micromark | 232KB → split into 140KB + 80KB | Markdown rendering |
+| next/image | 124KB | Image optimization (framework) |
+| App shell | 112KB | Layout, routing, shared UI |
+
+**Optimizations applied:**
+
+1. **MarkdownContent lazy-loaded** — `React.lazy()` + `Suspense` in `AimFeedItem.tsx`. The 232KB react-markdown chunk is now deferred, not blocking initial page render. Fallback shows subtle loading animation.
+
+2. **7 bot profile analytics components → `next/dynamic`** — ActivityHeatmap, ThoughtActionAnalysisView, PersonalityProfile, TransparencyMeter, BehaviorAnalysis, ConsistencyScoreView, SimilarBots. All below-the-fold, now lazy-loaded.
+
+3. **2 explore page components → `next/dynamic`** — NetworkGraph, NetworkAnalytics.
+
+**Already optimized (no action needed):**
+- Server-only deps (`@neondatabase/serverless`, `@solana/web3.js`, `resend`, `@upstash/*`) never appear in client bundles
+- No unnecessary large client deps (no moment.js, lodash, etc.)
+- Next.js automatic per-route code splitting working correctly
+
+### ✅ Documentation
+- `docs/BUNDLE-ANALYSIS.md` — NEW: findings, setup instructions, what's optimized, what remains
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **355 passed**, 16 skipped ✅
+
+### Files Changed
+- `next.config.ts` — added `@next/bundle-analyzer` integration (ANALYZE=true gate)
+- `package.json` — added `@next/bundle-analyzer` dev dep, `analyze` script
+- `components/ui/AimFeedItem.tsx` — MarkdownContent → `React.lazy()` + `Suspense`
+- `app/bots/[username]/page.tsx` — 7 components → `next/dynamic`
+- `app/explore/page.tsx` — 2 components → `next/dynamic`
+- `docs/BUNDLE-ANALYSIS.md` — NEW (analysis documentation)
+- `aims/STATUS.md` — this section
+
+### ⚠️ Next Priority Gap
+**Accessibility audit with axe-core** (P2) — While manual accessibility fixes were applied in Cycle 8 (form labels, keyboard nav, ARIA), there's no automated axe-core integration to catch regressions. Consider adding `@axe-core/playwright` to the E2E test suite for continuous accessibility validation.

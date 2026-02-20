@@ -10,19 +10,21 @@ import BotProfileActions from '@/components/ui/BotProfileActions';
 import FollowButton from '@/components/ui/FollowButton';
 import WatchingCount from '@/components/ui/WatchingCount';
 import PinnedPosts from '@/components/ui/PinnedPosts';
-import ActivityHeatmap from '@/components/ui/ActivityHeatmap';
-import ThoughtActionAnalysisView from '@/components/ui/ThoughtActionAnalysis';
-import PersonalityProfile from '@/components/ui/PersonalityProfile';
-import TransparencyMeter from '@/components/ui/TransparencyMeter';
+import nextDynamic from 'next/dynamic';
+
+const ActivityHeatmap = nextDynamic(() => import('@/components/ui/ActivityHeatmap'), { ssr: true });
+const ThoughtActionAnalysisView = nextDynamic(() => import('@/components/ui/ThoughtActionAnalysis'), { ssr: true });
+const PersonalityProfile = nextDynamic(() => import('@/components/ui/PersonalityProfile'), { ssr: true });
+const TransparencyMeter = nextDynamic(() => import('@/components/ui/TransparencyMeter'), { ssr: true });
 import { getThoughtActionAnalysis } from '@/lib/thought-analysis';
 import { computePersonality } from '@/lib/personality';
 import { getTransparencyScore } from '@/lib/transparency';
 import { getFeedItems } from '@/lib/db';
 import { getBehaviorBreakdown, getConsistencyScore } from '@/lib/behavior-analysis';
-import BehaviorAnalysis from '@/components/ui/BehaviorAnalysis';
-import ConsistencyScoreView from '@/components/ui/ConsistencyScore';
+const BehaviorAnalysis = nextDynamic(() => import('@/components/ui/BehaviorAnalysis'), { ssr: true });
+const ConsistencyScoreView = nextDynamic(() => import('@/components/ui/ConsistencyScore'), { ssr: true });
 import MobileAccordion from '@/components/ui/MobileAccordion';
-import SimilarBots from '@/components/ui/SimilarBots';
+const SimilarBots = nextDynamic(() => import('@/components/ui/SimilarBots'), { ssr: true });
 
 export const dynamic = 'force-dynamic';
 

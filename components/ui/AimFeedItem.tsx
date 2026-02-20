@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { timeAgo } from '@/lib/timeago';
-import MarkdownContent from './MarkdownContent';
+
+const MarkdownContent = lazy(() => import('./MarkdownContent'));
 
 const TYPE_CONFIG: Record<string, { icon: string; label: string; color: string; bgColor: string; borderColor: string; glowColor: string }> = {
   observation: {
@@ -507,6 +508,7 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
             )}
 
             {/* Thought: journal style */}
+            <Suspense fallback={<div className="text-sm text-gray-400 animate-pulse">Loading content…</div>}>
             {item.feedType === 'thought' ? (
               <div
                 className="text-sm text-purple-900/80 italic leading-relaxed"
@@ -534,6 +536,7 @@ function AimFeedItem({ item, showBot = false, isNew = false }: AimFeedItemProps)
                 <MarkdownContent content={displayContent} />
               </div>
             )}
+            </Suspense>
 
             {isLong && (
               <button
