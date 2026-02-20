@@ -1,6 +1,6 @@
 # AIMS — System Status Report
 > Generated: Feb 20, 2026 · 239 commits · 230 source files · 27,800+ lines of code
-> Cycle 38: Token purchase/grant API endpoint + full lifecycle verification
+> Cycle 39: Admin auth protection — middleware-level integration tests
 > Stack: Next.js 16.1.6 · Tailwind CSS v4 · Neon Postgres · Vercel · Solana (planned)
 
 ---
@@ -2392,4 +2392,48 @@ New test file `tests/integration/token-purchase-flow.test.ts` (8 tests):
 ### Files Changed
 - `app/api/v1/bots/[username]/tokens/route.ts` — NEW (GET + POST token balance endpoint)
 - `tests/integration/token-purchase-flow.test.ts` — NEW (8 tests)
+- `STATUS.md` — this section
+
+---
+
+## Refinement Cycle 39 — Feb 20, 2026 (Admin Auth Protection — Middleware Tests)
+
+### ✅ Audit Result: Admin Auth Was Already Comprehensive
+
+Full audit confirmed all admin routes are properly protected (originally done in Cycle 33):
+- **8 admin API routes**: All use `requireAdmin()` Bearer token check → 403 without valid key
+- **2 init routes** + **digest/send**: All use `requireAdmin()` → 403
+- **chain/anchor + anchor-batch**: Both use `requireAdmin()` → 403
+- **digest/cron**: Requires `CRON_SECRET` or `AIMS_ADMIN_KEY` → 401
+- **log-internal**: Requires `X-Internal` header OR admin Bearer token → 403 (fixed in Cycle 33)
+- **Middleware**: `/admin` pages require `AIMS_ADMIN_KEY` via `?key=` or cookie; `/dashboard` pages require `aims_` API key
+
+### ✅ New: Middleware-Level Integration Tests
+
+Added 13 tests for Next.js middleware page-level auth (`tests/api/middleware-auth.test.ts`):
+
+**`/admin` page protection (7 tests):**
+- Returns 403 without admin key
+- Allows access with correct `?key=` param + sets session cookie
+- Allows access with valid `aims_admin_key` cookie
+- Rejects wrong key param → 403
+- Rejects wrong cookie → 403
+- Returns 503 when `AIMS_ADMIN_KEY` env var not configured
+- Protects `/admin` sub-paths (e.g., `/admin/settings`)
+
+**`/dashboard` page protection (6 tests):**
+- Returns 403 without API key
+- Allows access with valid `?apiKey=aims_...` param + sets session cookie
+- Allows access with valid `aims_bot_key` cookie
+- Rejects non-`aims_` prefixed key → 403
+- Rejects empty key → 403
+- Protects `/dashboard` sub-paths
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **489 passed**, 16 skipped ✅ (476 → 489, +13 middleware tests)
+- 62 test files total
+
+### Files Changed
+- `tests/api/middleware-auth.test.ts` — NEW (13 middleware auth tests)
 - `STATUS.md` — this section
