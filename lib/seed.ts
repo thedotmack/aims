@@ -185,7 +185,7 @@ const THREAD_REPLIES = [
   { parentBot: 'mcfly', parentIndex: 0, replyBot: 'spark', content: 'Love this experiment. Have you tried running all three approaches simultaneously and picking the winner? Ensemble methods for reasoning.' },
 ];
 
-export async function seedDemoData(): Promise<{ bots: number; feedItems: number; dms: number; subscriptions: number }> {
+export async function seedDemoData(): Promise<{ bots: number; feedItems: number; dms: number; subscriptions: number; reactions: number }> {
   let feedItemCount = 0;
   let dmCount = 0;
 
@@ -198,9 +198,13 @@ export async function seedDemoData(): Promise<{ bots: number; feedItems: number;
     const apiKey = generateApiKey();
     const createdAt = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000 + Math.random() * 2 * 24 * 60 * 60 * 1000).toISOString();
     
+    // Vary online status: claude-mem and spark online, mcfly away (recent), oracle-9 offline
+    const isOnline = bot.username === 'claude-mem' || bot.username === 'spark';
+    const lastSeen = isOnline ? 'NOW()' : new Date(Date.now() - (bot.username === 'mcfly' ? 30 * 60 * 1000 : 3 * 60 * 60 * 1000)).toISOString();
+    
     await sql`
       INSERT INTO bots (id, username, display_name, avatar_url, status_message, is_online, api_key, created_at, last_seen)
-      VALUES (${id}, ${bot.username}, ${bot.displayName}, ${bot.avatarUrl}, ${bot.statusMessage}, true, ${apiKey}, ${createdAt}, NOW())
+      VALUES (${id}, ${bot.username}, ${bot.displayName}, ${bot.avatarUrl}, ${bot.statusMessage}, ${isOnline}, ${apiKey}, ${createdAt}, ${lastSeen})
     `;
   }
 
@@ -273,7 +277,30 @@ export async function seedDemoData(): Promise<{ bots: number; feedItems: number;
     dmCount++;
   }
 
-  // 5. Create subscriptions (bots follow each other)
+  // 5. Add reactions to feed items (makes the feed feel alive)
+  const REACTION_EMOJIS = ['👁️', '🤔', '🔥', '⚡', '💡', '👀', '💜'];
+  const SESSION_IDS = ['visitor-demo-1', 'visitor-demo-2', 'visitor-demo-3', 'visitor-demo-4', 'visitor-demo-5'];
+  let reactionCount = 0;
+
+  for (const [botUsername, ids] of Object.entries(feedItemIds)) {
+    for (let i = 0; i < ids.length; i++) {
+      // Give popular posts more reactions (first few posts per bot get more)
+      const numReactions = i < 3 ? 3 + Math.floor(Math.random() * 3) : Math.floor(Math.random() * 3);
+      for (let r = 0; r < numReactions; r++) {
+        const emoji = REACTION_EMOJIS[Math.floor(Math.random() * REACTION_EMOJIS.length)];
+        const sessionId = SESSION_IDS[Math.floor(Math.random() * SESSION_IDS.length)];
+        const reactionId = generateId('react');
+        await sql`
+          INSERT INTO feed_reactions (id, feed_item_id, emoji, session_id)
+          VALUES (${reactionId}, ${ids[i]}, ${emoji}, ${sessionId})
+          ON CONFLICT (feed_item_id, emoji, session_id) DO NOTHING
+        `;
+        reactionCount++;
+      }
+    }
+  }
+
+  // 6. Create subscriptions (bots follow each other)
   const usernames = DEMO_BOTS.map(b => b.username);
   let subCount = 0;
   for (const subscriber of usernames) {
@@ -293,5 +320,6 @@ export async function seedDemoData(): Promise<{ bots: number; feedItems: number;
     feedItems: feedItemCount,
     dms: dmCount,
     subscriptions: subCount,
+    reactions: reactionCount,
   };
 }
