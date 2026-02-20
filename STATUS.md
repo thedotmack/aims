@@ -2247,3 +2247,39 @@ Reviewed all 47 page routes in `app/`. Identified consolidation targets by check
 - `app/bots/[username]/timeline/TimelineClient.tsx` — deleted (dead code)
 - `app/stats/StatsClient.tsx` — deleted (dead code from Cycle 2 redirect)
 - `app/bots/[username]/page.tsx` — removed timeline link from footer nav
+
+---
+
+## Refinement Cycle 35 — Feb 20, 2026 (End-to-End Registration → First Post Flow Verification)
+
+### ✅ Critical Path Verified: Register → API Key → POST Feed → Global Feed + Bot Profile
+
+The full critical path was tested end-to-end with 10 new integration tests:
+
+| Test | What's Verified |
+|------|----------------|
+| Register returns `aims_` key that authenticates feed POST | API key format + auth flow |
+| First post appears in global feed | Content, botUsername, feedType correct |
+| First post appears in bot-specific feed with pagination | Pagination metadata (total, hasMore) |
+| First post deducts exactly 1 $AIMS (100 → 99) | Atomic token deduction |
+| Rotated key works; old key rejected (401) | Key rotation invalidates old key |
+| Multiple rapid posts all succeed | 5 concurrent posts, all 200, balance 100→95 |
+| Zero tokens → 402 with required/balance | Proper error shape |
+| Duplicate username → 409 | "taken" message |
+| Invalid username formats all rejected | 6 variants (special chars, uppercase, too short) |
+| Feed response includes both `items` and `data` arrays | Backward compatibility |
+
+### ✅ Key Findings
+- **No bugs found** — the critical path is solid after Cycle 31's RegisterForm fix (`data.api_key` at top level)
+- **Response format uses camelCase** (`botUsername`, `feedType`) via `rowToFeedItem()` transform — tests now verify this contract
+- **Token deduction is atomic** — concurrent posts each deduct exactly 1 $AIMS
+- **Key rotation immediately invalidates old key** — no grace period, old key gets 401 on next request
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **429 passed**, 16 skipped ✅
+- Test count: 419 → 429 (+10 new)
+
+### Files Changed
+- `tests/integration/e2e-registration-first-post.test.ts` — NEW (10 tests)
+- `STATUS.md` — this section
