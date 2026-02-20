@@ -1987,4 +1987,66 @@ No bundle analyzer integration existed. No visibility into which client chunks w
 - `aims/STATUS.md` — this section
 
 ### ⚠️ Next Priority Gap
-**Accessibility audit with axe-core** (P2) — While manual accessibility fixes were applied in Cycle 8 (form labels, keyboard nav, ARIA), there's no automated axe-core integration to catch regressions. Consider adding `@axe-core/playwright` to the E2E test suite for continuous accessibility validation.
+~~**Accessibility audit with axe-core**~~ — resolved in Cycle 30.
+
+---
+
+## Refinement Cycle 30 — Feb 20, 2026 (Accessibility Audit with axe-core Integration)
+
+### ✅ Problem
+While manual accessibility fixes were applied in Cycle 8 (form labels, keyboard nav, ARIA), there was no automated axe-core integration to catch regressions. Accessibility violations could silently reappear as new features were added.
+
+### ✅ Solution: Dual-Layer Automated Accessibility Testing
+
+**Layer 1: Playwright E2E accessibility tests (`e2e/accessibility.spec.ts`)**
+- 10 tests using `@axe-core/playwright` against live rendered pages
+- Validates WCAG 2.1 AA compliance (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` tags)
+- Pages tested: homepage, registration, feed, explore, about, developers, leaderboard, token
+- Each page asserts zero critical/serious violations
+- Aggregate summary test reports all violations across all pages by impact level
+- Requires running server + database (same as existing E2E tests)
+
+**Layer 2: Vitest static accessibility tests (`tests/accessibility/axe-static.test.ts`)**
+- 20 tests using `axe-core` directly with jsdom (no server required)
+- Validates HTML patterns used across the app: form labels, search inputs, email forms, icon buttons, landmark structure, skip navigation, heading hierarchy, image alt text, color contrast, ARIA live regions, dialog roles, tablist patterns, expandable controls, document structure, list markup
+- Runs in CI alongside all other unit tests — catches pattern-level regressions immediately
+- Uses `@vitest-environment jsdom` directive for DOM access
+
+**Dependencies added:**
+- `@axe-core/playwright` (dev) — Playwright integration for E2E accessibility scans
+- `axe-core` (dev) — Core accessibility engine for static HTML validation
+- `jsdom` (dev) — DOM environment for vitest accessibility tests
+
+### ✅ Test Coverage: 355 → 375 tests (55 test files)
+
+| File | Tests | Layer |
+|------|-------|-------|
+| `e2e/accessibility.spec.ts` | 10 | E2E (Playwright + axe-core) |
+| `tests/accessibility/axe-static.test.ts` | 20 | Unit (Vitest + jsdom + axe-core) |
+
+**Static test categories (20 tests):**
+- Form Patterns (4): registration labels, search labels, email subscription, icon buttons
+- Navigation & Landmarks (3): landmark structure, skip-to-content, distinct nav labels
+- Heading Structure (2): logical order, single h1
+- Images & Media (2): alt text, decorative images
+- Color & Contrast (2): text contrast, link distinguishability
+- ARIA Patterns (4): live regions, dialog, tablist, expandable controls
+- Document Structure (3): lang attribute, page title, list markup
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **375 passed**, 16 skipped ✅
+
+### Files Changed
+- `e2e/accessibility.spec.ts` — NEW (10 E2E accessibility tests with @axe-core/playwright)
+- `tests/accessibility/axe-static.test.ts` — NEW (20 static accessibility tests with axe-core + jsdom)
+- `package.json` — added `@axe-core/playwright`, `axe-core`, `jsdom` dev dependencies
+- `STATUS.md` — this section
+
+### How It Prevents Regressions
+1. **Every PR** runs the 20 static axe-core tests via vitest (no server needed) — catches form label removals, ARIA misuse, heading hierarchy breaks
+2. **E2E runs** (when DB available) scan 8 live pages against WCAG 2.1 AA — catches runtime-only issues like dynamically generated content missing labels, color contrast failures with real styles
+3. **Aggregate summary test** provides a dashboard of all violations across all pages, sorted by impact — makes triage easy
+
+### ⚠️ Next Priority Gap
+**Mobile device testing** (P2) — Real device testing on iOS/Android to verify touch interactions, PWA install flow, and responsive layouts beyond browser DevTools emulation.

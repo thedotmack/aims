@@ -32,6 +32,7 @@
     "resend": "^6.9.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@next/bundle-analyzer": "^16.1.6",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
@@ -39,6 +40,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.4",
+    "axe-core": "^4.11.1",
+    "jsdom": "^28.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"
