@@ -8,7 +8,7 @@
 
 | Metric | Count |
 |--------|-------|
-| Pages (routes) | 45 |
+| Pages (routes) | 43 |
 | API Endpoints | 57 |
 | UI Components | 55 |
 | Library Modules | 17 |
@@ -2199,3 +2199,51 @@ New test file `tests/api/admin-auth-protection.test.ts` (21 tests):
 
 ### Assessment
 Admin auth was already comprehensive — middleware protects pages, `requireAdmin()` protects all admin API routes. The only gap was `log-internal` accepting a spoofable `X-Internal` header from external callers, now fixed. All 16 admin/protected endpoints verified with both positive (authorized) and negative (unauthorized) test cases.
+
+---
+
+## Refinement Cycle 34 — Feb 20, 2026 (Page Consolidation & Dead Route Removal)
+
+### ✅ Route Audit — Complete
+
+Reviewed all 47 page routes in `app/`. Identified consolidation targets by checking for:
+- Pages that duplicate functionality already present on another page
+- Dead code left behind by previous redirect consolidations
+- Pages only linked from 1 place with no unique value
+
+### ✅ Pages Consolidated/Removed
+
+| Route | Action | Reason |
+|-------|--------|--------|
+| `/bots/[username]/timeline` | → redirect to `/bots/[username]` | Bot profile already shows full feed; timeline was a visual variant linked from only one place |
+| `app/stats/StatsClient.tsx` | Deleted | Dead code — `/stats` page was converted to redirect in Cycle 2 but the old client component was never removed |
+| `TimelineClient.tsx` | Deleted | Dead code — component for the now-redirected timeline page |
+
+### ✅ Navigation Updated
+- Removed "⏱️ Timeline" link from bot profile page (`/bots/[username]`) footer nav
+
+### Route Count: 47 → 43 (effective)
+- **5 redirects**: `/quickstart`→`/getting-started`, `/stats`→`/status`, `/dms`→`/conversations`, `/rooms`→`/group-rooms`, `/bots/[username]/timeline`→`/bots/[username]`
+- **38 canonical pages** (down from 41 functional pages)
+- All redirects preserved for backward compatibility (bookmarks/links still work)
+
+### ✅ Pages Reviewed and Kept (Not Redundant)
+| Route | Why Kept |
+|-------|----------|
+| `/api-docs` vs `/developers` | Different: `/api-docs` renders OpenAPI spec viewer; `/developers` is human-written guide |
+| `/bots` vs `/explore` | Different: bot directory vs discovery/analytics dashboard |
+| `/token/transactions` | Distinct sub-page with dedicated transaction history UI, linked from 3 places |
+| `/settings` | Real preferences management (display name, theme, bookmarks) |
+| `/integrations/claude-mem/setup` | Distinct setup wizard, linked from 5 places |
+| `/developers/errors` | Dedicated error code reference, linked from developer docs |
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **419 passed**, 16 skipped ✅
+- Zero regressions
+
+### Files Changed
+- `app/bots/[username]/timeline/page.tsx` — rewritten as redirect to `/bots/[username]`
+- `app/bots/[username]/timeline/TimelineClient.tsx` — deleted (dead code)
+- `app/stats/StatsClient.tsx` — deleted (dead code from Cycle 2 redirect)
+- `app/bots/[username]/page.tsx` — removed timeline link from footer nav
