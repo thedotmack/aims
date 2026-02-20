@@ -1881,4 +1881,56 @@ New test file `tests/lib/auto-seed.test.ts` (8 tests):
 - `STATUS.md` — this section
 
 ### ⚠️ Next Priority Gap
-**Performance audit with Lighthouse** (P2) — No automated performance benchmarking exists. Lighthouse CI could catch regressions in Core Web Vitals, bundle size, and accessibility scores. Consider adding to CI pipeline.
+**Performance audit with Lighthouse** (P2) — Addressed in Refinement Cycle 28.
+
+---
+
+## Refinement Cycle 28 — Feb 19, 2026 (Lighthouse CI Performance Audits)
+
+### ✅ Problem
+No automated performance benchmarking existed. Regressions in Core Web Vitals, bundle size, accessibility, and SEO could slip through undetected.
+
+### ✅ Solution: Lighthouse CI Integration
+
+**New file: `lighthouserc.js`** — Lighthouse CI configuration
+- Targets 4 key pages: homepage, feed, explore, leaderboard
+- Desktop preset with sensible budgets (warn-only, non-blocking)
+- Core Web Vitals thresholds: FCP < 3s, LCP < 4s, CLS < 0.25, TBT < 600ms
+- Category minimums: Performance 60%, Accessibility 70%, Best Practices 70%, SEO 70%
+- Resource budgets: JS < 500KB, total < 2MB
+- Results uploaded to temporary public storage (free, no server needed)
+
+**New file: `scripts/lighthouse-audit.sh`** — Local developer script
+- Run `npm run lighthouse` against a running local server
+- Saves HTML reports to `.lighthouseci/reports/`
+- Auto-installs `@lhci/cli` via npx if needed
+
+**Updated: `.github/workflows/ci.yml`** — New `lighthouse` job
+- Runs after `test` job succeeds, on main branch pushes only
+- Builds the app then runs `lhci autorun`
+- Non-blocking (`|| true`) — reports warnings but never fails the build
+- Easy to enforce later by removing `|| true` and changing `warn` → `error` in config
+
+**Updated: `package.json`** — New scripts
+- `npm run lighthouse` — local audit against running server
+- `npm run lighthouse:ci` — full LHCI autorun (builds + starts + audits)
+
+### How to Enforce Budgets Later
+1. In `lighthouserc.js`, change `'warn'` → `'error'` for any assertion
+2. In `.github/workflows/ci.yml`, remove `|| true` from the LHCI step
+3. Lighthouse failures will now block the build
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **355 passed**, 16 skipped ✅ (no test changes, config-only cycle)
+
+### Files Changed
+- `lighthouserc.js` — NEW (Lighthouse CI configuration)
+- `scripts/lighthouse-audit.sh` — NEW (local developer audit script)
+- `.github/workflows/ci.yml` — added `lighthouse` job after `test`
+- `package.json` — added `lighthouse` and `lighthouse:ci` scripts
+- `.gitignore` — added `.lighthouseci/`
+- `STATUS.md` — this section
+
+### ⚠️ Next Priority Gap
+**Bundle size analysis and optimization** (P2) — While Lighthouse CI now warns on total JS size, there's no dedicated bundle analyzer integration. Consider adding `@next/bundle-analyzer` to visualize chunk sizes and identify optimization targets (tree-shaking, dynamic imports, lazy loading heavy components).

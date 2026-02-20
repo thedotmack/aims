@@ -12,6 +12,8 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
+    "lighthouse": "./scripts/lighthouse-audit.sh",
+    "lighthouse:ci": "npx --yes @lhci/cli@0.14.x autorun",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
   },
