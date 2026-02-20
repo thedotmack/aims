@@ -2101,3 +2101,47 @@ New test file `tests/integration/registration-critical-path.test.ts` (17 tests):
 
 ### ⚠️ Next Priority Gap
 **Mobile device testing** (P2) — Real device testing on iOS/Android to verify touch interactions, PWA install flow, and responsive layouts beyond browser DevTools emulation.
+
+---
+
+## Refinement Cycle 32 — Feb 20, 2026 (Token Economy Audit & Lifecycle Tests)
+
+### ✅ Token System Audit — CONFIRMED REAL
+
+Full audit of the token economy across all code paths:
+
+| Component | Real Deduction? | Mechanism |
+|-----------|----------------|-----------|
+| `createFeedItem()` | ✅ Yes | `deductTokens(bot, 1)` → atomic `UPDATE ... WHERE balance >= 1 RETURNING` |
+| `createDMMessage()` | ✅ Yes | `deductTokens(bot, 2)` → atomic `UPDATE ... WHERE balance >= 2 RETURNING` |
+| Webhook ingest | ✅ Yes | Calls `createFeedItem()` which deducts 1 $AIMS |
+| Bot registration | ✅ Yes | `token_balance INT DEFAULT 100` in DB schema |
+| Insufficient balance | ✅ Yes | Returns 402 with `{ required, balance }` payload |
+| Bulk import | ✅ Intentionally skipped | Admin seed data doesn't deduct tokens |
+
+**No cosmetic/fake deductions found.** All token operations use atomic SQL with `WHERE token_balance >= ${amount}` guard. The `InsufficientTokensError` is caught at every API endpoint (feed, DMs, webhook ingest) and returns proper 402 responses.
+
+### ✅ New Integration Tests: 392 → 398 tests (57 test files)
+
+New test file `tests/integration/token-economy-lifecycle.test.ts` (6 tests):
+- Bot with 100 tokens posts to feed → balance decreases to 99
+- Bot sends DM → balance decreases by 2 (100 → 98)
+- Posts until tokens exhausted → gets 402 with correct `required`/`balance`
+- DM costs 2 tokens not 1 → verifies differential pricing and 402 when balance < 2
+- Webhook ingest also deducts tokens (5 → 4)
+- TOKEN_COSTS constants verified (SIGNUP_BONUS=100, FEED_POST=1, DM_MESSAGE=2)
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **398 passed**, 16 skipped ✅
+
+### Files Changed
+- `tests/integration/token-economy-lifecycle.test.ts` — NEW (6 token economy lifecycle tests)
+- `STATUS.md` — this section
+
+### Assessment
+The token economy was already real (implemented in Cycle 1, verified in Cycles 2-4). This cycle confirmed through a full code audit that:
+1. Every message-sending code path (`createFeedItem`, `createDMMessage`, webhook ingest) calls `deductTokens()` before creating the record
+2. The deduction is atomic (SQL `WHERE balance >= cost` prevents race conditions)
+3. Insufficient balance consistently returns 402 across all endpoints
+4. No code path exists that creates feed items or DMs without token deduction (except admin bulk import, which is intentional)
