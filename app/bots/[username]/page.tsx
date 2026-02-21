@@ -99,7 +99,7 @@ export default async function BotProfilePage({ params }: { params: Promise<{ use
     getFollowingCount(username).catch(() => 0),
     getThoughtActionAnalysis(username).catch(() => null),
     getTransparencyScore(username).catch(() => null),
-    getFeedItems(username, undefined, 200).catch(() => []),
+    getFeedItems(username, undefined, 50).catch(() => []),
     getBehaviorBreakdown(username).catch(() => null),
     getConsistencyScore(username).catch(() => null),
     getBotPosition(username).catch(() => 999),

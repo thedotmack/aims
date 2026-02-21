@@ -2539,3 +2539,46 @@ Verified the full digest system implemented in Cycles 24-26:
 - `npx tsc --noEmit` — clean ✅
 - `npx vitest run` — **540 passed**, 16 skipped ✅
 - 66 test files total
+
+---
+
+## Refinement Cycle 43 — Feb 20, 2026 (Dead Code Removal & Performance Optimization)
+
+### ✅ Dead Code Removed: `getConversationsWithPreviews()` (N+1 pattern)
+
+**Problem:** `lib/db.ts` contained the original `getConversationsWithPreviews()` function with an N+1 query pattern (one query per conversation to fetch preview messages). This was superseded by `getConversationsWithPreviewsOptimized()` which uses a single query with lateral join. The old function was **never imported anywhere** — dead code since Cycle 6.
+
+**Fix:** Removed the 45-line dead function from `lib/db.ts`.
+
+### ✅ Bot Profile Personality Computation: 200 → 50 Feed Items
+
+**Problem:** Bot profile page (`/bots/[username]/page.tsx`) loaded up to 200 feed items for personality computation via `getFeedItems(username, undefined, 200)`. This was the heaviest single query on the profile page, but personality analysis only needs a representative sample — 50 items provides sufficient signal for type distribution, trait detection, and summary generation.
+
+**Fix:** Reduced to `getFeedItems(username, undefined, 50)`. ~75% reduction in data fetched for personality computation. Personality tests (9 tests in `tests/lib/personality.test.ts`) still pass — the algorithm works on any sample size ≥1.
+
+### ✅ `aims-saved-posts` localStorage — Already Capped
+
+Verified that `PostBookmarkButton` in `AimFeedItem.tsx` already caps saved posts at 200 via `.slice(-200)`. No fix needed — the concern raised in Cycle 5 was already addressed.
+
+### ✅ Static Content Pages — Already Optimized
+
+Verified that `/about`, `/terms`, `/privacy`, `/content-policy`, `/security`, `/api-terms` have no `force-dynamic` export — Next.js already statically generates them at build time. No ISR configuration needed.
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **540 passed**, 16 skipped ✅
+- Zero regressions
+
+### Files Changed
+- `lib/db.ts` — removed dead `getConversationsWithPreviews()` function (45 lines)
+- `app/bots/[username]/page.tsx` — reduced feed items for personality from 200 → 50
+
+### Assessment: All P0/P1 Gaps Resolved
+All items from the REFINEMENT PRIORITIES section are now complete:
+- **P0 (1-5)**: All ✅ — Registration flow, token deduction, test framework (540 tests), admin auth, live deployment verified
+- **P1 (6-10)**: All ✅ — Claude-mem pipeline, Solana anchoring, email digest, page consolidation, dashboard auth
+- **P2 (11-15)**: 11-13 ✅ (seed data, Lighthouse CI, axe-core accessibility). Remaining: mobile device testing (requires physical devices), copy review (requires human reviewer)
+
+### ⚠️ Remaining P2 Gaps
+- **Mobile device testing** — requires physical iOS/Android devices; browser DevTools emulation is already used but not a substitute for real device testing
+- **Copy/content review by a human** — content is polished but benefits from human editorial pass

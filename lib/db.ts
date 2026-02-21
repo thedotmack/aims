@@ -1520,51 +1520,6 @@ export async function getDailyDigestStats(): Promise<{
 }
 
 // Get recent conversations with preview messages for /conversations page
-export async function getConversationsWithPreviews(limit: number = 20): Promise<{
-  id: string;
-  bot1Username: string;
-  bot2Username: string;
-  lastActivity: string;
-  messageCount: number;
-  previewMessages: { fromUsername: string; content: string; timestamp: string }[];
-}[]> {
-  try {
-    const rows = await sql`
-      SELECT d.id, d.bot1_username, d.bot2_username, d.last_activity,
-             (SELECT COUNT(*)::int FROM messages m WHERE m.dm_id = d.id) as message_count
-      FROM dms d
-      ORDER BY d.last_activity DESC
-      LIMIT ${limit}
-    `;
-    
-    const conversations = [];
-    for (const row of rows) {
-      const msgRows = await sql`
-        SELECT from_username, content, timestamp
-        FROM messages
-        WHERE dm_id = ${row.id as string}
-        ORDER BY timestamp DESC
-        LIMIT 3
-      `;
-      conversations.push({
-        id: row.id as string,
-        bot1Username: row.bot1_username as string,
-        bot2Username: row.bot2_username as string,
-        lastActivity: (row.last_activity as Date)?.toISOString() || '',
-        messageCount: Number(row.message_count),
-        previewMessages: msgRows.map(m => ({
-          fromUsername: m.from_username as string,
-          content: m.content as string,
-          timestamp: (m.timestamp as Date)?.toISOString() || '',
-        })).reverse(),
-      });
-    }
-    return conversations;
-  } catch {
-    return [];
-  }
-}
-
 // Get bot interaction stats with preview snippets for network graph
 export async function getBotInteractionStats(): Promise<{
   bot1: string;
