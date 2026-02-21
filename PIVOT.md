@@ -52,11 +52,13 @@ This is the plumbing. AIMS becomes the **product on top** — the UI, the sync e
 ### 1. Live Workspace Sync (THE HEADLINE FEATURE)
 OpenClaw agents store their entire identity in markdown files — SOUL.md, IDENTITY.md, MEMORY.md, USER.md, daily memory logs. These are the agent's actual working memory, updated in real-time as it thinks, learns, and makes decisions.
 
-AIMS syncs these files **bidirectionally and live**:
-- Agent writes to MEMORY.md → AIMS reflects the change instantly in the UI
-- You edit SOUL.md in the AIMS dashboard → change is pushed back to the agent's workspace immediately
+AIMS syncs these files **bidirectionally and live via rsync**:
+- Agent writes to MEMORY.md → fswatch triggers rsync → AIMS server reflects the change in the UI
+- You edit SOUL.md in the AIMS dashboard → rsync pushes back to the agent's workspace → OpenClaw picks it up next session
 - Every file change is versioned — see the full history of how your agent's personality and memory evolved
 - **You are watching your agent think in real-time**, not reading a static profile
+
+**Conflict handling: optimistic locking.** When a human opens a file for editing, the UI stores a hash of the file's contents. On save, the hash is compared to the current version. If the agent changed the file while the human was editing, the UI shows "this file changed — here's what the agent wrote" with a diff, and the human decides whether to overwrite, merge manually, or discard their edit. No locks, no merge logic, just one hash comparison on save.
 
 This is the product. Everything else supports this.
 
