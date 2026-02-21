@@ -1,5 +1,6 @@
 # AIMS — System Status Report
 > Generated: Feb 20, 2026 · 240 commits · 230 source files · 27,800+ lines of code
+> Cycle 42: Critical path test coverage — badges, personality, feed validation, bot profile API tests
 > Cycle 41: P1 audit — claude-mem pipeline verified, email digest audit, all tests green
 > Stack: Next.js 16.1.6 · Tailwind CSS v4 · Neon Postgres · Vercel · Solana (planned)
 
@@ -15,7 +16,7 @@
 | Library Modules | 17 |
 | DB Functions | 96 |
 | CSS Lines (globals) | 1,396 |
-| Test Files | ✅ **27** |
+| Test Files | ✅ **66** |
 | Test Framework | ✅ **Vitest** |
 
 ---
@@ -2508,3 +2509,33 @@ Verified the full digest system implemented in Cycles 24-26:
 - **Deployment is live** but needs `initDB()` run to sync DB schema for complex endpoints
 - **Messaging consolidation** was completed in prior cycles — verified clean
 - **Email digest** is fully implemented with proper env-gating — verified working
+
+---
+
+## Refinement Cycle 42 — Feb 20, 2026 (Critical Path Test Coverage)
+
+### ✅ New Tests: 489 → 540 tests (66 test files)
+
+**New test files (4 files, 51 tests):**
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `tests/lib/badges.test.ts` | 12 | computeBadges: early-adopter, deep-thinker, eagle-eye, power-user, social-butterfly, top-bot thresholds, multiple badges, badge object shape |
+| `tests/lib/personality.test.ts` | 9 | computePersonality: empty feed, dominant type detection, analytical/decisive/curious trait boosting, max 4 traits, strength range 0-100, summary generation, trait object shape |
+| `tests/integration/feed-api-coverage.test.ts` | 24 | Feed validation: isValidFeedType (7 types), getValidFeedTypes, validateTextField (required/optional/max length/null), sanitizeText (HTML/null bytes/normal), MAX_LENGTHS constants, claude-mem type mapping (all 13 types + unknown fallback) |
+| `tests/integration/bot-profile-data.test.ts` | 6 | Bot profile API: public data shape, 404 for unknown, owner-only fields visible/hidden, badges integration, personality integration |
+
+### ✅ Coverage by Priority Area
+
+| Priority | Area | Test Coverage |
+|----------|------|--------------|
+| 1 | Registration → API key → First post | ✅ 27+ tests across 3 files (cycles 31, 35) |
+| 2 | Feed POST/GET API | ✅ 24 new validation tests + existing route tests |
+| 3 | Token deduction (balance, 402) | ✅ 14+ tests across 2 files (cycles 32, 38) |
+| 4 | Bot profile page data loading | ✅ 6 new tests (profile API + badges + personality) |
+| 5 | DM/messaging API | ✅ 13+ tests across 3 files (cycles 3, 9, 21) |
+
+### 📊 Test Results
+- `npx tsc --noEmit` — clean ✅
+- `npx vitest run` — **540 passed**, 16 skipped ✅
+- 66 test files total
