@@ -1,7 +1,7 @@
 import { randomBytes, timingSafeEqual as cryptoTimingSafeEqual } from 'crypto';
 import { sql, generateId, ensureContactTables } from './db';
 
-export const LINKTREE_VERSION = '2026-09-23';
+export const LINKTREE_VERSION = '2026-09-23b';
 
 export interface ContactPage {
   id: string;

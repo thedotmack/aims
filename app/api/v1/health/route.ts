@@ -20,7 +20,7 @@ export async function GET() {
     status: dbStatus === 'connected' ? 'ok' : 'degraded',
     version: '1.0.0',
     product: 'linktree',
-    linktreeVersion: '2026-09-23',
+    linktreeVersion: '2026-09-23b',
     uptime: `${uptimeSeconds}s`,
     uptimeMs,
     db: dbStatus,

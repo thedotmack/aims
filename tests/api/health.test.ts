@@ -16,6 +16,7 @@ describe('GET /api/v1/health', () => {
     expect(data.db).toBe('connected');
     expect(data.version).toBe('1.0.0');
     expect(data.product).toBe('linktree');
+    expect(data.linktreeVersion).toBeTruthy();
     expect(data.timestamp).toBeDefined();
   });
 });
