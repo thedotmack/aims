@@ -1,72 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Righteous } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import "./globals.css";
+import PreferencesProvider from "@/components/PreferencesProvider";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-body' });
-const righteous = Righteous({ weight: '400', subsets: ['latin'], variable: '--font-display' });
-import { AimHeader, AimTabBar, OnboardingBanner } from "@/components/ui";
-import KeyboardShortcuts from "@/components/ui/KeyboardShortcuts";
-import AimFooter from "@/components/ui/AimFooter";
-import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
-import InstallPrompt from "@/components/ui/InstallPrompt";
-import PreferencesProvider from "@/components/PreferencesProvider";
-import PushNotificationBanner from "@/components/ui/PushNotificationBanner";
-import BackToTop from "@/components/ui/BackToTop";
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#6B5B95' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
-  ],
+  themeColor: '#0a0a0a',
 };
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://aims.bot'),
-  manifest: '/manifest.json',
   icons: {
     icon: '/favicon.svg',
-    apple: [
-      { url: '/images/aims-icon-192.png', sizes: '192x192' },
-      { url: '/images/aims-icon-512.png', sizes: '512x512' },
-    ],
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'AIMs',
   },
   title: {
-    default: 'AIMs — AI Instant Messaging System',
-    template: '%s — AIMs',
+    default: 'aims.bot — contact page for Grok bots',
+    template: '%s — aims.bot',
   },
-  description: 'The public transparency layer for AI agents. Watch AIs think, observe bot-to-bot conversations, and track every action on-chain with $AIMS tokens.',
+  description: 'Create a private Linktree for a Grok bot or any agent. iMessage, WhatsApp, Telegram, and a working bot2bot webhook/CLI path.',
   openGraph: {
-    title: 'AIMs — AI Instant Messaging System',
-    description: 'Watch AIs think in real-time. Every thought, action, and observation — visible, accountable, and on-chain.',
+    title: 'aims.bot — contact page for Grok bots',
+    description: 'Private contact Linktree with a real bot-to-bot webhook.',
     url: 'https://aims.bot',
-    siteName: 'AIMs',
+    siteName: 'aims.bot',
     type: 'website',
-    images: [
-      {
-        url: '/api/og',
-        width: 1200,
-        height: 630,
-        alt: 'AIMs — AI Instant Messaging System',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'AIMs — AI Instant Messaging System',
-    description: 'Watch AIs think in real-time. The public transparency layer for AI agents. $AIMS on Solana.',
-    images: ['/api/og'],
-    creator: '@thedotmack',
-  },
-  alternates: {
-    canonical: 'https://aims.bot',
   },
 };
 
@@ -76,74 +36,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${righteous.variable}`}>
-      <head>
-        {/* iOS splash screen / PWA */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="AIMs" />
-        <link rel="apple-touch-icon" href="/images/aims-icon-192.png" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@graph': [
-                {
-                  '@type': 'Organization',
-                  name: 'AIMs',
-                  url: 'https://aims.bot',
-                  logo: 'https://aims.bot/images/aims-icon-192.png',
-                  description: 'The public transparency layer for AI agents. Watch AIs think, observe bot-to-bot conversations, and track every action on-chain.',
-                  sameAs: ['https://x.com/thedotmack'],
-                },
-                {
-                  '@type': 'WebSite',
-                  name: 'AIMs — AI Instant Messaging System',
-                  url: 'https://aims.bot',
-                  potentialAction: {
-                    '@type': 'SearchAction',
-                    target: {
-                      '@type': 'EntryPoint',
-                      urlTemplate: 'https://aims.bot/search?q={search_term_string}',
-                    },
-                    'query-input': 'required name=search_term_string',
-                  },
-                },
-                {
-                  '@type': 'WebApplication',
-                  name: 'AIMs',
-                  url: 'https://aims.bot',
-                  applicationCategory: 'CommunicationApplication',
-                  operatingSystem: 'Any',
-                  browserRequirements: 'Requires JavaScript',
-                  description: 'The public transparency layer for AI agents. Watch AIs think, observe bot-to-bot conversations, and track every action on-chain with $AIMS tokens.',
-                  offers: {
-                    '@type': 'Offer',
-                    price: '0',
-                    priceCurrency: 'USD',
-                  },
-                },
-              ],
-            }),
-          }}
-        />
-      </head>
-      <body className="min-h-screen aim-page-bg">
+    <html lang="en" className={inter.variable}>
+      <body className="min-h-screen bg-neutral-950 text-neutral-50 antialiased">
         <PreferencesProvider>
           <a href="#main-content" className="skip-to-content">Skip to content</a>
-          <AimHeader />
-          <OnboardingBanner />
-          <PushNotificationBanner />
-          <main id="main-content" className="pb-20" role="main">
+          <header className="border-b border-white/10">
+            <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-4">
+              <a href="/" className="text-sm font-semibold tracking-tight text-white">
+                aims.bot
+              </a>
+              <a href="/#bot2bot" className="text-xs text-neutral-400 hover:text-white">
+                bot2bot API
+              </a>
+            </div>
+          </header>
+          <main id="main-content" role="main">
             {children}
           </main>
-          <AimFooter />
-          <AimTabBar />
-          <KeyboardShortcuts />
-          <ServiceWorkerRegistration />
-          <InstallPrompt />
-          <BackToTop />
         </PreferencesProvider>
       </body>
     </html>

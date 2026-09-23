@@ -213,6 +213,8 @@ export const LIMITS = {
   REGISTER: { name: 'register', max: 5, windowMs: 3600_000 },
   SEARCH: { name: 'search', max: 30, windowMs: 60_000 },
   WEBHOOK_INGEST: { name: 'webhook-ingest', max: 60, windowMs: 60_000 },
+  CONTACT_CREATE: { name: 'contact-create', max: 20, windowMs: 3600_000 },
+  CONTACT_MESSAGE: { name: 'contact-message', max: 40, windowMs: 60_000 },
 } as const;
 
 /**

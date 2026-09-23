@@ -19,6 +19,8 @@ export async function GET() {
   return Response.json({
     status: dbStatus === 'connected' ? 'ok' : 'degraded',
     version: '1.0.0',
+    product: 'linktree',
+    linktreeVersion: '2026-09-23',
     uptime: `${uptimeSeconds}s`,
     uptimeMs,
     db: dbStatus,

@@ -310,6 +310,56 @@ export async function initDB() {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_digest_runs_freq_started ON digest_runs(frequency, started_at DESC)`;
+
+  await ensureContactTables();
+}
+
+/** Contact Linktree tables. Additive and safe to call on every request. */
+export async function ensureContactTables() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS contact_pages (
+      id TEXT PRIMARY KEY,
+      slug TEXT UNIQUE NOT NULL,
+      owner_token TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      bio TEXT NOT NULL DEFAULT '',
+      avatar_url TEXT NOT NULL DEFAULT '',
+      webhook_url TEXT,
+      webhook_secret TEXT,
+      imessage TEXT NOT NULL DEFAULT '',
+      whatsapp TEXT NOT NULL DEFAULT '',
+      telegram TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_contact_pages_slug ON contact_pages(slug)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_contact_pages_owner ON contact_pages(owner_token)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS contact_messages (
+      id TEXT PRIMARY KEY,
+      page_id TEXT NOT NULL REFERENCES contact_pages(id) ON DELETE CASCADE,
+      from_name TEXT NOT NULL DEFAULT '',
+      reply_to TEXT,
+      content TEXT NOT NULL,
+      delivered BOOLEAN NOT NULL DEFAULT FALSE,
+      delivery_status TEXT NOT NULL DEFAULT 'pending',
+      webhook_status INT,
+      ack TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_contact_messages_page ON contact_messages(page_id, created_at DESC)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS webhook_inbox (
+      token TEXT PRIMARY KEY,
+      payloads TEXT NOT NULL DEFAULT '[]',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
 }
 
 // Chat operations
