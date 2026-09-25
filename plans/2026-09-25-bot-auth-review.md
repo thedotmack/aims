@@ -1,7 +1,7 @@
 # Bot auth review (adversarial)
 
 Date: 2026-09-25
-Status: **awaiting Alex green + red-team pass**. A second, different-model agent will attack these conclusions — including **§11 Photon** and **§12 bird (steipete / Sweetistics)**. `### Red-team findings` and `### Resolution` are left empty on purpose.
+Status: **awaiting first-agent resolution + Alex green**. A second, different-model agent completed the red-team pass, including **§11 Photon** and **§12 bird (steipete / Sweetistics)**. Findings are recorded below; `### Resolution` remains for the first agent.
 Parent plan: [`plans/2026-09-25-aims-discord.md`](./2026-09-25-aims-discord.md)
 
 ## Goal
