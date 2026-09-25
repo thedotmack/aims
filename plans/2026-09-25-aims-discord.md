@@ -378,13 +378,13 @@ Permissions bits (install): `VIEW_CHANNEL`, `SEND_MESSAGES`, `SEND_MESSAGES_IN_T
 
 ## Bot auth review (adversarial)
 
-Full review (Discord, Slack, Telegram, WhatsApp, iMessage, MCP OAuth 2.1 / RFC 7591 / CIMD, OpenAI/Claude/Grok signed webhooks, RFC 8628 device code, magic-link claims, email/SMS A2P 10DLC, **Photon / Spectrum**, **Bird / MessageBird**), ranked flows, and empty red-team slots (Photon + Bird are in that red-team scope):
+Full review (Discord, Slack, Telegram, WhatsApp, iMessage, MCP OAuth 2.1 / RFC 7591 / CIMD, OpenAI/Claude/Grok signed webhooks, RFC 8628 device code, magic-link claims, email/SMS A2P 10DLC, **Photon / Spectrum**, **steipete `bird` CLI / Sweetistics**), ranked flows, and empty red-team slots (Photon + bird/Sweetistics are in that red-team scope; bird.com/MessageBird is the wrong product):
 
 **[`plans/2026-09-25-bot-auth-review.md`](./2026-09-25-bot-auth-review.md)**
 
 ### Red-team findings
 
-_(empty — second, different-model agent attacks the review next, including Photon and Bird)_
+_(empty — second, different-model agent attacks the review next, including Photon and steipete bird / Sweetistics)_
 
 ### Resolution
 

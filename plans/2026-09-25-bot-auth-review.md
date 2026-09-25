@@ -1,7 +1,7 @@
 # Bot auth review (adversarial)
 
 Date: 2026-09-25
-Status: **awaiting Alex green + red-team pass**. A second, different-model agent will attack these conclusions — including **§11 Photon** and **§12 Bird**. `### Red-team findings` and `### Resolution` are left empty on purpose.
+Status: **awaiting Alex green + red-team pass**. A second, different-model agent will attack these conclusions — including **§11 Photon** and **§12 bird (steipete / Sweetistics)**. `### Red-team findings` and `### Resolution` are left empty on purpose.
 Parent plan: [`plans/2026-09-25-aims-discord.md`](./2026-09-25-aims-discord.md)
 
 ## Goal
@@ -177,7 +177,7 @@ Requires an Apple-approved **MSP**. Not consumer iMessage. Live-agent escalation
 
 These relay consumer iMessage through a Mac/phone or a vendor’s Apple IDs / managed lines. Apple does **not** publish a consumer iMessage API. Vendor ToS and Apple’s ToS both allow suspension for automation/spam. aims.bot must **not** ship or recommend these as a product path. Deep-links (`imessage:`, `sms:`) on the Linktree stay as **human tap-to-open**, not a bot channel.
 
-Photon (photon.codes) is the named candidate Alex asked about — full write-up in **§11**. Same hard-no as the rest for **consumer iMessage**. Official business path stays Messages for Business + MSP (Bird can be that MSP later; see **§12**).
+Photon (photon.codes) is the named candidate Alex asked about — full write-up in **§11**. Same hard-no as the rest for **consumer iMessage**. Official business path stays Messages for Business + MSP.
 
 **(a)** Mac always-on + Apple ID login (BlueBubbles / Photon `@spectrum-ts/imessage-local`) or vendor signup + API key (Sendblue / Loop / Photon cloud).  
 **(b)** HTTP send/receive once the relay exists. Photon cloud is truly two-way (HMAC webhooks).  
@@ -287,7 +287,7 @@ aims-native (no new vendor). Same claim as §cross-cutting.
 **(a)** Console or API brand → wait → campaign → wait → number. Many humans.  
 **(b)** Send/receive after approval.  
 **(c)** 10DLC exists because of spam; STOP/HELP required; loop via SMS is expensive (good).  
-**(d)** Vetting delays, carrier filters, $ brand/campaign fees + per SMS. **v1 no.** Bird (§12) is a later aggregator for this row, not a way around 10DLC.
+**(d)** Vetting delays, carrier filters, $ brand/campaign fees + per SMS. **v1 no.**
 
 ---
 
@@ -385,95 +385,107 @@ Local Mac path: Full Disk Access to `chat.db` = the agent *is* that Apple ID. Ba
 
 Photon does **not** beat building Discord (or Telegram, or Slack) ourselves. Those have official bot APIs, $0 channel cost, and a one-click/tap connect. Photon does **not** beat building official iMessage ourselves either — the official product is M4B + MSP, which Photon is not.
 
-What Photon *does* buy is unofficial consumer-iMessage plus a TS SDK. That is the same class as Sendblue / LoopMessage, with a nicer free tier (10 users, $0) and a worse Apple-policy story if we productize it. **Do not ship. Do not recommend as the aims iMessage path.** Revisit only if Apple blesses a consumer bot API or we later pick an MSP for Messages for Business (Bird can be that, §12).
+What Photon *does* buy is unofficial consumer-iMessage plus a TS SDK. That is the same class as Sendblue / LoopMessage, with a nicer free tier (10 users, $0) and a worse Apple-policy story if we productize it. **Do not ship. Do not recommend as the aims iMessage path.** Revisit only if Apple blesses a consumer bot API or we later pick an MSP for Messages for Business.
 
 ---
 
-## 12. Bird (formerly MessageBird)
+## 12. bird CLI → Sweetistics (X / Twitter)
 
-**Confirmed product (high confidence — this is the one Alex means).**  
-**Bird** at [bird.com](https://bird.com), the CPaaS formerly **MessageBird**. Multichannel messaging API (email, SMS, WhatsApp, RCS, voice, social, Apple **Business** Chat). Docs: [docs.bird.com](https://docs.bird.com). Pricing index: [bird.com/pricing](https://bird.com/pricing). Not consumer iMessage; not Photon.
+**Correction:** this is **not** [bird.com](https://bird.com) / MessageBird. That CPaaS evaluation is withdrawn. One-line leftover: MessageBird-now-Bird is a later SMS/WhatsApp/email aggregator if we ever want one; it is not Alex’s “bird.”
 
-**Confidence:** **high (~95%)**. “Bird, formerly MessageBird, multichannel messaging API” matches bird.com exactly. Collision worth naming: **Bird** the email client / other “Bird” apps — none are the CPaaS. If Alex meant a different Bird, he would not have said MessageBird.
+**Confirmed CLI (very high confidence — ~95%).**  
+**`bird`** is Peter Steinberger’s (**[steipete](https://github.com/steipete)**) X/Twitter CLI. npm **[@steipete/bird](https://www.npmjs.com/package/@steipete/bird)** (v0.8.0, 2026-01-19). Homebrew `steipete/tap/bird`. Marketing site **[bird.fast](https://bird.fast)** (CLI install page, not a hosted app). Original GitHub **`github.com/steipete/bird`** now **404** (private or removed; [v0.1.0 notes](https://newreleases.io/project/github/steipete/bird/release/v0.1.0) still point there). Public mirrors: [jawond/bird](https://github.com/jawond/bird) (steipete 52 commits; homepage bird.fast), [rsaisankalp/bird](https://github.com/rsaisankalp/bird). The published README’s own disclaimer: undocumented X **web GraphQL** + **cookie auth**; expect it to break.
 
-**Channels unlocked** (Channels API inbound list, [message status and interactions](https://docs.bird.com/api/channels-api/message-status-and-interactions))
+**Confirmed SaaS (high confidence — ~80% this is “the SaaS version”).**  
+**[Sweetistics](https://sweetistics.com)** — steipete-orbit Twitter/X analytics + actions host. npm [`sweetistics`](https://www.npmjs.com/package/sweetistics) (homepage sweetistics.com; depends on `github:steipete/node-twitter-api-v2`). Early bird releases and the jawond mirror document `--engine sweetistics|graphql|auto` and `SWEETISTICS_API_KEY` → Sweetistics **`/api/actions/tweet`** (optional `--sweetistics-base-url` for self-host). Published `@steipete/bird@0.8.0` README is GraphQL/cookie-only; the SaaS engine lives in earlier tags / forks. Sweetistics Pro marketing lists **“Pulse monitoring with webhook + API access.”** Purchasing is **disabled** (beta).
 
-| Channel | Two-way inbound event | Official? |
+| Source | URL |
+|---|---|
+| CLI npm | [npmjs.com/package/@steipete/bird](https://www.npmjs.com/package/@steipete/bird) |
+| CLI site | [bird.fast](https://bird.fast) |
+| Author | [github.com/steipete](https://github.com/steipete) (Peter Steinberger) |
+| SaaS | [sweetistics.com](https://sweetistics.com) / [pricing](https://sweetistics.com/pricing) |
+| SaaS CLI | [npmjs.com/package/sweetistics](https://www.npmjs.com/package/sweetistics) |
+| Public source mirror | [github.com/jawond/bird](https://github.com/jawond/bird) |
+
+**Other candidates (not this bird):**
+
+| Candidate | What it is |
+|---|---|
+| **bird.com / MessageBird** | Multichannel CPaaS. **Wrong product.** Dropped. |
+| **bird.fast as a hosted API** | Landing page for the CLI binary. No signup, no keys, no inbound webhooks. |
+| **steipete/birdclaw** | Separate “store tweets for agents” repo. Not the CLI/SaaS. |
+| **bird-dm** (`tolibear`) | Third-party **read-only** DM add-on on `@steipete/bird`. Not official. |
+| **@connormartin/bird** | npm clone of the steipete README. |
+| **xsh / xfetch / x-agent-sdk** | Other cookie-GraphQL X CLIs. Same ToS class, different authors. |
+
+If Alex meant a hosted “bird API” that is **not** Sweetistics, it is not a public product we can find. Ask only then.
+
+**Channels unlocked**
+
+| Surface | bird CLI (`@steipete/bird`) | Sweetistics SaaS |
 |---|---|---|
-| **SMS / MMS** | `sms.inbound` | Yes (carriers + **A2P 10DLC** in the US) |
-| **WhatsApp** | `whatsapp.inbound` / `whatsapp.received` | Yes (Meta Cloud API behind Bird) |
-| **Email** | `email.inbound` | Yes |
-| **RCS** | interactions (read/click/unsubscribe) | Yes (Google / carrier RCS) |
-| **LINE, Instagram, Facebook, Viber, LinkedIn, TikTok, Telegram** | `.inbound` per platform | Yes, each network’s rules |
-| **Apple Business Chat** | `apple business chat` inbound | Yes — **Messages for Business**, not consumer iMessage |
-| **Voice / push** | product pages; not the group-mention path | Yes |
-| **Consumer iMessage** | — | **No** |
+| **X posts / replies** | `tweet`, `reply` (GraphQL `CreateTweet`; error 226 → legacy `statuses/update.json`) | `/api/actions/tweet` when API key present |
+| **Mentions** | `bird mentions` (poll / search shortcut; defaults to the cookie user) | Same via CLI engine; no documented mention-push API |
+| **Read / search / threads** | `read`, `thread`, `replies`, `search`, `home`, `user-tweets` | Cached timeline + `force=true` on thread/replies |
+| **Social graph / lists / bookmarks / likes / news** | Yes (CLI) | Analytics / Friendimizer / Pulse (product, not a bot mention channel) |
+| **X DMs** | **No** in official 0.8.0 | Not a documented DM bot API. Pulse “webhook” is analytics. Third-party `bird-dm` reads inbox only. |
+| **Discord / iMessage / WhatsApp / SMS** | No | No |
 
-**Two-way?** **Yes**, when you subscribe. Bird POSTs signed JSON. Current Notifications API follows **Standard Webhooks** (`webhook-id`, `webhook-timestamp`, `webhook-signature`, `whsec_` secret, 5-minute skew, at-least-once, ~27.5h retries) — [webhooks](https://docs.bird.com/api/notifications-api/api-reference/webhook-subscriptions). Older Channels subscriptions also support a Twilio-shaped template and a `signingKey` you set. Inbound is optional: “only needed if you need to receive inbound messages (2-way).” Outbound without a webhook is one-way.
+**Two-way?** **Partial, poll-only — not a webhook wake.** A process can `bird mentions` then `bird reply`. There is **no** inbound mention/DM HTTP webhook on bird.fast or in the published CLI. Sweetistics Pro advertises Pulse **webhooks** for profile/timeline drift, not “someone @mentioned the bot.” Official two-way X is the **X Activity API** (webhooks billed per event) — that is building on X, not using bird.
 
-**Automated connecting (clicks vs API)**
+**(a) Fewest human clicks**
 
-Bird is **API-friendly after a workspace exists**. It is **not** “connect me up with aims” in one click.
+Cookie engine (CLI):
 
-1. **Human (once, house):** create a Bird workspace. Test API key is instant. Production unlocks after a **payment method** + **verify a sender** ([US SMS pricing page](https://bird.com/en-us/products/sms/pricing/us)).
-2. **Email:** verify a domain (DNS). Free plan, **no card**, 1,000 emails/mo ([email pricing](https://bird.com/pricing/email)).
-3. **SMS US:** rent a number (API) + **10DLC Brand + Campaign** (TCR). Humans/docs/legal entity. Same wall as Twilio §10.
-4. **WhatsApp:** connect a number / WABA. Meta business verification, display-name review, **templates**, **24h service window** — Bird does not waive Meta. Bot can submit templates; Meta still approves.
-5. **Apple Business Chat:** Apple business registration + MSP relationship + Apple review. Days to weeks. Same as §5 official.
-6. **Webhooks:** **bot can** `POST /v1/webhooks` or `bird webhooks create` once it has a key with `webhooks:write`. No extra human click to attach the URL.
+1. Human already logged into x.com in Safari/Chrome/Firefox on a Mac bird can read. **0 extra clicks** if that box is the worker. Remote / Vercel: human must **export `auth_token` + `ct0`** (DevTools or `bird check`) and paste them into env. That is handing over the web session.
+2. No X OAuth “Authorize app” screen. No Developer Portal app. **Cannot** be done by a stranger bot on someone else’s laptop.
 
-A Grok bot **cannot** finish Meta or 10DLC or Apple review. After those exist, the bot can send, subscribe to inbound, and reply. Number rent is API (`/pricing/numbers`).
+Sweetistics engine:
 
-**(a) Fewest humans:** workspace + (domain **or** 10DLC **or** Meta **or** Apple). Many.  
-**(b) Bot automates:** keys, numbers, webhooks, send/receive **after** the channel is verified. Cannot skip verification.
+1. Human `sweetistics login` (device auth) or dashboard signup.
+2. Attach an X session (their stack still uses cookie / GraphQL helpers — not X OAuth we can see).
+3. Copy `SWEETISTICS_API_KEY` (API access is a **Pro** row). **Purchasing disabled** today, so this path may be invite-only.
+4. Bot sets the env and POSTs. Still **not** one Authorize click, and **not** self-serve over a public API without a human account.
+
+**(b) Bot can automate:** tweet/reply/read/poll mentions **after** cookies or a Sweetistics key exist. **Cannot** create an X session, cannot complete Sweetistics login, cannot mint a legal X app token.
 
 **Pricing (checked 2026-09-25; cash tight)**
 
-Bird’s pitch: no platform fee, no per-seat, pay for use. That is **not** free SMS/WhatsApp.
-
-| Item | Published rate | Source |
+| Item | Money | Source |
 |---|---|---|
-| **Email Free** | **$0**, 1,000 emails/mo, **no card**, no time limit. Sandbox does not count. | [bird.com/pricing/email](https://bird.com/pricing/email) |
-| Email Startup | from **$15/mo** (50k) / **$30/mo** (100k) | same |
-| Email Growth | from **$80/mo** | same |
-| Dedicated IP | **$24.95/mo** (Growth+) | same |
-| **SMS US** long code / toll-free | **$0.0035 / segment** outbound; short code $0.0070. **Carrier fees extra** (e.g. AT&T $0.0035 in + out). | [bird.com/pricing/sms](https://bird.com/pricing/sms), [fees](https://bird.com/en-us/pricing/sms/fees) |
-| **US number rental** | Local **$1/mo**, toll-free **$2/mo** | [bird.com/pricing/numbers](https://bird.com/pricing/numbers) |
-| **10DLC** | Brand **$4.50**; campaign submission **$15**; monthly campaign **~$10** typical (low-volume **$1.50**, some use-cases $30) | [SMS fees](https://bird.com/en-us/pricing/sms/fees) |
-| **WhatsApp US** (Bird + Meta combined, per delivered) | Marketing **$0.030**; Utility / Auth **$0.0084**; Service **$0.0084** from **2026-10-01** (1,000 free service msgs / business number / month) | [bird.com/pricing/whatsapp](https://bird.com/pricing/whatsapp) |
-| RCS / other | Marketing pages have quoted RCS from **$0.005/msg** + passthrough; treat as indicative and re-check the live country table before buying | [bird.com/pricing](https://bird.com/pricing) / marketing-v2 |
+| **bird CLI** | **$0** (MIT). You bring an X account. | [npm](https://www.npmjs.com/package/@steipete/bird), [bird.fast](https://bird.fast) |
+| **Sweetistics Free** | **$0.** Timeline snapshots, **10 AI reports/mo**. **No API access.** | [sweetistics.com/pricing](https://sweetistics.com/pricing) |
+| **Sweetistics Pro** | Advertised **$49/mo** (GPT-5 analysis, Friendimizer, Pulse, **API access**, export). **“Purchasing disabled during beta.”** | same |
+| **Official X API** (if we build the channel ourselves, ToS-legal) | Pay-per-use, **no free tier** for new apps. Create post **$0.015** (**$0.20** with a URL; summoned reply **$0.010**). Post read **$0.005**. **Owned** mentions **$0.001**/resource. DM event read **$0.010**; `dm.received` / `chat.received` webhook **$0.010**/event. 3M post-read cap/cycle. | [docs.x.com pricing](https://x-preview.mintlify.app/x-api/getting-started/pricing) (canonical live table is Developer Console / developer.x.com) |
 
-No monthly **platform** minimum if you only use email Free. First **SMS** number is $1/mo + 10DLC fees + per segment. First **WhatsApp** production path is Meta + Bird processing + category rates. Flows (if we used their automation) have been listed around **$0.05 / invocation** on older marketing pages — do not use Flows for v1.
+Cash-tight read: the CLI looks free until X bans the account. Sweetistics Pro is $49/mo **and cannot be bought**. Official X is pennies per post until a mention-poll or webhook loop runs; then reads add up. Discord remains $0.
 
-**Abuse / ToS (WhatsApp / Meta / A2P)**
+**Abuse / ToS (X API, cookies, bans)**
 
-Bird is a pipe. **Meta and the carriers still rule.**
+X [Developer Guidelines](https://x-preview.mintlify.app/developer-guidelines): **“Use only the official X API. No scraping, browser automation, or unofficial methods. Violations result in permanent suspension.”** Non-API automation is listed as a prohibited activity with **permanent ban**. Automated accounts must use the official API, label as Automated, disclose the operator, reply only when the user engaged first (max 1), DM only after the user DMs first. **AI-generated replies require prior approval from X.**
 
-- **WhatsApp:** opt-in, quality rating, messaging limits, **approved templates** outside the 24h window, display-name review, unverified WABA caps. Bird’s `whatsapp.received` does not let us cold-text the world.
-- **SMS US A2P 10DLC:** Brand + Campaign at TCR; STOP/HELP; campaign rejection; carrier filters. Bird publishes the fees; we still fill the forms and eat the fines (same as Twilio).
-- **Apple Business Chat:** Apple Service Terms + MSP + live-agent rules from §5. Still not `@botlord` in a friends’ iMessage group.
-- **Telegram / social:** each network’s bot policy. Telegram via Bird is **worse** than a shared `@aimsbot` deep link we host ourselves (extra vendor, extra $).
-
-Spoofing: verify Standard Webhooks (or Channels `signingKey`). Token theft: workspace key = send-as-us on every connected channel — encrypt, rotate. Replay: `webhook-id`. Loops: hop cap; SMS/WhatsApp loops are **expensive**, which is a natural brake. Spam: the whole reason 10DLC and Meta templates exist.
+bird’s GraphQL + `auth_token`/`ct0` path **is** unofficial session replay. The CLI says so. Sweetistics posting through `/api/actions/tweet` does not become official OAuth because a vendor wraps it. Cookie theft = full account takeover (post, DM, settings). Giving those cookies to Sweetistics is giving a third party the session. Query IDs rotate; 429s are “aggressive” on GraphQL (fork README). Error 226 (“automated request”) is X already classifying the traffic.
 
 **(c) table**
 
-| Risk | Mitigation |
+| Risk | Mitigation if we ever touched this (we should not, unofficially) |
 |---|---|
-| Spoofing | Standard Webhooks unwrap; reject skew > 5 min. |
-| Token theft | Least-privilege keys (`webhooks:write` ≠ blast-all-channels if we can split). Never public. |
-| Spam / 10DLC / Meta | Do not send without Brand+Campaign / WABA. Honor STOP and WhatsApp opt-in. |
-| Impersonation | Alphanumeric / WhatsApp display name are reviewed; still not a Discord role. |
-| Replay | `webhook-id` idempotency. |
-| Loops | Hop ≤ 3; never auto-reply to our own sender IDs. |
+| Spoofing inbound | Mentions are polled, not signed webhooks. Anyone who can run `bird mentions` with the cookies is “us.” |
+| Token / cookie theft | `auth_token` is the account. Never in public JSON. Rotate by logging out all X sessions. |
+| Spam / unsolicited replies | X automation rules: user-initiated only. Hop cap still. |
+| Impersonation | Posts as the **human’s** X account, not `@aims` / `@botlord`. |
+| Replay | Poll cursors + tweet id idempotency. No vendor delivery id. |
+| Loops | Ignore self; hop ≤ 3. Public X makes amplification worse. |
+| **X ToS / ban** | **No mitigation on the cookie/Sweetistics path.** Official X API + OAuth + Automated label is the only shippable mitigation. |
 
 **(d) Where it breaks / verdict vs building it ourselves**
 
-Bird does **not** beat building **Discord, Telegram, or Slack** ourselves. Those are $0, official, and closer to “one click.” Bird does **not** unlock consumer iMessage.
+bird / Sweetistics does **not** beat building **Discord** (or Telegram, or Slack). Those are official, $0, and one click/tap.
 
-Bird **can** beat building **WhatsApp + SMS + RCS + email + M4B** as four separate vendors later: one webhook style (Standard Webhooks, same as OpenAI/Claude), one number API, published PAYG. That is an aggregator decision for **rank 7–10**, not a reason to skip Discord. Cash-tight v1: use Bird’s **email Free** only if we want inbound email without Postmark; do **not** rent SMS/WhatsApp until a real demand shows up.
+It also does **not** beat building **X ourselves on the official API**. The legal product is X OAuth + pay-per-use + Activity API webhooks + Automated label + (for AI replies) X approval. bird’s value is “skip the Developer Portal and the per-post bill” by replaying a browser session. That is the same class of risk as unofficial iMessage. **Do not ship the cookie/Sweetistics path.**
 
-**Do not** put Bird in front of Discord. **Do** keep it on the short list as the CPaaS if/when we leave the $0 channels.
+Official X as a later aims channel is possible and expensive — rank it with WhatsApp, not with Discord. Connect would still need a human X OAuth consent, not `bird whoami` on a laptop.
 
 ---
 
@@ -487,11 +499,12 @@ Bird **can** beat building **WhatsApp + SMS + RCS + email + M4B** as four separa
 | 4 | aims claim / magic-link / RFC 8628 device code | 1 click or type code | Pairing layer for all of the above |
 | 5 | MCP OAuth 2.1 + CIMD (DCR fallback) | 1 consent screen | Agent/IDE connect, not Discord mentions |
 | 6 | Signed Standard Webhooks (OpenAI/Claude-compatible headers on aims wakes) | 0 if `webhookUrl` already set | Additive on existing bot2bot |
-| 7 | Email inbound (Postmark/Resend **or later Bird Free** — 1k/mo, $0, no card) | DNS once | Later |
-| 8 | WhatsApp Cloud API (**self or Bird** as aggregator — Meta rules unchanged) | Meta verify + phone + 24h/templates | Not v1 |
-| 9 | SMS / RCS A2P 10DLC (**Twilio or Bird** — US number ~$1/mo + brand/campaign + ~$0.0035/segment + carrier fees) | Brand + campaign + number | Not v1 |
-| 10 | Apple Messages for Business + MSP (**Bird can be the MSP**; still not consumer iMessage) | Business + MSP + Apple review | Not v1 |
-| — | **Bird** as the Discord/Telegram/Slack layer | Workspace + sender verify | **Reject** — does not beat building those |
+| 7 | Email inbound (Postmark/Resend) | DNS once | Later |
+| 8 | WhatsApp Cloud API | Meta verify + phone + 24h/templates | Not v1 |
+| 9 | SMS A2P 10DLC | Brand + campaign + number | Not v1 |
+| 10 | Apple Messages for Business + MSP | Business + MSP + Apple review | Not v1 |
+| 11 | Official X API (OAuth + pay-per-use + Activity webhooks) | X Authorize + Developer credits + Automated label (+ AI-reply approval) | Not v1 — legal X path |
+| — | **bird CLI / Sweetistics** (cookie GraphQL or `$49` Pro API, purchasing disabled) | Browser session or Sweetistics login | **Do not ship** |
 | — | **Photon Spectrum** as the Discord/Telegram/Slack layer | Photon account + project | **Reject** — first-party APIs already win |
 | — | Unofficial iMessage (**Photon cloud/local**, BlueBubbles, Sendblue, LoopMessage) | Mac or vendor line | **Do not ship** |
 | — | Per-owner Discord/Slack/Telegram app tokens as the default | Portal + intents per bot | Reject for v1 |
@@ -525,7 +538,7 @@ Everything else is the Grok bot.
 
 ### Red-team findings
 
-_(empty — second, different-model agent fills this. In scope: ranks 1–10, the Discord self-serve lock, **§11 Photon** (product identity, Apple consumer-iMessage ToS, $0/10-user vs $25/$250, “does not beat building Discord”), and **§12 Bird** (MessageBird confirmation, two-way Standard Webhooks, Meta/A2P humans, PAYG vs building Discord, later-aggregator-only).)_
+_(empty — second, different-model agent fills this. In scope: ranks 1–11, the Discord self-serve lock, **§11 Photon** (product identity, Apple consumer-iMessage ToS, $0/10-user vs $25/$250, “does not beat building Discord”), and **§12 bird / Sweetistics** (steipete CLI identity, Sweetistics as the SaaS, cookie vs official X API, two-way-is-poll-only, $0 CLI / $49 Pro disabled, X ToS + ban risk, “does not beat Discord or official X”). MessageBird/bird.com is **out of scope** — wrong product.)_
 
 ### Resolution
 
