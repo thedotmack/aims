@@ -1,7 +1,7 @@
 # aims.bot ↔ Discord two-way (shared bot + mention wake)
 
-Date: 2026-09-25 (rewritten after Alex rejected one-way webhooks)
-Status: **awaiting Alex green** (house ship gate — do not implement until this plan is approved)
+Date: 2026-09-25 (rewritten after Alex rejected one-way webhooks; resolved after red-team `d46fe50`)
+Status: **resolved after red-team; awaiting Alex green** (do not implement until this revision is approved)
 Depends on: `plans/2026-09-23-aims-linktree.md` (already live)
 
 Alex’s framing: aims.bot exists to open a **two-way channel** between humans, bots, and groups. A Discord bot joins a server. When anyone `@mention`s a Grok bot’s name (e.g. `@botlord`), that message is routed through aims.bot into the page owner’s **existing bot2bot webhook wake**. The Grok bot’s reply posts back into the same channel or thread.
@@ -10,20 +10,23 @@ Alex’s framing: aims.bot exists to open a **two-way channel** between humans, 
 
 ## Recommendation
 
-**One shared Discord application (`aims` / aims.bot).** A tiny always-on **gateway worker on Railway Free ($0/month, $1 included usage)** forwards mention events to Vercel. Vercel reuses today’s `deliverOwnerWebhook` in `lib/contact-pages.ts`. Replies go back to Discord via REST (and a per-page channel webhook so the reply **displays as `botlord`**, not as `@aims`).
+**One shared Discord application (`aims` / aims.bot).** A tiny always-on **gateway worker on Fly.io (`shared-cpu-1x` 256 MB, $2.19/mo from 2026-10-01)** forwards **`@aims` mentions** to Vercel. Vercel reuses today’s `deliverOwnerWebhook` (after SSRF harden). Replies go back via Bot REST as **`@aims`**, with the page handle in the text (`**botlord:** …`). No mentionable roles. No reply webhooks.
 
 | Decision | Pick | Why |
 |---|---|---|
-| Shared app vs per-owner tokens | **Shared aims.bot app** | “Add to Discord” is one OAuth install. One gateway socket. Per-owner tokens mean every Grok owner creates an app, toggles intents, and we run N Identify connections (and hold N bot secrets). |
-| How `@botlord` resolves | **Mentionable role + handle map** (see Discord realities) | A single Discord app has **one username**. `@botlord` as a *user* mention is impossible on a shared bot. A mentionable role named `botlord` (0 human members, assigned to the aims bot) is a real `@botlord` mention. Replies use a channel webhook `username: botlord`. Fallback: `@aims botlord …` if role create fails. |
-| Listener | **Hybrid (c)** | Mentions are Gateway `MESSAGE_CREATE`, not HTTP interactions. Worker holds the WebSocket; Vercel keeps DB, wake, OAuth, slash `/aims`, and Discord REST. |
-| Host | **Railway Free, $0/mo** | Always-on, no sleep. $1/mo usage credit covers a <100 MB raw-WS process. Fallback: Fly.io `shared-cpu-1x` 256 MB = **$1.94/mo** ([fly.io/pricing](https://fly.io/pricing/)). |
-| Intents | `GUILDS` + `GUILD_MESSAGES` + `MESSAGE_CONTENT` | Mention-only **filter** (we drop everything else). `MESSAGE_CONTENT` is required so `@botlord hello` (role mention, no `@aims`) still has `content`. |
-| Reply path | **Both** sync `{ ack }` and async `reply.url` | Today’s 8s webhook already returns `ack`. Slow Grok bots POST to a reply callback. `message.replyTo` is set to that callback on Discord-originated wakes so existing bots that call `replyTo` keep working. |
+| Shared app vs per-owner tokens | **Shared aims.bot app** | One install link. One gateway socket. Per-owner tokens mean N apps, N intents, N secrets. |
+| How `botlord` resolves | **`@aims botlord` or `/aims ask botlord`** | One app = one username. Role/webhook impersonation is confusable and needs `MANAGE_ROLES` / `MANAGE_WEBHOOKS` / `MESSAGE_CONTENT`. App mentions include content without the privileged intent. |
+| Listener | **Hybrid (c)** | Mentions are Gateway `MESSAGE_CREATE`. Worker holds the WebSocket; Vercel keeps DB, wake, OAuth, slash `/aims`, Discord REST. |
+| Host | **Fly.io $2.19/mo** | Near-free, always-on, not credit-exhaust. Railway Free is **dev only**. Railway Hobby ($5) is the fallback. Vercel Fluid WS close at max duration — not the Gateway. |
+| Intents | `GUILDS` + `GUILD_MESSAGES` only (`1 \| 512 = 513`) | Filter to messages that **@mention the app**. No `MESSAGE_CONTENT`. |
+| Reply path | **Both** sync `{ ack }` and async `reply.url` | Today’s 8s webhook already returns `ack`. `message.replyTo` is set on Discord-originated wakes. |
+| Connect | **Advanced OAuth code grant** | Ordinary bot install is callback-less. Scopes `bot applications.commands identify` + Require OAuth2 Code Grant. Verify membership via REST. |
 
 The rejected one-way incoming-webhook plan is dead. Incoming webhooks cannot receive `@mentions`.
 
-**Connect UX (locked to the auth review):** a Grok bot calls the aims API, gets a **claim + Discord install URL**, and the human does **one** Discord Authorize click. Details: [§ Bot auth review](#bot-auth-review-adversarial) and [`plans/2026-09-25-bot-auth-review.md`](./2026-09-25-bot-auth-review.md).
+**Connect UX:** Grok bot mints a hashed claim + advanced OAuth `installUrl`. Human picks a server and Authorizes. Optional `/aims here`. Details: [§ Bot auth review](#bot-auth-review-adversarial) and [`plans/2026-09-25-bot-auth-review.md`](./2026-09-25-bot-auth-review.md).
+
+**Ship vs rank:** Telegram is cheaper and fewer taps. **Discord still ships first** (Alex): group channels and multi-bot rooms are the core use case.
 
 ---
 
@@ -34,27 +37,29 @@ A single Discord **application** has a single **bot user**. In a guild that bot 
 | Trick | What Discord actually does |
 |---|---|
 | Nickname | One per guild. Not per page. |
-| `/aims botlord hello` | Works, no privileged intent. Not an `@mention`. Keep as a **secondary** invoke (slash on Vercel). |
-| Text prefix `botlord:` | Fragile, needs `MESSAGE_CONTENT` for every message if we scan the channel. Violates mention-only. **No.** |
-| Webhook display names | Replies can look like `botlord`. Inbound still hits the shared bot / a role. **Use for outbound.** |
-| Mentionable **role** `botlord` | `@botlord` is a real mention (`mention_roles`). 0 human members ⇒ no mass ping. Bot must have `MANAGE_ROLES` and a role **below** the aims bot’s top role. Role names are unique per guild. **This is the inbound `@botlord` path.** |
-| Per-owner bot token | Each Grok is a real `@botlord` user. Owner creates an app, enables intents, pastes a token. We run one gateway Identify **per token**. “Add to Discord” is no longer one link. **Reject for v1.** |
+| `/aims ask botlord hello` | Works, no privileged intent. **Primary slash invoke** (HTTP on Vercel). |
+| Text prefix `botlord:` on unmentioned messages | Would need `MESSAGE_CONTENT` for every message. **No.** |
+| Webhook display names | Confusable; needs `MANAGE_WEBHOOKS`. **Do not use.** |
+| Mentionable **role** `botlord` | Confusable (duplicate names allowed; authority is snowflake). Needs `MANAGE_ROLES` + `MESSAGE_CONTENT` for role-only text. **Do not use.** |
+| **`@aims botlord hello`** | App is mentioned ⇒ `content` is present **without** `MESSAGE_CONTENT`. First token after the mention is the handle. **This is the inbound path.** |
+| Per-owner bot token | Real `@botlord` user, N gateways, N secrets. **Reject for v1.** |
 
 **Mention content without reading the channel**
 
-Discord’s [You might not need a privileged intent](https://docs.discord.com/developers/gateway/you-might-not-need-a-privileged-intent) (2026): without `MESSAGE_CONTENT`, `content` / `embeds` / `attachments` / `components` / `poll` are emptied **except** messages the app sent, DMs, messages that **@mention the app**, and some replies to the app.
+Discord’s [You might not need a privileged intent](https://docs.discord.com/developers/gateway/you-might-not-need-a-privileged-intent) (2026): without `MESSAGE_CONTENT`, content is emptied **except** messages the app sent, DMs, messages that **@mention the app**, and some replies to the app.
 
-A **role-only** `@botlord` (no `@aims`) is **not** listed as an exception. The `mentions` / `mention_roles` arrays still arrive (those are not content fields). So we can *see that* `@botlord` was mentioned and still get **empty text** unless we enable `MESSAGE_CONTENT`.
+v1 **only** wakes when the app is mentioned (or via `/aims ask`). We do **not** enable `MESSAGE_CONTENT`. We do not store or wake on unmentioned messages.
 
-That is why this plan enables `MESSAGE_CONTENT` but **filters to mention-only**. We do not store or wake on unmentioned messages.
+**Two scale gates (both real):**
 
-**Verification threshold (updated June 10, 2026):** privileged-intent review is triggered at **10,000 unique users** who can see the app, not 100 servers. Under that, the Developer Portal toggle is enough. Source: [Privileged Intent Review](https://support-dev.discord.com/hc/en-us/articles/5324827539479-Message-Content-Intent-Review-Policy) and [June 2026 announcement](https://support-dev.discord.com/hc/en-us/articles/40281523410967-Changes-to-Privileged-Intent-Access-for-Discord-Apps). aims.bot will not hit 10k users on day one. If it ever does, keep the mention-only filter so a review has a clean story — or fall back to “must also @aims” and drop the privileged intent.
+1. Privileged-intent review at **10,000 unique reachable users** ([policy](https://support-dev.discord.com/hc/en-us/articles/5324827539479-Message-Content-Intent-Review-Policy)). Avoided in v1 by not requesting the intent.
+2. **App verification past 100 servers** ([verification](https://support-dev.discord.com/hc/en-us/articles/23926564536471-How-Do-I-Get-My-App-Verified)). House task if we grow; not day one.
 
 ---
 
 ## Listener host (costs, current)
 
-Vercel serverless **cannot** hold `wss://gateway.discord.gg`. Compare:
+Vercel Fluid Functions can open WebSockets but **close at max duration** — a poor Discord Gateway host ([Vercel WebSockets](https://vercel.com/docs/functions/websockets)). Compare:
 
 | Option | Can receive `@mentions`? | Monthly cost (sources) | Notes |
 |---|---|---|---|
@@ -72,9 +77,9 @@ Vercel serverless **cannot** hold `wss://gateway.discord.gg`. Compare:
 | Render Free web | **No** — free web services spin down; not a gateway. Paid compute starts **$7/mo** (0.5 CPU / 512 MB). | $0 sleeps; $7 if paid | [render.com/pricing](https://render.com/pricing) |
 | Cloudflare Workers + Durable Object | Maybe | **Free plan $0** (100k Worker req/day; DO 13,000 GB-s/day). Paid Workers **$5/mo** floor. An **outbound** Discord gateway socket keeps a DO in memory ([DO pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/): outbound WS incurs duration; ~11k GB-s/day at 128 MB — under the free 13k/day, tight). Free Worker CPU **10 ms/invocation** is risky for Identify/Resume. Hibernation does **not** help an outbound gateway the way inbound client sockets do. | [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) (updated 2026-08-28), DO pricing (updated 2026-08-25) |
 
-**Pick: Railway Free ($0/month).** Implement the worker as a tiny Bun/Node `ws` Identify + heartbeat + mention filter (not full discord.js) so RSS stays under the $1 credit. If Railway stops the box or the credit is too tight, move the same Docker image to Fly.io at $1.94/mo — do not redesign.
+**Pick: Fly.io `shared-cpu-1x` 256 MB = $2.19/mo (from 2026-10-01).** Same tiny Bun/Node `ws` Identify + heartbeat + `@aims`-mention filter (not discord.js). Railway Free is **dev only**. Fallback if Fly is refused: Railway Hobby **$5/mo**. Do not redesign the image when moving hosts.
 
-Do **not** pick interactions-only. Do **not** pick Render Free. Do **not** pick CF DO for v1 (cheaper-looking, higher chance of a broken resume loop).
+Do **not** pick interactions-only. Do **not** pick Render Free. Do **not** pick Railway Free for production. Do **not** pick CF DO for v1. Do **not** pick Vercel as the Gateway.
 
 ---
 
@@ -102,21 +107,19 @@ Do **not** pick interactions-only. Do **not** pick Render Free. Do **not** pick 
 | Topic | Source | Contract we use |
 |---|---|---|
 | Gateway | [Gateway](https://discord.com/developers/docs/events/gateway) | Connect `wss://gateway.discord.gg/?v=10&encoding=json`. Opcode 2 **Identify** with `token`, `intents`, `properties`. Opcode 1 heartbeat (`heartbeat_interval` from Hello). Opcode 6 Resume on disconnect. Event `MESSAGE_CREATE` is a message object. |
-| Intents | [Gateway intents](https://discord.com/developers/docs/events/gateway#gateway-intents) | `GUILDS` = `1 << 0`, `GUILD_MESSAGES` = `1 << 9`, `MESSAGE_CONTENT` = `1 << 15` (privileged). **Do not** request `GUILD_MEMBERS` or `GUILD_PRESENCES`. Identify `intents` = `1 \| 512 \| 32768`. |
-| Privileged content | [You might not need…](https://docs.discord.com/developers/gateway/you-might-not-need-a-privileged-intent) | Content emptied without the intent except app-sent, DMs, **@mention the app**, some replies. Role-only `@botlord` needs the intent for text. Review at **10k users** ([policy](https://support-dev.discord.com/hc/en-us/articles/5324827539479-Message-Content-Intent-Review-Policy)). |
+| Intents | [Gateway intents](https://discord.com/developers/docs/events/gateway#gateway-intents) | `GUILDS` = `1 << 0`, `GUILD_MESSAGES` = `1 << 9`. **Do not** request `MESSAGE_CONTENT`, `GUILD_MEMBERS`, or `GUILD_PRESENCES`. Identify `intents` = `513`. |
+| Privileged content | [You might not need…](https://docs.discord.com/developers/gateway/you-might-not-need-a-privileged-intent) | App mentions include `content` without the privileged intent. That is why invoke is `@aims <handle>`. |
 | Interactions (slash, HTTP) | [Receiving and Responding](https://discord.com/developers/docs/interactions/receiving-and-responding) | Discord `POST`s to the Interactions Endpoint URL. Type `1` PING → `{ type: 1 }`. Type `2` APPLICATION_COMMAND. Verify Ed25519 with the app public key. **3s** to first response. Use for `/aims here` and `/aims ask` only — **not** @mentions. |
-| OAuth2 bot install | [OAuth2](https://discord.com/developers/docs/topics/oauth2) | `https://discord.com/oauth2/authorize?client_id={id}&scope=bot%20applications.commands&permissions={bits}&redirect_uri={cb}&response_type=code&state={nonce}`. Scope `bot` adds the bot to the selected guild; redirect includes `guild_id`. Use `state` (CSRF). Token URL `POST https://discord.com/api/oauth2/token` (`application/x-www-form-urlencoded`). |
-| Create Message | [Create Message](https://discord.com/developers/docs/resources/message#create-message) | `POST /channels/{channel.id}/messages`, `Authorization: Bot {token}`. `content` ≤ **2000**. `message_reference` for replies/threads. |
-| Execute Webhook (display name) | [Execute Webhook](https://discord.com/developers/docs/resources/webhook#execute-webhook) | `POST /webhooks/{id}/{token}?wait=true`. `username` override (≤80, no `discord`/`clyde`). Same 2000-char `content`. |
-| Get Channel Messages (proof) | [Get Channel Messages](https://discord.com/developers/docs/resources/message#get-channel-messages) | `GET /channels/{channel.id}/messages?limit=5` with the bot token. |
-| Create Role / channel webhook | [Create Guild Role](https://discord.com/developers/docs/resources/guild#create-guild-role), [Create Webhook](https://discord.com/developers/docs/resources/webhook#create-webhook) | Role: `name`, `mentionable: true`. Webhook: `POST /channels/{channel.id}/webhooks` `{ name }` → store URL server-side only. |
+| OAuth2 **advanced** bot install | [Bot authorization flow](https://docs.discord.com/developers/topics/oauth2#bot-authorization-flow) | Ordinary `bot`+`applications.commands` is **callback-less**. We add **`identify`**, `response_type=code`, registered `redirect_uri`, and portal **Require OAuth2 Code Grant**. `state` = signed 128-bit `claimSecret`. Token URL `POST https://discord.com/api/oauth2/token` (`application/x-www-form-urlencoded`). Query `guild_id` is a **hint**; verify membership with the **bot** token. |
+| Create Message | [Create Message](https://discord.com/developers/docs/resources/message#create-message) | `POST /channels/{channel.id}/messages`, `Authorization: Bot {token}`. `content` ≤ **2000**. `message_reference` for replies/threads. `allowed_mentions.parse = []`. |
+| Get Channel Messages (proof) | [Get Channel Messages](https://discord.com/developers/docs/resources/message#get-channel-messages) | `GET /channels/{channel.id}/messages?limit=20` with the bot token; match the unique nonce. |
 | Rate limits | [Rate Limits](https://discord.com/developers/docs/topics/rate-limits) | Do not hard-code buckets. Honor `retry_after` on 429. Global 50 req/s per token. 10k invalid (401/403/429) / 10 min → Cloudflare ban. Stop using a 404 webhook. |
 
 ### Allowed APIs (this ship)
 
 - One shared Discord app; bot install OAuth; slash `/aims`.
-- Gateway worker: Identify with the three intents above; forward **mention** `MESSAGE_CREATE` only.
-- Vercel: `POST /api/v1/discord/events` (worker), Interactions endpoint, OAuth callback, bind APIs, reuse `deliverOwnerWebhook`, Discord REST + per-page webhook execute for replies.
+- Gateway worker: Identify with `intents=513`; forward `MESSAGE_CREATE` that **@mention the app** only.
+- Vercel: HMAC-verified `POST /api/v1/discord/events`, Interactions endpoint, OAuth callback, bind APIs, hardened `deliverOwnerWebhook`, Discord REST Create Message.
 - Health aliases `/health` and `/api/health`.
 - Additive `discord_bindings` (+ message hop/reply columns).
 
@@ -125,14 +128,16 @@ Do **not** pick interactions-only. Do **not** pick Render Free. Do **not** pick 
 - ❌ One-way incoming webhook as the product (Alex rejected; cannot receive mentions).
 - ❌ Per-page Discord bot tokens in v1.
 - ❌ Interactions-only “listener”.
-- ❌ `MESSAGE_CONTENT` used to ingest the whole channel. Filter is mention-only.
+- ❌ `MESSAGE_CONTENT` at all in v1. Filter is app-mention / slash only.
 - ❌ `GUILD_MEMBERS` / `GUILD_PRESENCES`.
 - ❌ Putting bot token, client secret, worker secret, or webhook URLs in public JSON, Linktree HTML, or proof script output.
 - ❌ Logging those secrets. Proof scripts read env only; never `echo` them.
 - ❌ Storing `DISCORD_WEBHOOK_URL` (house proof webhook) on Vercel — that is a **box/proof** secret, not an app secret.
 - ❌ Putting the **bot token** only on the worker — Vercel needs it for REST replies and OAuth-adjacent REST. It **is** a Vercel runtime secret (see Needs).
-- ❌ discord.js monolith on Railway Free (memory). Raw `ws` / `@discordjs/ws` only.
-- ❌ Retry Discord 404 webhooks; `@everyone` from visitor text (`allowed_mentions.parse = []` unless the owner ack explicitly mentions a mapped role for bot-to-bot).
+- ❌ discord.js monolith on Fly (memory). Raw `ws` / `@discordjs/ws` only.
+- ❌ Mentionable roles or execute-webhook display names.
+- ❌ `allowed_mentions.parse` other than `[]`.
+- ❌ Railway Free as the production Gateway.
 - ❌ Prisma. Tagged `sql` only.
 - ❌ Implementing in this plan PR.
 
@@ -142,31 +147,36 @@ Do **not** pick interactions-only. Do **not** pick Render Free. Do **not** pick 
 
 ```
 Human / bot / group in Discord
-        │  @botlord hello     (role mention)  or  @aims botlord hello
+        │  @aims botlord hello     or  /aims ask botlord hello
         ▼
-Railway gateway worker (Identify, heartbeat, mention filter)
-        │  POST /api/v1/discord/events   (HMAC DISCORD_WORKER_SECRET)
+Fly.io gateway worker (Identify intents=513, heartbeat, @aims-mention filter)
+        │  POST /api/v1/discord/events
+        │  HMAC-SHA256(timestamp || nonce || SHA-256(raw_body))
         ▼
-Vercel  resolve (guild_id, role_id|handle|single-channel) → contact_pages
+Vercel  verify HMAC + nonce + skew; ignore worker hop
+        resolve (guild_id, handle after @aims | slash handle) → contact_pages
         persist contact_messages (source=discord, hop, ids)
-        deliverOwnerWebhook  ── existing 8s wake ──►  Grok owner webhook
-        │                                              (or /api/v1/inbox/:token)
+        deliverOwnerWebhook  (SSRF: resolve-pin-block, no private, no blind redirects)
+        │  Standard Webhooks headers + X-Aims-Secret
         │  sync { ack }  and/or  async POST reply.url
         ▼
-Discord  channel webhook as username=botlord  (or Bot Create Message fallback)
+Discord  Bot Create Message as @aims
+         content starts with **botlord:**
          same channel / thread, message_reference = source
+         allowed_mentions.parse = []
 ```
 
 ### Loop guards (humans, bots, groups)
 
-Bot A `@botlord` → botlord ack `@otherbot` → otherbot ack `@botlord` is a **feature** until it loops.
+Other bots `@aims botlord` is a **feature** (multi-bot rooms). Unbounded fan-out is not.
 
-1. **Ignore self:** drop if `author.id === botUserId`, or `webhook_id` is one of our stored reply webhooks, or `author.application_id === our app id`.
-2. **Hop:** `contact_messages.hop` (0 = human or external). If the author is a Discord bot **or** a webhook whose username matches another binding handle, `hop = parent.hop + 1`. Drop if `hop > 3`.
-3. **Pair cooldown:** 30s silence for the same `(guild_id, from_key, to_page_id, sha256(content))`.
-4. **Rate:** `LIMITS.DISCORD_WAKE` ≈ 20 / page / minute; 5 / (page, author) / minute. Discord 429: one retry if `retry_after < 2s`.
-5. **Mention fan-out:** if one message mentions two handles, wake both independently; each reply default `allowed_mentions.parse = []`. If the Grok `ack` contains `<@&role>` / `<@user>` for **mapped** targets, allow those only (bot-to-bot). Never allow `@everyone` / `@here`.
-6. **Do not wake on our own replies** even if someone replies with ping-on-reply and the hop would increment — require an **additional** mapped mention to continue the chain.
+1. **Ignore self:** drop if `author.id === botUserId` or `author.application_id === our app id`.
+2. **Hop:** Vercel computes this. If `message_reference` points at a message **we** sent, `hop = parent.hop + 1`. Else `hop = 0`. Drop if `hop > 3`. Never trust a worker/client `hop`.
+3. **Fan-out = 1:** first matching handle only.
+4. **Pair cooldown:** 30s silence for `(guild_id, from_key, to_page_id, sha256(content))`.
+5. **Rate:** `LIMITS.DISCORD_WAKE` ≈ 20 / page / minute; 5 / (page, author) / minute; **50 / guild / minute** circuit breaker. Discord 429: one retry if `retry_after < 2s`.
+6. **Mentions out:** `allowed_mentions.parse = []` always. No model-controlled pings.
+7. **Dedupe:** Discord `message.id` unique in durable storage. Do not wake on our own replies unless the new message also `@aims` a **different** handle.
 
 ---
 
@@ -181,8 +191,6 @@ CREATE TABLE IF NOT EXISTS discord_bindings (
   guild_id TEXT NOT NULL,
   channel_id TEXT NOT NULL,
   mention_handle TEXT NOT NULL,          -- lowercase 'botlord'
-  mention_role_id TEXT,                  -- nullable if role create failed
-  reply_webhook_url TEXT,                -- SECRET, never public
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (guild_id, mention_handle),
   UNIQUE (guild_id, channel_id, page_id)
@@ -191,11 +199,19 @@ CREATE INDEX IF NOT EXISTS idx_discord_bind_lookup
   ON discord_bindings (guild_id, channel_id);
 
 CREATE TABLE IF NOT EXISTS discord_claims (
-  code TEXT PRIMARY KEY,                 -- 'AIMS-7K2P'
+  id TEXT PRIMARY KEY,
+  code_hash TEXT NOT NULL UNIQUE,        -- sha256 of display code AIMS-XXXXXX
+  secret_hash TEXT NOT NULL UNIQUE,      -- sha256 of 128-bit claimSecret
   page_id TEXT NOT NULL REFERENCES contact_pages(id) ON DELETE CASCADE,
-  expires_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,       -- 15 minutes
   consumed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS discord_event_nonces (
+  nonce TEXT PRIMARY KEY,
+  message_id TEXT UNIQUE,                -- Discord snowflake, nullable for tests
+  seen_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
@@ -208,15 +224,17 @@ CREATE TABLE IF NOT EXISTS discord_claims (
 - `discord_thread_id TEXT`
 - `discord_source_message_id TEXT`
 - `discord_reply_message_id TEXT`
-- `reply_token TEXT` (hashed at rest if easy; else random `rpl_` + timing-safe compare)
+- `reply_token_hash TEXT` (sha256 of `rpl_…`)
 - `reply_expires_at TIMESTAMPTZ`
 
-**Resolution order** for an inbound mention in `(guild, channel)`:
+Also hash `contact_pages.owner_token` at rest (new writes + migrate on read if a plaintext row is found). New APIs take `Authorization: Bearer` / `X-Owner-Token` only.
 
-1. Any `mention_roles` that match a binding `mention_role_id` in this guild (may be several).
-2. Else if the **bot user** is in `mentions`: parse the first whitespace token after the mention as a handle; match `mention_handle` in this guild (prefer this channel).
-3. Else if the bot user is mentioned and this channel has **exactly one** binding → that page.
-4. Else drop (no wake).
+**Resolution order** for an inbound `@aims` mention in `(guild, channel)`:
+
+1. Bot user must be in `mentions`. Else drop.
+2. Parse the first whitespace token after the mention as a handle; match `mention_handle` in this guild (prefer this channel). **One handle only.**
+3. Else if this channel has **exactly one** binding → that page.
+4. Else drop (no wake). Ask them to `/aims here` or include the handle.
 
 ---
 
@@ -274,7 +292,9 @@ Content-Type: application/json
 
 ```
 POST /api/v1/discord/events
-X-Aims-Worker-Secret: …
+X-Aims-Timestamp: 1758830000
+X-Aims-Nonce: 7f3c…   (128-bit hex, unique 24h)
+X-Aims-Signature: hex(HMAC-SHA256(DISCORD_WORKER_SECRET, "{ts}.{nonce}.{sha256(raw_body)}"))
 Content-Type: application/json
 
 {
@@ -283,40 +303,43 @@ Content-Type: application/json
 }
 ```
 
-Vercel returns `{ "ok": true, "wakes": 1 }` or `{ "ok": true, "ignored": "no_mention" }`. Never echo secrets.
+Reject if `|now - ts| > 300s`, nonce seen, signature fail, or body > 256 KiB. Vercel returns `{ "ok": true, "wakes": 1 }` or `{ "ok": true, "ignored": "no_mention" }`. Never echo secrets. Never honor a client `hop`.
 
 ### Owner / bot connect (claim — self-serve)
 
-Grok-style “connect me up with aims” (bot automates; human does one Discord click):
+Grok-style “connect me up with aims” (bot automates; human Authorizes):
 
 ```
 POST /api/v1/pages
+Authorization: Bearer own_…     // header only on subsequent calls
 { "name": "botlord", "webhookUrl": "https://grok.example/aims" }
-→ { ownerToken, page }
+→ { ownerToken, page }          // ownerToken hashed at rest; shown once
 
 POST /api/v1/pages/:slug/connect
-X-Owner-Token: own_…
+Authorization: Bearer own_…
 { "channels": ["discord"] }
 ```
 
 ```json
 {
   "success": true,
-  "claim": "AIMS-7K2P",
-  "expiresAt": "2026-09-25T22:00:00.000Z",
+  "claim": "AIMS-K7Q2M9",
+  "claimSecret": "<128-bit>",
+  "expiresAt": "2026-09-25T21:15:00.000Z",
   "discord": {
-    "installUrl": "https://discord.com/oauth2/authorize?client_id=…&scope=bot%20applications.commands&permissions=…&redirect_uri=https%3A%2F%2Faims.bot%2Fapi%2Fv1%2Fdiscord%2Foauth%2Fcallback&response_type=code&state=<signed claim>"
+    "installUrl": "https://discord.com/oauth2/authorize?client_id=…&scope=bot%20applications.commands%20identify&permissions=…&redirect_uri=https%3A%2F%2Faims.bot%2Fapi%2Fv1%2Fdiscord%2Foauth%2Fcallback&response_type=code&state=<signed claimSecret>"
   }
 }
 ```
 
 OAuth callback `GET /api/v1/discord/oauth/callback?code&guild_id&state`:
 
-- Verify signed claim (single-use, 30 min).
-- Exchange code (if needed) / trust `guild_id` from Discord’s bot install redirect ([OAuth2](https://discord.com/developers/docs/topics/oauth2)).
-- Bind `guild_id` + **`system_channel_id`** (or first text channel the bot can `SEND_MESSAGES` in). Handle = slugged page name.
-- Create mentionable role + channel webhook.
-- `POST` owner webhook:
+- Verify signed `claimSecret` (single-use, 15 min). Short display code is **not** in `state`.
+- Exchange `code` (`application/x-www-form-urlencoded`).
+- Treat query `guild_id` as a hint. **Verify** the shared bot is a member (`GET /guilds/{id}/members/@me` with the **bot** token). If hint missing, use the user’s guild list only as a prompt — do not bind without membership proof.
+- Bind that `guild_id` + **`system_channel_id`** if the bot can `SEND_MESSAGES`, else the first text channel it can. Handle = slugged page name.
+- No role. No webhook.
+- `POST` owner webhook (Standard Webhooks + `X-Aims-Secret`):
 
 ```json
 {
@@ -328,24 +351,24 @@ OAuth callback `GET /api/v1/discord/oauth/callback?code&guild_id&state`:
     "guildId": "111",
     "channelId": "222",
     "handle": "botlord",
-    "mention": "@botlord",
-    "roleId": "555"
+    "mention": "@aims botlord"
   }
 }
 ```
 
-Human-facing success page: “`@botlord` is live. Wrong channel? Type `/aims here` there.”
+Human-facing success page: “`@aims botlord` is live. Wrong channel? Type `/aims here` there.”
 
 Manual / rebind (bot or edit UI, **no** second OAuth if the shared bot is already in the guild):
 
 ```
 POST /api/v1/pages/:slug/discord
-X-Owner-Token: own_…
+Authorization: Bearer own_…
 { "guildId": "111", "channelId": "222", "handle": "botlord" }
 ```
 
-`GET /api/v1/claims/AIMS-7K2P` → `{ status: "pending"|"bound"|"expired", discord? }` (no secrets).  
-`DELETE /api/v1/pages/:slug/discord` + owner token unbinds (delete role/webhook we created).
+`GET /api/v1/claims/:code` without secret → `{ status: "pending"|"bound"|"expired" }` only.  
+`GET /api/v1/claims/:code` + `X-Aims-Claim-Secret` → adds page/guild after bind.  
+`DELETE /api/v1/pages/:slug/discord` + owner token unbinds.
 
 Edit-screen **Add to Discord** is the same `installUrl` (claim minted server-side).
 
@@ -353,9 +376,9 @@ Edit-screen **Add to Discord** is the same `installUrl` (claim minted server-sid
 
 HTTP interactions on Vercel ([Receiving and Responding](https://discord.com/developers/docs/interactions/receiving-and-responding)):
 
-- `/aims here [handle]` — move/create binding for **this** channel. Works after the bot is in the guild. Handle defaults to the page already bound to this guild, else the claim’s page.
-- `/aims claim AIMS-7K2P` — backup if the human has the code but used a vanilla invite (no `state`). Same bind as the OAuth callback.
-- `/aims ask [handle] [text]` — fallback invoke (not the mention path).
+- `/aims here [handle]` — move/create binding for **this** channel. Works after the bot is in the guild.
+- `/aims claim AIMS-K7Q2M9` — backup if the human used a vanilla invite (no `state`). Same bind as the OAuth callback after membership check.
+- `/aims ask [handle] [text]` — primary slash invoke (HTTP; no Gateway).
 
 ### Public contact
 
@@ -365,86 +388,112 @@ HTTP interactions on Vercel ([Receiving and Responding](https://discord.com/deve
 
 ## Owner connect flow (locked)
 
-Matches rank-1 in [`plans/2026-09-25-bot-auth-review.md`](./2026-09-25-bot-auth-review.md).
+Discord **ships first** (Alex: group channels + multi-bot rooms). Telegram is the strongest cheap fast-follow. Details: [`plans/2026-09-25-bot-auth-review.md`](./2026-09-25-bot-auth-review.md).
 
-1. **Bot (automated):** `POST /api/v1/pages` then `POST /api/v1/pages/:slug/connect { channels: ["discord"] }`. Shows the human `discord.installUrl` (and claim `AIMS-7K2P` as backup).
-2. **Human (unavoidable, 1 click):** open the link → pick server → Authorize. Discord will not add a bot without this ([OAuth2 bot scope](https://discord.com/developers/docs/topics/oauth2)).
-3. **aims (automated):** bind `guild_id` + default channel, create role + reply webhook, `connect.ready` wake.
+1. **Bot (automated):** `POST /api/v1/pages` then `POST /api/v1/pages/:slug/connect { channels: ["discord"] }`. Shows `discord.installUrl` and display claim `AIMS-K7Q2M9`.
+2. **Human:** open link → **pick server** → **Authorize** (2FA/CAPTCHA possible). Not “one click.”
+3. **aims:** exchange code, verify bot membership, bind default sendable channel, `connect.ready`.
 4. **Human (optional):** `/aims here` if the default channel is wrong.
+5. **Talk:** `@aims botlord …` or `/aims ask botlord …`.
 
-Permissions bits (install): `VIEW_CHANNEL`, `SEND_MESSAGES`, `SEND_MESSAGES_IN_THREADS`, `EMBED_LINKS`, `READ_MESSAGE_HISTORY` (proof + reply context), `MANAGE_ROLES`, `MANAGE_WEBHOOKS`, `USE_APPLICATION_COMMANDS` (via scope). Document the integer in code from Discord’s calculator; do not guess in the `/do`.
+Permissions bits (install): `VIEW_CHANNEL`, `SEND_MESSAGES`, `SEND_MESSAGES_IN_THREADS`, `EMBED_LINKS`, `READ_MESSAGE_HISTORY`, `USE_APPLICATION_COMMANDS`. **No** `MANAGE_ROLES`, **no** `MANAGE_WEBHOOKS`. Document the integer from Discord’s calculator; do not guess in the `/do`.
 
 ---
 
 ## Bot auth review (adversarial)
 
-Full review (Discord, Slack, Telegram, WhatsApp, iMessage, MCP OAuth 2.1 / RFC 7591 / CIMD, OpenAI/Claude/Grok signed webhooks, RFC 8628 device code, magic-link claims, email/SMS A2P 10DLC, **Photon / Spectrum**, **steipete `bird` CLI / Sweetistics**), ranked flows, and empty red-team slots (Photon + bird/Sweetistics are in that red-team scope; bird.com/MessageBird is the wrong product):
+Full review (Discord, Slack, Telegram, WhatsApp, iMessage, MCP OAuth 2.1 / RFC 7591 / CIMD, OpenAI/Claude/Grok signed webhooks, RFC 8628 device code, magic-link claims, email/SMS A2P 10DLC, **Photon / Spectrum**, **steipete `bird` CLI / Sweetistics**), ranked flows, red-team findings, and first-agent resolution (Photon + bird/Sweetistics are in that red-team scope; bird.com/MessageBird is the wrong product):
 
 **[`plans/2026-09-25-bot-auth-review.md`](./2026-09-25-bot-auth-review.md)**
 
 ### Red-team findings
 
-Red-team pass performed 2026-09-25 by a second model. Full cross-channel findings are in the auth review; Discord-specific release issues:
+Canonical 18 findings live in the auth review (commit `d46fe50`). Discord-facing ones that changed this plan:
 
-1. **BLOCKER — OAuth flow is invalid as drawn.** Discord documents ordinary `bot` authorization as callback-less. A code callback requires an additional scope outside `bot`/`applications.commands`, and returned `guild_id` is only a hint ([OAuth2](https://docs.discord.com/developers/topics/oauth2#bot-authorization-flow)). The shown URL therefore cannot carry the signed claim through the proposed callback. Use an extended code grant with `identify` + Require OAuth2 Code Grant and independently verify guild membership, or use callback-less install followed by `/aims claim`/Gateway binding.
-2. **BLOCKER — owner webhook SSRF is not solved.** Current `isSafeWebhookUrl` is lexical and misses DNS rebinding, IPv6/special-use addresses, and validation-to-connect races. Put delivery behind a public-only egress proxy with DNS resolution/pinning and strict byte/time limits ([OWASP SSRF guidance](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)).
-3. **BLOCKER — worker events are forgeable/replayable after one secret leak.** `X-Aims-Worker-Secret` is bearer auth, not HMAC. Sign timestamp + delivery ID + raw-body digest, reject skew/replay durably, schema-limit the payload, and dedupe Discord message IDs. Discord’s own HTTP model verifies timestamp plus raw body ([Interactions security](https://docs.discord.com/developers/interactions/overview#security-and-authorization)).
-4. **MAJOR — revise the identity architecture.** Duplicate role names and arbitrary webhook display names make `@botlord`/`botlord` confusable; webhook messages are identifiable only through underlying `webhook_id` ([Message object](https://docs.discord.com/developers/resources/message#message-object), [Execute Webhook](https://docs.discord.com/developers/resources/webhook#execute-webhook)). Default to `@aims botlord` or `/aims ask botlord`, and reply as “botlord via aims.” This removes `MESSAGE_CONTENT`, `MANAGE_ROLES`, and `MANAGE_WEBHOOKS` from the base path and prevents alias impersonation.
-5. **MAJOR — separate Discord’s scale gates.** Privileged-intent review moved to 10,000 reachable users ([intent policy](https://support-dev.discord.com/hc/en-us/articles/5324827539479-Message-Content-Intent-Review-Policy)), but app verification is still required past 100 servers ([verification](https://support-dev.discord.com/hc/en-us/articles/23926564536471-How-Do-I-Get-My-App-Verified)). Direct app mentions avoid Message Content intent ([alternatives](https://docs.discord.com/developers/gateway/you-might-not-need-a-privileged-intent)).
-6. **MAJOR — v1 loop policy must be stricter.** Ignore every bot/webhook author and suppress every model-produced mention. The proposed hop/fan-out rules can branch across pages and cannot trust `hop` on arbitrary inbound messages. Add a durable queue, global/guild/conversation budgets, idempotency, fan-out=1, and circuit breakers before opt-in bot-to-bot relays. Honor route buckets and the global limit ([rate limits](https://docs.discord.com/developers/topics/rate-limits)).
-7. **MAJOR — free hosting is best-effort.** Railway Free exists, but 100 MB costs about $0.98/month in RAM before CPU/egress and exhausted credits stop workloads ([pricing](https://railway.com/pricing), [FAQ](https://docs.railway.com/pricing/faqs)). Budget Fly at $2.19/month after 2026-10-01 or Railway Hobby at $5 for production. Vercel now supports duration-limited WebSockets ([Vercel docs](https://vercel.com/docs/functions/websockets)), so “cannot” is stale, but it is still a poor persistent Gateway host.
-8. **MAJOR — the proof is not E2E.** Signed synthetic injection proves only Vercel’s contract. The live Gateway path may skip and exit zero. Require a unique nonce sent by a separate non-bot actor through real Discord, one real Gateway dispatch, one exact owner wake, and one correlated Discord reply; fail if the worker is unavailable.
-9. **MAJOR — shared app remains preferable to BYO, but not with the proposed blast radius.** Keep one shared app and a clearly shared identity, least permissions, separate production/proof applications, vaulted rotation, guild-change alerts, and incident-wide revocation. Do not distribute the production bot token to proof scripts unless unavoidable.
+1. **BLOCKER — OAuth callback invalid as drawn.** Ordinary `bot`+`applications.commands` is callback-less.
+2. **BLOCKER — owner webhook SSRF / DNS rebinding.** Lexical `isSafeWebhookUrl` is not enough.
+3. **BLOCKER — worker bearer auth is replayable.** Need HMAC + timestamp + nonce.
+4. **MAJOR — claim entropy / owner-token handling.** Short plaintext codes and query tokens.
+5. **MAJOR — role/webhook impersonation.** Confusable; drop it.
+6. **MAJOR — loop fan-out, 100-server gate, shared-app blast, “one click” undercount.**
+7. **MAJOR — Railway Free is not production.**
+8. **MAJOR — E2E proof can pass while the Gateway is broken.**
 
 ### Resolution
 
-_Red-team pass completed by a different model; first agent owns resolution._
+First agent, 2026-09-25. Every finding 1–18 is dispositioned in the auth review `### Resolution` (accept / partial / reject + reason). Discord-facing locks applied to the phases below:
+
+| Finding | Disposition | Plan change |
+|---|---|---|
+| 1 OAuth callback | **Accept** | Advanced grant: `identify` + Require OAuth2 Code Grant + membership verify. `guild_id` is a hint. |
+| 2 Owner webhook SSRF | **Accept** | Resolve A/AAAA, pin IP, block private/special-use, no blind redirects. |
+| 3 Worker bearer | **Accept** | HMAC-SHA256(timestamp \|\| nonce \|\| SHA-256(raw_body)); 5 min skew; durable nonce + message.id. |
+| 4 Claim entropy | **Accept** | 128-bit secret + ~48-bit display; both hashed; 15 min; single-use; rate limited. |
+| 5 Owner tokens | **Partial** | Hash at rest; header-only on new APIs. Defer HttpOnly session / existing `editUrl?token=`. |
+| 6 Role/webhook impersonation | **Accept** | Invoke `@aims <handle>` / `/aims ask`. Replies as `@aims` with handle in text. |
+| 7 Loop amplification | **Partial** | Fan-out=1, no model mentions, durable dedupe. **Do not** ignore every bot author (multi-bot rooms). |
+| 8 “One click” | **Accept** | Honest: pick server + Authorize + optional `/aims here`. |
+| 9 100-server gate | **Accept** | Document both gates. No `MESSAGE_CONTENT`. |
+| 10 Shared-app blast | **Partial** | Shared app + least perms + rotate. Prod token not in CI. |
+| 11 $0 host | **Accept** | **Fly.io $2.19/mo.** Railway Free = dev only. |
+| 12 False E2E | **Accept** | Mandatory real human message through the **real Gateway** + Discord API reply. Synthetic is supplementary only. |
+| 13 Ranking | **Partial** | Telegram wins raw cheapness. **Discord ships first** (Alex: group channels + multi-bot rooms). |
+| 14 Standard Webhooks | **Accept** | Real SW headers additive on owner wakes. |
+| 15–17 wording | **Accept** | WhatsApp / Photon / Sweetistics copy fixed in the review. |
+| 18 omitted surfaces | **Partial** | Short appendix; not in the ship ranking. |
+
+**Locked:** Discord ships first. Shared `aims` app. `@aims botlord`. Fly **$2.19/mo**. Advanced OAuth. HMAC events. Hashed claims/tokens. SSRF resolve-pin-block. Real-Gateway E2E. `/health` + `/api/health` aliases stay.
 
 ---
 
 ## Implementation phases (later `/do`)
 
-### Phase 1 — schema + wake reuse
+### Phase 1 — schema + wake reuse + SSRF harden
 
-**What:** `discord_bindings` + `discord_claims` + message ALTERs in `ensureContactTables()`. Extend `ownerWebhookPayload` with optional `discord` + `reply` (only when source is Discord). `connect.ready` payload. `createReplyToken()` / `createClaim()`. Loop-guard helpers.
+**What:** `discord_bindings` + `discord_claims` + `discord_event_nonces` + message ALTERs in `ensureContactTables()`. Hash `contact_pages.owner_token` on new writes (migrate plaintext on read). Extend `ownerWebhookPayload` with optional `discord` + `reply` (only when source is Discord). `connect.ready` payload. `createReplyToken()` / `createClaim()` (128-bit secret + ~48-bit display, **hashed**, 15 min, single-use). Loop-guard helpers (Vercel-computed hop, fan-out=1).
+
+**Harden `deliverOwnerWebhook` (finding 2, before Discord amplification):** resolve A/AAAA immediately before connect; **pin that IP**; reject loopback / link-local / ULA / RFC1918 / metadata (`169.254.169.254`, `fd00::`, IPv4-mapped, etc.); `redirect: "error"` by default; if a single redirect is ever allowed, re-resolve + re-pin + re-check public; cap time/bytes. Keep today’s secret header. Add Standard Webhooks headers (`webhook-id`, `webhook-timestamp`, `webhook-signature` over the raw body) **in addition to** `X-Aims-Secret`.
 
 **Copy from:** `lib/db.ts` ALTER pattern; `ownerWebhookPayload` / `deliverOwnerWebhook` in `lib/contact-pages.ts`.
 
-**Verify:** payload tests still pass for non-Discord; Discord payload includes `reply.url` and does not leak `reply_webhook_url`.
+**Verify:** payload tests still pass for non-Discord; Discord payload includes `reply.url` and does not leak tokens. SSRF unit tests: literal private, DNS-to-private, IPv6 ULA, IPv4-mapped, redirect-to-private all rejected. SW fixture verifies with a standard library.
 
-**Guards:** do not change `event` name or drop `ack` parsing.
+**Guards:** do not change `event` name or drop `ack` parsing. No role/webhook columns.
 
 ### Phase 2 — Vercel Discord HTTP
 
 **What:**
 
-- `app/api/v1/discord/events/route.ts` — HMAC, mention resolve, persist, `deliverOwnerWebhook`, post ack to Discord.
-- `app/api/v1/pages/[slug]/messages/[id]/reply/route.ts` — async reply.
-- `app/api/v1/pages/[slug]/connect/route.ts` — mint claim + Discord `installUrl`.
-- `app/api/v1/pages/[slug]/discord/route.ts` + oauth callback (claim in `state`, default-channel bind).
-- `app/api/v1/claims/[code]/route.ts` — poll `pending|bound|expired`.
-- `app/api/v1/discord/interactions/route.ts` — PING + `/aims here` + `/aims claim` + `/aims ask`.
-- `lib/discord.ts` — REST helpers (create message, execute webhook, create role, create webhook, list channels). Redact URLs. `allowed_mentions` policy.
+- `app/api/v1/discord/events/route.ts` — HMAC-SHA256(timestamp \|\| nonce \|\| SHA-256(raw_body)), 5 min skew, durable nonce + `message.id`, mention resolve (`@aims` + first handle token), persist, `deliverOwnerWebhook`, post ack via **Bot Create Message**. Never trust client `hop`.
+- `app/api/v1/pages/[slug]/messages/[id]/reply/route.ts` — async reply (`X-Aims-Reply-Token`; token stored hashed).
+- `app/api/v1/pages/[slug]/connect/route.ts` — mint claim + **advanced** Discord `installUrl` (`identify` + `response_type=code` + `redirect_uri` + signed `claimSecret` in `state`).
+- `app/api/v1/discord/oauth/callback/route.ts` — exchange code; treat `guild_id` as a hint; **verify membership** with the bot token; bind default sendable channel; consume claim.
+- `app/api/v1/pages/[slug]/discord/route.ts` — owner rebind (header token only).
+- `app/api/v1/claims/[code]/route.ts` — public poll `pending|bound|expired` only; page/guild requires `X-Aims-Claim-Secret`.
+- `app/api/v1/discord/interactions/route.ts` — Ed25519 PING + `/aims here` + `/aims claim` + `/aims ask`.
+- `lib/discord.ts` — REST helpers: create message, get channel messages, list channels, get member `@me`. **No** execute-webhook, **no** create-role, **no** create-webhook. Redact URLs. `allowed_mentions.parse = []`.
 
 Set Vercel **Interactions Endpoint URL** to `https://aims.bot/api/v1/discord/interactions`.
 
-**Copy from:** `message/route.ts` persist+deliver; `isSafeWebhookUrl` (do not use it for Discord’s own API — we call `discord.com` with the bot token).
+Claim rate limits: create 10/page/hour; redeem 5/IP/10 min + 20/min global.
 
-**Verify:** unit tests with mocked `fetch`: mention → inbox-shaped wake; sync ack → Discord POST; no mention → ignored; self author → ignored; hop 4 → dropped; public GET page has no webhook URL / token.
+**Copy from:** `message/route.ts` persist+deliver. Do **not** reuse lexical `isSafeWebhookUrl` for owner delivery after Phase 1 — use the pin helper. Discord’s own API is `discord.com` with the bot token (not owner-URL SSRF).
 
-**Guards:** worker secret timing-safe; no raw webhook in JSON.
+**Verify:** unit tests with mocked `fetch`: `@aims botlord` mention → inbox-shaped wake; sync ack → Discord POST as `@aims`; no app mention → ignored; self author → ignored; hop 4 → dropped; HMAC fail / stale ts / reused nonce → 401; public GET page has no webhook URL / token.
 
-### Phase 3 — gateway worker
+**Guards:** timing-safe HMAC compare; no raw secrets in JSON; owner tokens header-only.
 
-**What:** `discord-gateway/` (or `apps/discord-gateway`) — Hello, Identify (`intents = 33281`), heartbeat, Resume, filter `MESSAGE_CREATE` through the same mention predicate (bot id, role ids optional cache, else forward all mentions of the bot and any role — Vercel decides). `POST` to `AIMS_EVENTS_URL`. `/health` on the worker (`{ status, gateway: "ready"|"connecting" }`). Dockerfile. Railway `railway.toml` + Fly `fly.toml` (same image).
+### Phase 3 — gateway worker (Fly)
 
-**Verify:** local test with a mocked gateway or a recorded Hello/Dispatch fixture. Worker health 200 when Identify succeeds.
+**What:** `discord-gateway/` (or `apps/discord-gateway`) — Hello, Identify (`intents = 513`), heartbeat, Resume. Filter `MESSAGE_CREATE` to messages that **@mention the app** (our bot user id in `mentions`). HMAC-sign `POST` to `AIMS_EVENTS_URL` (`X-Aims-Timestamp`, `X-Aims-Nonce`, `X-Aims-Signature`). Worker `/health` (`{ status, gateway: "ready"|"connecting" }`). Dockerfile + `fly.toml`. Optional `railway.toml` for **dev only** (same image).
 
-**Guards:** never log the token; never persist Discord at rest on the worker.
+**Verify:** local test with a mocked gateway or a recorded Hello/Dispatch fixture. Worker health 200 when Identify succeeds. Signature fixture matches Vercel verifier.
+
+**Guards:** never log the token or HMAC key; never persist Discord at rest on the worker. Production deploy is **Fly**, not Railway Free.
 
 ### Phase 4 — UI + Linktree Discord row
 
-**What:** Edit page: Add to Discord + connected state (guild/channel/handle, no secrets). Linktree: Discord contact when bound.
+**What:** Edit page: Add to Discord + connected state (guild/channel/handle, no secrets). Linktree: Discord contact when bound. Copy shows `@aims botlord`, not a fake `@botlord` user.
 
 **Verify:** edit page source has no token; contact JSON has `discord`.
 
@@ -462,46 +511,50 @@ Same JSON, 200/503, `Cache-Control: no-cache`, `X-AIMS-Version`.
 
 **Guards:** one payload only.
 
-### Phase 6 — tests + automatable proof script (pre-prod)
+### Phase 6 — tests + proof script
 
 **What:** `scripts/discord-proof.sh` (copy `scripts/bot2bot-proof.sh`).
 
 Env (never printed, never committed):
 
 - `DISCORD_BOT_TOKEN` — house box secret
-- `DISCORD_WEBHOOK_URL` — house box secret (channel incoming webhook for the **proof channel**)
+- `DISCORD_PROOF_CHANNEL_ID` — proof channel snowflake
 - `AIMS_BASE_URL` default `https://aims.bot`
-- Optional `DISCORD_PROOF_CHANNEL_ID` if not parseable
+- `DISCORD_E2E_NONCE` — unique string the **human** will type (required for the mandatory path)
+- Optional `DISCORD_WEBHOOK_URL` — **not** used as the product inbound; may exist as a house convenience, never on Vercel
 
 Script must `set +x` around secret use; redact URLs in all `echo`.
 
-**Automated path (no human typing, gateway optional):**
+**Supplementary contract test only** (`--contract` / separate argv; **cannot** ship-gate alone):
 
 1. Curl `/api/v1/health`, `/api/health`, `/health` — 200, `product=linktree`, `db=connected`.
-2. `POST /api/v1/inbox` → owner stand-in (returns `ack: inbox-received`).
-3. `POST /api/v1/pages` with that inbox as `webhookUrl`, name `botlord`.
-4. Bind Discord via owner API (`POST …/discord`) **or** `POST …/connect` + signed events (proof guild already has the bot). If bind needs a live guild, the house token’s bot must already be in that server (see Needs).
-5. Simulate inbound: `POST /api/v1/discord/events` with a signed fake `MESSAGE_CREATE` that `@mention`s the binding (role id or bot id + content `hello from discord-proof`). This proves Vercel wake **without** the worker.
-6. Assert inbox payload is `contact.message`, `discord.handle=botlord`, `reply.url` present.
-7. Inbox already returned `ack: inbox-received` on the wake — Vercel should have posted that string to Discord.
-8. `GET https://discord.com/api/v10/channels/{id}/messages?limit=5` with `Authorization: Bot $DISCORD_BOT_TOKEN` — assert a message contains `inbox-received`. **Do not print the token.**
-9. Optional second step: `POST $DISCORD_WEBHOOK_URL?wait=true` with content mentioning the bot/role, then wait for the **live worker** to forward a real `MESSAGE_CREATE`, then GET messages again. Skip (exit 0 with `WORKER_E2E_SKIPPED`) if worker health is down — do not fail the Vercel-path proof.
+2. `POST /api/v1/inbox` → owner stand-in (`ack: inbox-received`).
+3. `POST /api/v1/pages` (header owner token) with that inbox as `webhookUrl`, name `botlord`.
+4. Bind via owner API if the proof guild already has the bot.
+5. HMAC-signed synthetic `POST /api/v1/discord/events` (`@aims botlord` + unique contract nonce). Assert inbox `contact.message`, `discord.handle=botlord`, `reply.url` present.
+6. This path **does not** prove the Gateway. Label output `CONTRACT_ONLY`.
 
-**Human E2E (required for ship):** Alex types `@botlord ping` in the proof channel; the inbox (or the real Grok webhook) wakes; the reply appears in-channel / thread.
+**Mandatory E2E (ship fails without this):**
 
-**Guards:** `grep` the script for `echo "$DISCORD` — must not exist. CI runs unit tests only (no Discord token in GitHub).
+1. Worker `/health` must be `gateway: ready`. Else **exit non-zero**. No `WORKER_E2E_SKIPPED`.
+2. Human (non-bot account) types in the **real proof channel**, through the **real Discord client / Gateway**: `@aims botlord <DISCORD_E2E_NONCE>`.
+3. Script polls the inbox (or recorded wake) for that **exact nonce** and asserts exactly one owner wake.
+4. Script `GET https://discord.com/api/v10/channels/{id}/messages?limit=20` with `Authorization: Bot $DISCORD_BOT_TOKEN` and asserts a reply that (a) is authored by the shared bot, (b) contains the handle marker (`**botlord:**` or equivalent), (c) `message_reference` points at the human source message, (d) includes the ack/reply text. Match the nonce, not a stale common string.
+5. Fail if worker health is down, if no Gateway-originated wake arrives within the wait, or if the Discord API reply is missing / uncorrelated.
+
+**Guards:** `grep` the script for `echo "$DISCORD` — must not exist. CI runs unit tests + contract tests with mocked fetch only (no Discord token in GitHub). Prod token is not a CI secret.
 
 ---
 
 ## Final phase — production verification
 
-After `/do` merge + worker deploy:
+After `/do` merge + **Fly** worker deploy:
 
 1. Vercel project `aims`, production **Ready**.
-2. All three health URLs 200, same JSON.
-3. Worker `/health` 200, `gateway: ready`.
-4. `scripts/discord-proof.sh` against production (env from the house box, not the repo).
-5. Human: `@botlord` in the real channel → wake in inbox/Grok → reply visible in Discord.
+2. All three health URLs 200, same JSON (`/api/v1/health`, `/api/health`, `/health`).
+3. Fly worker `/health` 200, `gateway: ready`.
+4. `scripts/discord-proof.sh --contract` (supplementary).
+5. **Mandatory:** human types `@aims botlord <unique nonce>` in the real channel → wake → reply visible via Discord API (`message_reference` + nonce).
 6. Regression: `scripts/bot2bot-proof.sh https://aims.bot`.
 
 ---
@@ -514,9 +567,9 @@ After `/do` merge + worker deploy:
 4. Open implementation PR; wait for `.github/workflows/ci.yml` (tsc, vitest, next build).
 5. Merge to `main` (aims.bot deploys on push).
 6. Babysit Vercel **Ready**.
-7. Deploy `discord-gateway` to Railway (same secrets minus client secret). Confirm worker health.
+7. Deploy `discord-gateway` to **Fly.io** (`shared-cpu-1x` 256 MB). Confirm worker health. Railway Free is not this step.
 8. Register slash commands (`PUT /applications/{id}/commands`) and set Interactions URL.
-9. Run health curls + `discord-proof.sh` + human `@mention` + `bot2bot-proof.sh`.
+9. Run health curls + contract proof + **mandatory human Gateway E2E** + `bot2bot-proof.sh`.
 
 ---
 
@@ -526,41 +579,43 @@ True minimum. For each: what, where it goes, whether an agent can do it.
 
 1. **Create the Discord application** (Developer Portal → New Application, name e.g. `aims`).
    - **Human only.** Discord has no supported public API to create apps without a logged-in browser session. Agent cannot.
-   - After create: agent can use the IDs/secrets the human copies.
 
-2. **Enable Privileged Intent `MESSAGE CONTENT INTENT`** on the Bot page (and the Bot itself if not already).
-   - **Human only** (portal toggle). No first-party API. Under 10k users, no review form.
-   - Also turn on the Bot → Privileged Gateway Intents checkbox so Identify with `1<<15` is accepted.
+2. **Enable Require OAuth2 Code Grant** on the OAuth2 page (advanced bot authorization).
+   - **Human only** (portal toggle). No `MESSAGE_CONTENT` toggle — v1 does not request that intent.
 
 3. **Copy four values out of the portal** (once):
    - Bot token → **`DISCORD_BOT_TOKEN`**
    - Application / Client ID → **`DISCORD_CLIENT_ID`**
    - Client secret → **`DISCORD_CLIENT_SECRET`**
    - Public key (Interactions) → **`DISCORD_PUBLIC_KEY`**
-   - **Human copies.** Agent **can** then write them to Vercel env (`vercel env add` / Vercel API / dashboard) and Railway/Fly env **if** the agent already has those CLIs authenticated. Agent must never commit them or paste them into the PR.
-   - **Vercel runtime secrets (required):** `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`, plus a generated `DISCORD_WORKER_SECRET`.
-   - **Worker runtime secrets (required):** `DISCORD_BOT_TOKEN`, `DISCORD_WORKER_SECRET`, `AIMS_EVENTS_URL=https://aims.bot/api/v1/discord/events`.
-   - **Not on Vercel:** `DISCORD_WEBHOOK_URL` (proof-only box secret).
+   - **Human copies.** Agent **can** then write them to Vercel / Fly env if those CLIs are already authenticated. Never commit them or paste them into the PR.
+   - **Vercel runtime secrets:** `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`, generated `DISCORD_WORKER_SECRET`.
+   - **Fly worker runtime secrets:** `DISCORD_BOT_TOKEN`, `DISCORD_WORKER_SECRET`, `AIMS_EVENTS_URL=https://aims.bot/api/v1/discord/events`.
+   - **Not on Vercel or Fly:** `DISCORD_WEBHOOK_URL` (proof-only box secret, if used at all).
 
-4. **Authorize the bot on one proof server** (click the OAuth “Add to Discord” URL the agent generates).
-   - **Human click required.** Discord forbids installing a bot to a guild without a user authorization. Agent generates the URL; cannot complete the consent screen.
-   - After this, channel bind + `/aims here` can be done by Alex or by the agent via `POST …/discord` if Alex pastes `guild_id` + `channel_id`.
+4. **Authorize the bot on one proof server** (open the advanced OAuth `installUrl`, pick server, Authorize).
+   - **Human click required.** Agent generates the URL; cannot complete Discord’s consent screen.
+   - After this, `/aims here` or `POST …/discord` can rebind the channel.
 
-5. **Railway account** (Free plan; no card for trial, card not required for Free).
-   - **Human signup + login** (`railway login` / browser). Agent **can** `railway up` after `RAILWAY_TOKEN` exists. If Alex refuses a new account, use Fly.io instead ($1.94/mo, card required on org — also a human signup).
-   - Agent should prefer Railway Free to keep cash at $0.
+5. **Fly.io org + payment method** for the production gateway.
+   - **Human signup + card on org.** Cost: **$2.19/mo** (`shared-cpu-1x` 256 MB, price from 2026-10-01). Agent can `fly deploy` after `FLY_API_TOKEN` exists.
+   - Railway Free is **dev/laptop only**, not this need.
 
-6. **House box secrets for proof** (already planned): `DISCORD_WEBHOOK_URL` now, `DISCORD_BOT_TOKEN` soon.
-   - **Human/box.** Scripts read env only. Agent uses them at proof time; never prints, logs, or commits. Token is **also** a Vercel/worker runtime secret (item 3). The webhook URL is **not**.
+6. **One real human Gateway message** for ship proof.
+   - **Human types** `@aims botlord <unique nonce>` in the proof channel from a **non-bot** account. Script then verifies the wake and the Discord API reply. Agent cannot substitute a synthetic event for this step.
 
-**Not needed from humans:** creating per-Grok Discord apps; MESSAGE_CONTENT verification form (under 10k users); paying for Render/CF Workers Paid; putting the proof webhook on Vercel.
+**Not needed from humans:** creating per-Grok Discord apps; `MESSAGE_CONTENT` portal toggle or verification form; Railway production account; paying for Render / CF Workers Paid; putting a proof webhook on Vercel.
 
 ---
 
 ## Out of scope
 
-- Per-owner Discord bot tokens.
-- Reading or logging unmentioned channel messages.
+- Per-owner Discord bot tokens (advanced authenticity later, not default).
+- Mentionable roles or reply-webhook display names.
+- `MESSAGE_CONTENT` / reading or logging unmentioned channel messages.
+- Railway Free as the production Gateway.
 - Voice, DMs as v1 product, forum channels without `thread_id`.
-- Replacing iMessage / WhatsApp / Telegram / CLI bot2bot.
+- Shipping Telegram / Slack / Photon / bird in this `/do` (Telegram remains the strongest fast-follow).
+- Replacing iMessage / WhatsApp / CLI bot2bot.
 - Changing `event: contact.message` for non-Discord wakes.
+- HttpOnly session migration for existing `editUrl?token=` (tracked follow-up from finding 5).

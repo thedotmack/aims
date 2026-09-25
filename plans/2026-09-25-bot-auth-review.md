@@ -1,7 +1,7 @@
 # Bot auth review (adversarial)
 
 Date: 2026-09-25
-Status: **awaiting first-agent resolution + Alex green**. A second, different-model agent completed the red-team pass, including **§11 Photon** and **§12 bird (steipete / Sweetistics)**. Findings are recorded below; `### Resolution` remains for the first agent.
+Status: **resolved after red-team pass; awaiting Alex green**. Do not implement until this revision is approved. Findings 1–18 are dispositioned in `### Resolution`. Discord still **ships first** (Alex).
 Parent plan: [`plans/2026-09-25-aims-discord.md`](./2026-09-25-aims-discord.md)
 
 ## Goal
@@ -19,7 +19,7 @@ human           →  the fewest vendor-required clicks
 aims            →  POST owner webhook  event: connect.ready
 ```
 
-Claim codes are short (`AIMS-7K2P`), single-use, 30 minutes, bound to `slug` + hashed `ownerToken`. Install URLs carry `state=<signed claim>`.
+Claim codes: a **128-bit** `claimSecret` (in the install URL `state` and for status polling) plus a separately derived **~48-bit** display code (`AIMS-XXXXXX`) for typing. Both stored **hashed**. Single-use, **15 minutes**, create + redeem rate limits. Never put the short code in OAuth `state`. Owner tokens stored hashed; new APIs accept them only in headers.
 
 ---
 
@@ -32,10 +32,10 @@ There is **no** supported API to create a Discord Application or toggle privileg
 **(a) Fewest human clicks (after aims itself exists)**
 
 1. Human tells the Grok bot “connect me up with aims” (or the bot offers it).
-2. Human opens the bot’s `installUrl` and clicks **Authorize** (must pick a server). **This click cannot be automated.**
-3. Done. aims binds `guild_id` from the OAuth redirect plus `system_channel_id` (or the first text channel the bot can send to). Handle = page name. Optional later: `/aims here` in another channel (not required for first connect).
+2. Human opens `installUrl`, **picks a server**, clicks **Authorize** (CAPTCHA/2FA possible). **Cannot be automated.** This is an **advanced bot authorization** (`bot` + `applications.commands` + `identify`, `response_type=code`, registered redirect, **Require OAuth2 Code Grant**). Ordinary `bot`+`applications.commands` is callback-less — we do not use that URL.
+3. aims exchanges the code, **independently verifies** the shared bot is in that guild (REST), binds `system_channel_id` or the first text channel the bot can send in. Handle = page name. Invoke is **`@aims botlord`** (or `/aims ask botlord`). Optional: `/aims here` if the default channel is wrong.
 
-One-time house setup (Alex, not every Grok owner): create the shared app, enable `MESSAGE_CONTENT`, paste secrets (see parent plan Needs).
+One-time house setup (Alex, not every Grok owner): create the shared app, enable Require OAuth2 Code Grant, paste secrets. **No `MESSAGE_CONTENT` toggle** — v1 only wakes on app mentions / slash.
 
 **(b) Bot can fully automate**
 
@@ -45,16 +45,16 @@ Create the aims page, register `webhookUrl`, mint claim + `installUrl`, tell the
 
 | Risk | Mitigation |
 |---|---|
-| Spoofing inbound mentions | Only wake on mapped role / bot mention. Ignore self, our reply webhooks, `hop > 3`. |
+| Spoofing inbound mentions | Only wake when the **app** is mentioned (or `/aims ask`). Ignore self / our `application_id`, `hop > 3`. |
 | Token theft | One shared bot token on Vercel + worker, not per page. Never in public JSON. Rotate via portal if leaked. |
-| Spam | `LIMITS.DISCORD_WAKE`; Discord 429/`retry_after`; claim 30 min single-use. |
-| Impersonation | Display name via channel webhook is not identity. Role `@botlord` is guild-local. Do not claim it’s a unique Discord user. |
-| Replay | Claim `state` nonce + expiry. Interaction/Ed25519. Worker HMAC. `webhook-id`-style message id idempotency. |
+| Spam | `LIMITS.DISCORD_WAKE`; Discord 429/`retry_after`; claim 15 min single-use, hashed. |
+| Impersonation | Replies are **`@aims`** with handle in the text (`**botlord:** …`). No webhook username, no mentionable role. Resolve handle only from stored bindings. |
+| Replay | Claim `state` is a signed 128-bit secret. Interaction/Ed25519. Worker HMAC over timestamp+nonce+body digest. Discord message-id idempotency. |
 | Bot-loop amplification | Hop cap 3, pair+content-hash 30s cooldown, default `allowed_mentions.parse = []`, mapped-mention allowlist only. |
 
 **(d) Where it breaks**
 
-Rate limits: 50 req/s global per token; 10k invalid/10 min Cloudflare ban. Policy: `MESSAGE_CONTENT` review at 10k users — drop to “must @aims” if review fails. Cost: Railway Free $0 (or Fly $1.94). One username per app — `@botlord` is a **role**, not a second bot user.
+Rate limits: 50 req/s global per token; 10k invalid/10 min Cloudflare ban. Scale gates: privileged-intent review at **10k unique users** (we avoid `MESSAGE_CONTENT` in v1) **and** app verification past **100 servers**. Cost: **Fly.io `shared-cpu-1x` 256 MB = $2.19/mo** (from 2026-10-01). Railway Free is **dev only**. One username per app — humans type `@aims botlord`, not a fake `@botlord` user.
 
 ---
 
@@ -99,8 +99,8 @@ Undistributed apps: `invalid_team_for_non_distributed_app` — must enable distr
 
 **Shared aims Telegram bot (recommended later):**
 
-1. Human opens `https://t.me/aimsbot?start=AIMS-7K2P` (one tap).
-2. Taps Start. aims maps `from.id` / chat to the claim. **Done.** Groups: add `@aimsbot` to the group (one add) + `/claim AIMS-7K2P`.
+1. Human opens `https://t.me/aimsbot?start=<claimSecret>` (one tap; 128-bit in the start payload).
+2. Taps Start. aims maps `from.id` / chat to the claim. **Done.** Groups: add `@aimsbot` to the group (one add) + `/claim AIMS-K7Q2M9` (display code).
 
 **Per-Grok Telegram bot:**
 
@@ -158,7 +158,7 @@ After WABA + token + phone exist: send/receive in an open 24h window; submit tem
 
 **(d) Where it breaks**
 
-24h customer-service window: outside it, **only approved templates**. Template review up to 24h. Unverified portfolio: 250 templates, low throughput. Phone number limits. Cost: conversation-based pricing. **Do not ship in v1.**
+24h customer-service window: outside it, **only approved templates**. Template review up to 24h. Unverified portfolio: 250 templates, low throughput. Phone number limits. Cost: Meta **per-delivered template** pricing since 2025-07-01 (not conversation-based); service messages and in-window utility templates are free. Onboarding/opt-in/templates still lose. **Do not ship in v1.**
 
 ---
 
@@ -242,7 +242,7 @@ CIMD is still an IETF draft. Some AS only do pre-registration. Cost: $0. **This 
 
 **(a) Fewest humans**
 
-1. Bot prints `Visit https://aims.bot/device and enter AIMS-7K2P`.
+1. Bot prints `Visit https://aims.bot/device and enter AIMS-K7Q2M9` (or shows a 128-bit device link).
 2. Human opens URL, logs in / pastes code, approves.
 
 Worse than a one-click install link (two surfaces). **Better** when the bot has no way to show a clickable OAuth URL (CLI, TV, serial).
@@ -259,7 +259,7 @@ Worse than a one-click install link (two surfaces). **Better** when the bot has 
 
 aims-native (no new vendor). Same claim as §cross-cutting.
 
-**(a)** Human clicks one magic link **or** types a 6–8 char code in the target surface (`/aims claim AIMS-7K2P`, `t.me/aimsbot?start=…`).
+**(a)** Human clicks one magic link (128-bit `claimSecret`) **or** types the ~48-bit display code (`/aims claim AIMS-K7Q2M9`, `t.me/aimsbot?start=…`).
 
 **(b)** Bot mints claim, polls `GET /api/v1/claims/:code` until `status=bound`.
 
@@ -268,8 +268,8 @@ aims-native (no new vendor). Same claim as §cross-cutting.
 | Risk | Mitigation |
 |---|---|
 | Spoofing | Signed magic links; codes high-entropy, not `1234`. |
-| Theft | 30 min, single-use, bind to slug. Show page name on confirm. |
-| Spam | 10 claims / page / hour. |
+| Theft | 15 min, single-use, hashed at rest, bind to slug. Show page name on confirm. |
+| Spam | Create 10 / page / hour; redeem 5 / IP / 10 min + 20 / min global. |
 | Impersonation | Confirm screen: “Connect **botlord** to Discord guild X / channel Y?” |
 | Replay | Single-use. |
 | Loops | N/A at pair time. |
@@ -385,7 +385,7 @@ Local Mac path: Full Disk Access to `chat.db` = the agent *is* that Apple ID. Ba
 
 Photon does **not** beat building Discord (or Telegram, or Slack) ourselves. Those have official bot APIs, $0 channel cost, and a one-click/tap connect. Photon does **not** beat building official iMessage ourselves either — the official product is M4B + MSP, which Photon is not.
 
-What Photon *does* buy is unofficial consumer-iMessage plus a TS SDK. That is the same class as Sendblue / LoopMessage, with a nicer free tier (10 users, $0) and a worse Apple-policy story if we productize it. **Do not ship. Do not recommend as the aims iMessage path.** Revisit only if Apple blesses a consumer bot API or we later pick an MSP for Messages for Business.
+What Photon *does* buy is unofficial consumer-iMessage plus a TS SDK. That is the same class as Sendblue / LoopMessage, with a nicer free tier (10 users, $0) and a worse Apple-policy story if we productize it. **Do not ship as a production consumer-iMessage path.** Unsupported by Apple; suspension, continuity, and TCPA/A2P risk. That is platform policy, not a legal holding. A quarantined 10-user experiment would still not outrank Telegram/Discord. Revisit only if Apple blesses a consumer bot API or we later pick an MSP for Messages for Business.
 
 ---
 
@@ -396,8 +396,8 @@ What Photon *does* buy is unofficial consumer-iMessage plus a TS SDK. That is th
 **Confirmed CLI (very high confidence — ~95%).**  
 **`bird`** is Peter Steinberger’s (**[steipete](https://github.com/steipete)**) X/Twitter CLI. npm **[@steipete/bird](https://www.npmjs.com/package/@steipete/bird)** (v0.8.0, 2026-01-19). Homebrew `steipete/tap/bird`. Marketing site **[bird.fast](https://bird.fast)** (CLI install page, not a hosted app). Original GitHub **`github.com/steipete/bird`** now **404** (private or removed; [v0.1.0 notes](https://newreleases.io/project/github/steipete/bird/release/v0.1.0) still point there). Public mirrors: [jawond/bird](https://github.com/jawond/bird) (steipete 52 commits; homepage bird.fast), [rsaisankalp/bird](https://github.com/rsaisankalp/bird). The published README’s own disclaimer: undocumented X **web GraphQL** + **cookie auth**; expect it to break.
 
-**Confirmed SaaS (high confidence — ~80% this is “the SaaS version”).**  
-**[Sweetistics](https://sweetistics.com)** — steipete-orbit Twitter/X analytics + actions host. npm [`sweetistics`](https://www.npmjs.com/package/sweetistics) (homepage sweetistics.com; depends on `github:steipete/node-twitter-api-v2`). Early bird releases and the jawond mirror document `--engine sweetistics|graphql|auto` and `SWEETISTICS_API_KEY` → Sweetistics **`/api/actions/tweet`** (optional `--sweetistics-base-url` for self-host). Published `@steipete/bird@0.8.0` README is GraphQL/cookie-only; the SaaS engine lives in earlier tags / forks. Sweetistics Pro marketing lists **“Pulse monitoring with webhook + API access.”** Purchasing is **disabled** (beta).
+**Adjacent product / historical transport (relationship unverified on current bird).**  
+**[Sweetistics](https://sweetistics.com)** is a same-author X analytics product. Historical bird v0.1 notes and some forks mention `--engine sweetistics` + `SWEETISTICS_API_KEY` → `/api/actions/tweet`. Current `@steipete/bird@0.8.0` README is GraphQL/cookie-only and documents no hosted bird. Sweetistics Pro is advertised **€49/month** (not $49) with API access; **purchasing is disabled**. Treat Sweetistics as adjacent, not “the SaaS edition of bird.”
 
 | Source | URL |
 |---|---|
@@ -456,7 +456,7 @@ Sweetistics engine:
 |---|---|---|
 | **bird CLI** | **$0** (MIT). You bring an X account. | [npm](https://www.npmjs.com/package/@steipete/bird), [bird.fast](https://bird.fast) |
 | **Sweetistics Free** | **$0.** Timeline snapshots, **10 AI reports/mo**. **No API access.** | [sweetistics.com/pricing](https://sweetistics.com/pricing) |
-| **Sweetistics Pro** | Advertised **$49/mo** (GPT-5 analysis, Friendimizer, Pulse, **API access**, export). **“Purchasing disabled during beta.”** | same |
+| **Sweetistics Pro** | Advertised **€49/mo** (GPT-5 analysis, Friendimizer, Pulse, **API access**, export). **“Purchasing disabled during beta.”** | same |
 | **Official X API** (if we build the channel ourselves, ToS-legal) | Pay-per-use, **no free tier** for new apps. Create post **$0.015** (**$0.20** with a URL; summoned reply **$0.010**). Post read **$0.005**. **Owned** mentions **$0.001**/resource. DM event read **$0.010**; `dm.received` / `chat.received` webhook **$0.010**/event. 3M post-read cap/cycle. | [docs.x.com pricing](https://x-preview.mintlify.app/x-api/getting-started/pricing) (canonical live table is Developer Console / developer.x.com) |
 
 Cash-tight read: the CLI looks free until X bans the account. Sweetistics Pro is $49/mo **and cannot be bought**. Official X is pennies per post until a mention-poll or webhook loop runs; then reads add up. Discord remains $0.
@@ -493,9 +493,9 @@ Official X as a later aims channel is possible and expensive — rank it with Wh
 
 | Rank | Flow | Human steps after “connect me up with aims” | Ship |
 |---|---|---|---|
-| **1** | **Discord shared app + claim + OAuth install URL** (auto-bind system/first text channel; `/aims here` to move) | **1 click:** Authorize + pick server | **First** |
-| 2 | Telegram shared bot + `t.me/aimsbot?start=CLAIM` | **1 tap** Start (groups: + add bot) | Next consumer channel |
-| 3 | Slack shared app + Add to Slack (`app_mention`) | **1 click** Approve workspace | After Telegram; easier infra than Discord |
+| **1** | **Discord shared app + advanced OAuth + `@aims <handle>`** (Alex: group channels + multi-bot rooms) | Open link, pick server, Authorize; optional `/aims here` | **Ships first** (product call, not cheapest) |
+| **2** | Telegram shared bot + `t.me/aimsbot?start=CLAIM` | **1 tap** Start (groups: + add bot) | **Strongest fast-follow** — would win a raw cheapness/fewest-step ranking |
+| 3 | Slack shared app + Add to Slack (`app_mention`; may need a channel invite) | Approve workspace (+ invite) | After Telegram; easier infra than Discord |
 | 4 | aims claim / magic-link / RFC 8628 device code | 1 click or type code | Pairing layer for all of the above |
 | 5 | MCP OAuth 2.1 + CIMD (DCR fallback) | 1 consent screen | Agent/IDE connect, not Discord mentions |
 | 6 | Signed Standard Webhooks (OpenAI/Claude-compatible headers on aims wakes) | 0 if `webhookUrl` already set | Additive on existing bot2bot |
@@ -509,28 +509,34 @@ Official X as a later aims channel is possible and expensive — rank it with Wh
 | — | Unofficial iMessage (**Photon cloud/local**, BlueBubbles, Sendblue, LoopMessage) | Mac or vendor line | **Do not ship** |
 | — | Per-owner Discord/Slack/Telegram app tokens as the default | Portal + intents per bot | Reject for v1 |
 
-### Rank-1 Discord self-serve (locked)
+### Ship-first Discord self-serve (locked)
+
+Telegram would win a **literal cheapest / fewest-tap** ranking. **Alex’s call stands: Discord ships first** because aims is for **group channels and multi-bot rooms**, which Discord already is. Telegram is the strongest #2 / fast-follow.
 
 ```
 Human → Grok: "connect me up with aims"
 Grok  → POST /api/v1/pages { name, webhookUrl }
+         Authorization: Bearer own_…   (header only; token hashed at rest)
 Grok  → POST /api/v1/pages/:slug/connect { "channels": ["discord"] }
-      ← { claim: "AIMS-7K2P",
-          discord: { installUrl: "https://discord.com/oauth2/authorize?client_id=…&scope=bot%20applications.commands&state=<signed claim>",
-                     expiresAt },
-          ownerToken, page }
-Grok  → Human: "Click to add me to your Discord server: {installUrl}"
-Human → Authorize (pick server)     ← ONLY required vendor click
-aims  → bind guild_id + system_channel_id + handle=slugified name
-      → role + reply webhook
-      → POST owner webhook { event: "connect.ready", discord: { mention, guildId, channelId } }
+      ← { claim: "AIMS-K7Q2M9",          // ~48-bit display code, hashed
+          claimSecret,                   // 128-bit; also in state
+          discord: { installUrl: "https://discord.com/oauth2/authorize?client_id=…&scope=bot%20applications.commands%20identify&permissions=…&redirect_uri=https%3A%2F%2Faims.bot%2Fapi%2Fv1%2Fdiscord%2Foauth%2Fcallback&response_type=code&state=<signed claimSecret>" },
+          expiresAt, ownerToken, page }
+Grok  → Human: "Add me to your Discord server: {installUrl}"
+Human → pick server → Authorize         ← required vendor steps
+aims  → exchange code; verify bot membership via REST (guild_id is a hint)
+      → bind system/first sendable text channel; handle=slugified name
+      → POST owner webhook { event: "connect.ready", discord: { mention: "@aims botlord", guildId, channelId } }
+Human → talks with @aims botlord …     or  /aims ask botlord …
+Human → optional /aims here            if the default channel is wrong
 ```
 
 Unavoidable humans named:
 
-1. **Discord Authorize + pick server** — Discord will not add a bot without a user. Agent cannot.
-2. **(House, once)** Create shared Discord app + MESSAGE_CONTENT toggle + paste secrets.
+1. **Discord pick-server + Authorize** — Discord will not add a bot without a user. Agent cannot.
+2. **(House, once)** Create shared Discord app + **Require OAuth2 Code Grant** + paste secrets. No MESSAGE_CONTENT.
 3. **(Optional)** `/aims here` if the default channel is wrong.
+4. **(House, once)** Fly.io org (card) for the **$2.19/mo** gateway.
 
 Everything else is the Grok bot.
 
@@ -650,4 +656,42 @@ Red-team pass performed 2026-09-25 by a second model. Findings are ordered by se
 
 ### Resolution
 
-_Red-team pass completed by a different model; first agent owns resolution._
+First agent, 2026-09-25. Every finding below. Plan phases in [`plans/2026-09-25-aims-discord.md`](./2026-09-25-aims-discord.md) are rewritten to match.
+
+| # | Finding | Disposition | Why / plan change |
+|---|---|---|---|
+| 1 | BLOCKER — OAuth callback invalid as drawn | **Accept** | Ordinary `bot`+`applications.commands` is callback-less. **v1 uses advanced bot authorization:** scopes `bot applications.commands identify`, `response_type=code`, exact `redirect_uri`, **Require OAuth2 Code Grant** on. `state` carries a **signed 128-bit claimSecret**, not the short code. Callback exchanges the code, then **verifies bot membership** with the bot token (`GET /users/@me/guilds` / `GET /guilds/{id}/members/@me`). Query `guild_id` is a hint only. Backup: `/aims claim` + `/aims here` + `GUILD_CREATE` cache. Do not call it “one click” — it is pick-server + Authorize (+ optional channel). |
+| 2 | BLOCKER — owner webhook SSRF | **Accept** (defenses specified; full dedicated egress proxy later) | Discord amplification must not ship on lexical `isSafeWebhookUrl`. **v1:** resolve A/AAAA immediately before connect; **pin that IP**; reject loopback/link-local/ULA/private/metadata (`169.254.169.254`, `fd00::`, IPv4-mapped, etc.); **do not follow redirects** unless the next hop is re-resolved, re-pinned, and still public (max 1 hop; default `redirect: "error"`); cap time/bytes. Ownership challenge stays as today’s secret header. Dedicated egress proxy is a follow-up, not a Discord-ship gate if pin+block holds. |
+| 3 | BLOCKER — worker bearer auth | **Accept** | Replace `X-Aims-Worker-Secret` bearer. Worker sends `X-Aims-Timestamp`, `X-Aims-Nonce`, `X-Aims-Signature = HMAC-SHA256(key, timestamp \|\| nonce \|\| SHA-256(raw_body))`. Reject skew > 5 min; persist nonce + Discord `message.id` (unique, 24h); schema/size-limit; **never trust worker-supplied `hop`** — Vercel computes it. Rotate `DISCORD_WORKER_SECRET` independently of the bot token. |
+| 4 | MAJOR — claim entropy | **Accept** | Drop `AIMS-7K2P` (≈20 bits). Mint 128-bit `claimSecret` + ~48-bit display code. Store **only digests**. TTL **15 min**, single-use. Create: 10/page/hour. Redeem: 5/IP/10 min + 20/min global. Status poll that reveals page/guild requires `claimSecret`. Confirm screen names the page. Short code is never OAuth `state`. |
+| 5 | MAJOR — owner-token in query/history | **Partial accept** | **Accept now:** hash `owner_token` / reply tokens / claim secrets at rest; new Discord/connect APIs accept owner tokens **only in headers**; never put `own_` in query strings we add. **Defer:** HttpOnly session cookies and killing existing `editUrl?token=` — that’s a product-wide auth migration, not the Discord ship. Track as follow-up. Encrypt webhook secrets when we touch that column. |
+| 6 | MAJOR — role/webhook impersonation | **Accept** | Drop mentionable roles and reply webhooks. Shared app stays. Invoke is **`@aims <handle>`** or **`/aims ask <handle>`**. Replies are Bot Create Message as **`@aims`** with `**botlord:**` (or equivalent) in content. Removes `MANAGE_ROLES`, `MANAGE_WEBHOOKS`, and the need for `MESSAGE_CONTENT` (app mentions include content). |
+| 7 | MAJOR — loop amplification | **Partial accept** | **Accept:** `allowed_mentions.parse = []` always (no model-controlled pings); fan-out **= 1** (first matching handle only); durable message-id dedupe; per-guild circuit breaker; do not trust inbound `hop`. **Reject “ignore every bot author” for v1** — Alex’s core use is multi-bot rooms; other bots must be able to `@aims botlord`. Hop increments only when `message_reference` points at an aims-sent message; otherwise hop=0 + per-author cooldown. Self / our `application_id` still ignored. |
+| 8 | MAJOR — “one click” undercounts | **Accept** | Honest steps: open link, pick server, Authorize (2FA/CAPTCHA possible), optional `/aims here`. Verify installer has `MANAGE_GUILD` when the code grant gives us the user. Least permissions (no role/webhook manage). Auto-bind default channel only if the bot can `SEND_MESSAGES` there. |
+| 9 | MAJOR — 100-server gate still exists | **Accept** | Document **both** 10k-user privileged-intent review **and** verification past 100 servers. v1 avoids `MESSAGE_CONTENT` so the 10k review is not on the critical path. 100-server verification is a later house task if we grow. |
+| 10 | MAJOR — shared app vs privilege blast | **Partial accept** | **Accept** shared app + least permissions + vault/rotate + incident-wide revoke. **Partial** on separate prod vs proof applications: do it if Alex will click twice in the portal; otherwise one app and never put the prod token in CI. BYO remains advanced, not default. |
+| 11 | MAJOR — $0 is not production | **Accept** | **Production gateway: Fly.io `shared-cpu-1x` 256 MB = $2.19/mo** (price from 2026-10-01; $1.94 until then). Always-on, card on org, not credit-exhaust-and-die. Railway Free = **dev/laptop only**. Railway Hobby ($5) is the fallback if Fly is refused. Vercel Fluid WebSockets exist but close at max duration — **not** the Gateway host. |
+| 12 | MAJOR — E2E proof can pass false | **Accept** | `discord-proof.sh` **fails** unless a **real human** (non-bot) message with a unique nonce travels the **real Gateway** and a correlated reply is visible via Discord REST. HMAC-signed synthetic injection is a **supplementary contract test** only (`--contract` / separate exit). No `WORKER_E2E_SKIPPED` exit 0. |
+| 13 | MAJOR — ranking / human-step counts | **Partial accept** | On raw cheapness/fewest taps, **Telegram wins**. Ranking table now says so. **Ship order is Discord first** — Alex: group channels and multi-bot rooms are the product. Telegram is the strongest #2 / fast-follow. Slack may need a channel invite; counts updated. Pairing primitives stay below transports. |
+| 14 | MAJOR — not actually Standard Webhooks | **Accept** | Owner wakes implement real Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature` over raw body) **in addition to** today’s `X-Aims-Secret`. Fixture-tested against a standard library. Header rename alone is forbidden. Additive; existing bots keep working. |
+| 15 | MINOR — WhatsApp pricing stale | **Accept** | §4 now says per-delivered template pricing (2025-07-01). Still not v1. |
+| 16 | MINOR — Photon “illegal” | **Accept** | Softened to unsupported / suspension / compliance risk. No-ship stands. |
+| 17 | MINOR — Sweetistics ≠ proven bird SaaS | **Accept** | Sweetistics is same-author adjacent / historical transport. €49, purchasing disabled. Cookie path still do-not-ship. |
+| 18 | MINOR — omitted official surfaces | **Partial accept** | Short appendix below. Do not expand the ship ranking. GitHub/Bluesky later for agents; Google Chat/Teams for work groups; Matrix is a bridge, not one-click. |
+
+**Locked after resolution**
+
+- Discord **ships first** (Alex). Telegram is the cheapest fast-follow.
+- Shared `aims` app. Identity `@aims <handle>` / `/aims ask`. No roles, no reply webhooks.
+- Gateway on **Fly at $2.19/mo**. Railway Free is not production.
+- Advanced OAuth code grant + membership verify. HMAC worker events. Hashed claims/tokens. SSRF resolve-pin-block. Real Gateway E2E.
+
+#### Omitted official surfaces (finding 18)
+
+Not ranked for v1. Same dimensions (clicks, $0, official two-way):
+
+- **GitHub Apps** — signed webhooks, replies on issues/PRs. Good agent surface; not a group chat.
+- **Bluesky** — tagged opt-in bots. Public firehose, not a guild.
+- **Google Chat** — HTTP `@mention`; Marketplace review for public.
+- **Microsoft Teams** — admin consent / store friction.
+- **Matrix Application Services** — native bridge identity; not one-click on arbitrary homeservers.
