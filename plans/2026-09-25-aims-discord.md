@@ -17,7 +17,7 @@ Alex’s framing: aims.bot exists to open a **two-way channel** between humans, 
 | Shared app vs per-owner tokens | **Shared aims.bot app** | One install link. One gateway socket. Per-owner tokens mean N apps, N intents, N secrets. |
 | How `botlord` resolves | **`@aims botlord` or `/aims ask botlord`** | One app = one username. Role/webhook impersonation is confusable and needs `MANAGE_ROLES` / `MANAGE_WEBHOOKS` / `MESSAGE_CONTENT`. App mentions include content without the privileged intent. |
 | Listener | **Hybrid (c)** | Mentions are Gateway `MESSAGE_CREATE`. Worker holds the WebSocket; Vercel keeps DB, wake, OAuth, slash `/aims`, Discord REST. |
-| Host | **Fly.io $2.19/mo** | Near-free, always-on, not credit-exhaust. Railway Free is **dev only**. Railway Hobby ($5) is the fallback. Vercel Fluid / Sandbox / Workflows / Queues / cron **cannot** hold the Discord Gateway 24/7 (see [Vercel-only vs Fly](#vercel-only-vs-fly-vs-hybrid-alex-2026-09-25)). |
+| Host | **Fly.io $2.19/mo** | Near-free, always-on, not credit-exhaust. Alex already has the account; after green the agent runs `flyctl auth login`. Railway Free is **dev only**. Railway Hobby ($5) is the fallback. Vercel Fluid / Sandbox / Workflows / Queues / cron **cannot** hold the Discord Gateway 24/7 (see [Vercel-only vs Fly](#vercel-only-vs-fly-vs-hybrid-alex-2026-09-25)). |
 | Intents | `GUILDS` + `GUILD_MESSAGES` only (`1 \| 512 = 513`) | Filter to messages that **@mention the app**. No `MESSAGE_CONTENT`. |
 | Reply path | **Both** sync `{ ack }` and async `reply.url` | Today’s 8s webhook already returns `ack`. `message.replyTo` is set on Discord-originated wakes. |
 | Connect | **Advanced OAuth code grant** | Ordinary bot install is callback-less. Scopes `bot applications.commands identify` + Require OAuth2 Code Grant. Verify membership via REST. |
@@ -73,7 +73,7 @@ Vercel Fluid Functions can open WebSockets but **close at max duration** — a p
 |---|---|---|---|
 | **Railway Free** | Yes (does **not** sleep). Stops for the rest of the month if usage exceeds the $1 credit; must redeploy after reset. | **$0/mo** + $1 included usage. RAM $10/GB-mo, CPU $20/vCPU-mo. A <100 MB raw-WS process fits the $1. Trial is $5 / 30 days, then Free. | [railway.com/pricing](https://railway.com/pricing), [Railway Free plan post](https://blog.railway.com/p/free-plan), [Railway station: exceed $1 → stop](https://station.railway.com/billing/inquiry-about-free-plan-after-30-day-tri-309629ee) |
 | Railway Hobby | Yes | **$5/mo** floor (includes $5 usage) | Same pricing page |
-| **Fly.io** `shared-cpu-1x` 256 MB | Yes | **$1.94/mo** (US `iad`/`ewr`); **$2.19/mo from 2026-10-01**. Card required on org. | [fly.io/pricing](https://fly.io/pricing/), [Oct 2026 update](https://fly.io/pricing-update/) |
+| **Fly.io** `shared-cpu-1x` 256 MB | Yes | **$1.94/mo** (US `iad`/`ewr`); **$2.19/mo from 2026-10-01**. Alex already has the account. | [fly.io/pricing](https://fly.io/pricing/), [Oct 2026 update](https://fly.io/pricing-update/) |
 | Render Free web | **No** — free web services spin down; not a gateway. Paid compute starts **$7/mo** (0.5 CPU / 512 MB). | $0 sleeps; $7 if paid | [render.com/pricing](https://render.com/pricing) |
 | Cloudflare Workers + Durable Object | Maybe | **Free plan $0** (100k Worker req/day; DO 13,000 GB-s/day). Paid Workers **$5/mo** floor. An **outbound** Discord gateway socket keeps a DO in memory ([DO pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/): outbound WS incurs duration; ~11k GB-s/day at 128 MB — under the free 13k/day, tight). Free Worker CPU **10 ms/invocation** is risky for Identify/Resume. Hibernation does **not** help an outbound gateway the way inbound client sockets do. | [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) (updated 2026-08-28), DO pricing (updated 2026-08-25) |
 
@@ -135,13 +135,13 @@ Hours/month used below: **730**. Function rates **iad1** ([iad1 pricing](https:/
 
 **Mentions require the Gateway.** Discord Interactions (slash, message context-menu) are HTTP POSTs to an Interactions Endpoint, Ed25519-verified, 3s first response. They are **not** `@mentions`. ([Receiving and Responding](https://discord.com/developers/docs/interactions/receiving-and-responding); this plan’s Phase 0.)
 
-| Design | `@aims botlord` mentions | Slash `/aims ask` | Fly login + card? | Cost |
+| Design | `@aims botlord` mentions | Slash `/aims ask` | Fly after green | Cost |
 |---|---|---|---|---|
-| **A. Interactions-only** (Vercel HTTP) | **Lost** | Yes | **No. Drops the Fly human step.** | $0 extra on current Vercel |
-| **B. Hybrid** (this plan) | Yes (Fly Gateway) | Yes (Vercel) | **Yes.** Mentions still need Fly. | **$2.19/mo** + existing Vercel |
-| **C. Vercel-only Gateway** (Fluid / Sandbox / cron hop) | Unreliable (gaps, dup Identify) | Yes | No new Fly, but **worse product + more $ on Pro** | See table above |
+| **A. Interactions-only** (Vercel HTTP) | **Lost** | Yes | None. No Gateway, so no Fly deploy. | $0 extra on current Vercel |
+| **B. Hybrid** (this plan) | Yes (Fly Gateway) | Yes (Vercel) | **Agent** `flyctl auth login` in its signed-in browser (Continue with Google if that's the account). Escalate only on 2FA or a passkey. Then `fly deploy`. | **$2.19/mo** + existing Vercel |
+| **C. Vercel-only Gateway** (Fluid / Sandbox / cron hop) | Unreliable (gaps, dup Identify) | Yes | None. Worse product + more $ on Pro. | See table above |
 
-**Hybrid does not remove the Fly signup.** It only keeps slash/OAuth/wakes on the host we already have.
+**Hybrid still deploys the Gateway on Fly.** Alex already has the account — this is not a signup. After green the agent logs in with `flyctl auth login` (Continue with Google if that's the account) and deploys. Escalate only on an irreducible wall (2FA, passkey). Interactions-only is the only design that skips Fly, and only by cutting `@aims` mentions.
 
 ### Clear recommendation
 
@@ -504,7 +504,7 @@ First agent, 2026-09-25. Every finding 1–18 is dispositioned in the auth revie
 | 8 “One click” | **Accept** | Honest: pick server + Authorize + optional `/aims here`. |
 | 9 100-server gate | **Accept** | Document both gates. No `MESSAGE_CONTENT`. |
 | 10 Shared-app blast | **Partial** | Shared app + least perms + rotate. Prod token not in CI. |
-| 11 $0 host | **Accept** | **Fly.io $2.19/mo.** Railway Free = dev only. |
+| 11 $0 host | **Accept** | **Fly.io $2.19/mo.** Agent `flyctl auth login` after green. Railway Free = dev only. |
 | 12 False E2E | **Accept** | Mandatory real human message through the **real Gateway** + Discord API reply. Synthetic is supplementary only. |
 | 13 Ranking | **Partial** | Telegram wins raw cheapness. **Discord ships first** (Alex: group channels + multi-bot rooms). |
 | 14 Standard Webhooks | **Accept** | Real SW headers additive on owner wakes. |
@@ -636,7 +636,7 @@ After `/do` merge + **Fly** worker deploy:
 4. Open implementation PR; wait for `.github/workflows/ci.yml` (tsc, vitest, next build).
 5. Merge to `main` (aims.bot deploys on push).
 6. Babysit Vercel **Ready**.
-7. Deploy `discord-gateway` to **Fly.io** (`shared-cpu-1x` 256 MB). Confirm worker health. Railway Free is not this step.
+7. **Agent Fly login (not a human signup).** Alex already has the Fly.io account. Run `flyctl auth login` and complete it in the agent's signed-in browser (Continue with Google if that's the account). Escalate only on an irreducible wall (2FA, passkey). Then deploy `discord-gateway` to **Fly.io** (`shared-cpu-1x` 256 MB). Confirm worker health. Railway Free is not this step.
 8. Register slash commands (`PUT /applications/{id}/commands`) and set Interactions URL.
 9. Run health curls + contract proof + **mandatory human Gateway E2E** + `bot2bot-proof.sh`.
 
@@ -666,15 +666,12 @@ True minimum. For each: what, where it goes, whether an agent can do it.
    - **Human click required.** Agent generates the URL; cannot complete Discord’s consent screen.
    - After this, `/aims here` or `POST …/discord` can rebind the channel.
 
-5. **Fly.io org + payment method** for the production **Gateway** (required for `@aims` mentions).
-   - **Human signup + card on org.** Cost: **$2.19/mo** (`shared-cpu-1x` 256 MB, price from 2026-10-01). Agent can `fly deploy` after `FLY_API_TOKEN` exists.
-   - Railway Free is **dev/laptop only**, not this need.
-   - **This step goes away only if Alex cuts mentions** and ships interactions-only (`/aims ask`). Hybrid slash-on-Vercel + mentions-on-Fly does **not** drop it. Do not replace Fly with Vercel Fluid/Sandbox/cron.
-
-6. **One real human Gateway message** for ship proof (skip if interactions-only).
+5. **One real human Gateway message** for ship proof (skip if interactions-only).
    - **Human types** `@aims botlord <unique nonce>` in the proof channel from a **non-bot** account. Script then verifies the wake and the Discord API reply. Agent cannot substitute a synthetic event for this step.
 
-**Not needed from humans:** creating per-Grok Discord apps; `MESSAGE_CONTENT` portal toggle or verification form; Railway production account; paying for Render / CF Workers Paid; putting a proof webhook on Vercel; a Vercel Sandbox or Fluid “always-on” Gateway.
+**Not needed from humans:** Fly.io signup or card (Alex already has the account); creating per-Grok Discord apps; `MESSAGE_CONTENT` portal toggle or verification form; Railway production account; paying for Render / CF Workers Paid; putting a proof webhook on Vercel; a Vercel Sandbox or Fluid “always-on” Gateway.
+
+**After green (agent, Fly + hybrid only):** run `flyctl auth login` and complete it in the signed-in browser (Continue with Google if that's the account). Escalate only on 2FA or a passkey. Then `fly deploy` the gateway (`shared-cpu-1x` 256 MB, **$2.19/mo** from 2026-10-01). Interactions-only is the only design that skips this, and only by cutting `@aims` mentions. Do not replace Fly with Vercel Fluid/Sandbox/cron.
 
 ---
 
