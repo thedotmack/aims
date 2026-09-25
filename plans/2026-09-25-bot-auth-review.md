@@ -538,8 +538,116 @@ Everything else is the Grok bot.
 
 ### Red-team findings
 
-_(empty — second, different-model agent fills this. In scope: ranks 1–11, the Discord self-serve lock, **§11 Photon** (product identity, Apple consumer-iMessage ToS, $0/10-user vs $25/$250, “does not beat building Discord”), and **§12 bird / Sweetistics** (steipete CLI identity, Sweetistics as the SaaS, cookie vs official X API, two-way-is-poll-only, $0 CLI / $49 Pro disabled, X ToS + ban risk, “does not beat Discord or official X”). MessageBird/bird.com is **out of scope** — wrong product.)_
+Red-team pass performed 2026-09-25 by a second model. Findings are ordered by severity, then blast radius.
+
+#### 1. **BLOCKER — the claimed Discord callback does not exist for the URL shown**
+
+- **Claim attacked:** `scope=bot applications.commands&response_type=code&state=...` yields the planned callback with `code`, `guild_id`, and the signed claim, making install-and-bind a one-click flow.
+- **Evidence:** Discord calls ordinary bot authorization “server-less and callback-less”; a code callback occurs only when requesting an additional scope outside `bot` and `applications.commands`. Discord also says callback `guild_id` is only a hint. See [Discord OAuth2 — Bot Authorization Flow and Advanced Bot Authorization](https://docs.discord.com/developers/topics/oauth2#bot-authorization-flow). The URL in this review requests no additional scope.
+- **Recommended fix:** choose and test one real flow: (A) extended authorization with at least `identify`, `response_type=code`, exact redirect, state, and **Require OAuth2 Code Grant** enabled, then exchange the code and independently verify bot membership; or (B) callback-less install followed by `/aims claim`, a signed install event, or Gateway `GUILD_CREATE`. Do not call it “one click” until a browser test proves state round-trip, guild authority, and membership.
+
+#### 2. **BLOCKER — owner-supplied webhook delivery remains an SSRF primitive**
+
+- **Claim attacked:** today’s `isSafeWebhookUrl` is safe to reuse for arbitrary bot-owned webhook URLs.
+- **Evidence:** `lib/contact-pages.ts` blocks obvious literal IPv4/private hostnames but does not resolve DNS, pin the address, cover all IPv6/special-use/encoded forms, or prevent DNS rebinding between validation and `fetch`. `redirect: "error"` only closes redirects. OWASP requires allowlisting where possible and DNS-pinning/rebinding defenses: [SSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html).
+- **Recommended fix:** use a dedicated egress proxy with a public-IP policy; resolve and validate every A/AAAA answer immediately before connection; pin the destination; block metadata and all special-use ranges; cap request/response size and time; and verify ownership with a challenge. Do not add Discord amplification before this is fixed.
+
+#### 3. **BLOCKER — worker authentication is replayable bearer auth, not HMAC**
+
+- **Claim attacked:** `X-Aims-Worker-Secret: ...` makes fake Gateway events trustworthy and replay-safe.
+- **Evidence:** the API shape sends one static value over arbitrary JSON with no timestamp, body digest, nonce, or delivery ID. Discord instead requires Ed25519 verification over timestamp plus the **raw body** and deliberately probes endpoints with invalid signatures: [Interactions security](https://docs.discord.com/developers/interactions/overview#security-and-authorization). A leaked worker value permits forged authors/guilds/channels/message IDs and unlimited replay.
+- **Recommended fix:** sign `version || timestamp || delivery_id || SHA-256(raw_body)` with a separate key, reject clock skew, enforce unique delivery/message IDs in durable storage, rotate keys, schema/size-limit the body, and never trust client-supplied `hop`.
+
+#### 4. **MAJOR — claim-code entropy and redemption controls are inadequate**
+
+- **Claim attacked:** `AIMS-7K2P`, 30-minute expiry, single use, and 10 claims/page/hour are sufficient.
+- **Evidence:** four base32-like symbols are roughly 20 bits (about one million possibilities), the schema stores the code in plaintext, and public status is an oracle. Creation limits do not constrain distributed redemption. RFC 8628 warns that short user codes need strong rate limits and that device flows are phishable: [RFC 8628 §5](https://www.rfc-editor.org/rfc/rfc8628.html#section-5).
+- **Recommended fix:** use a 128-bit link secret and separately derived 40–50-bit manual code; store only digests; require the long polling secret for status; limit redemption globally/per-claim/account/IP/guild/user; and show the exact page/guild/channel for authorized confirmation. Never put the short code itself in OAuth `state`.
+
+#### 5. **MAJOR — owner-token handling turns browser history into takeover**
+
+- **Claim attacked:** owner credentials are protected because they are absent from public page JSON.
+- **Evidence:** current code returns `editUrl?...token=<ownerToken>` and accepts tokens from query strings and bodies (`app/api/v1/pages/route.ts`, `app/api/v1/pages/[slug]/route.ts`, `lib/contact-pages.ts`). Query credentials leak via history, copied URLs, analytics, screenshots, and possibly referrers. Owner tokens, webhook secrets, and URLs are recoverable plaintext in the database.
+- **Recommended fix:** remove query/body bearer auth; exchange a one-time fragment/code for an `HttpOnly; Secure; SameSite=Strict` session; accept API tokens only in headers; hash owner/reply/claim tokens; encrypt webhook credentials; and add rotation, revocation, audit, and URL redaction.
+
+#### 6. **MAJOR — role/webhook identity is deliberately confusable**
+
+- **Claim attacked:** role `botlord` plus webhook display name `botlord` is a safe identity substitute; the Discord plan also says role names are unique per guild.
+- **Evidence:** webhook messages expose `webhook_id`; webhook authors are not users; execution permits arbitrary `username`/`avatar_url`: [Message object](https://docs.discord.com/developers/resources/message#message-object) and [Execute Webhook](https://docs.discord.com/developers/resources/webhook#execute-webhook). Role authority is by snowflake, not name, and same-named roles are allowed. Any member allowed to mention a mentionable role can trigger it; a manager can create a visually identical role/webhook.
+- **Recommended fix:** keep one unmistakable `@aims` sender and render “**botlord via aims**”; make `/aims ask botlord` or `@aims botlord` primary. If aliases remain, resolve only stored IDs, show a proxy marker, require channel/role ACLs, and never convert model display text into authority.
+
+#### 7. **MAJOR — loop guards still allow cross-page amplification**
+
+- **Claim attacked:** hop ≤3, pair/content cooldowns, and 20 wakes/page/minute make bot loops safe.
+- **Evidence:** each inbound may fan out to multiple handles and each reply may mention multiple targets; a branching factor of two yields 15 wakes through hop 3 before retries, edits, distinct content, pages, or guilds evade the key. Arbitrary inbound Discord messages have no trustworthy parent/hop. Discord also has per-route buckets and a 50 request/s global bot limit: [Discord rate limits](https://docs.discord.com/developers/topics/rate-limits).
+- **Recommended fix:** v1 should ignore every bot and webhook author and suppress all model-controlled mentions. Later require aims-issued correlation, durable queue/dedupe, fan-out=1, global/guild/conversation budgets, circuit breakers, owner opt-in, and kill switches.
+
+#### 8. **MAJOR — “one click” omits required choices, authority, and channel setup**
+
+- **Claim attacked:** the human only clicks Authorize; aims can safely bind the system/first text channel and create role/webhook.
+- **Evidence:** guild install requires a member with `MANAGE_GUILD`, and the UI requires server selection unless preselected: [Discord install](https://docs.discord.com/developers/quick-start/getting-started#installing-your-app). `system_channel_id` can be null/unsuitable and channel overrides can deny access. Roles/webhooks require broad `MANAGE_ROLES`/`MANAGE_WEBHOOKS` and hierarchy constraints: [Create Role](https://docs.discord.com/developers/resources/guild#create-guild-role), [permissions](https://docs.discord.com/developers/topics/permissions#role-object), [Create Webhook](https://docs.discord.com/developers/resources/webhook#create-webhook).
+- **Recommended fix:** count open link, select server, review/authorize (plus possible CAPTCHA/2FA), then select/confirm channel or `/aims here`. Verify the member has `MANAGE_GUILD` and the bot has effective permissions in that exact channel. The revised `@aims` architecture should request fewer permissions.
+
+#### 9. **MAJOR — 10,000-user intent review does not remove the 100-server gate**
+
+- **Claim attacked:** “not 100 servers” fully replaces Discord’s old scale threshold.
+- **Evidence:** privileged-intent review did move to 10,000 unique reachable users, with a 90-day application window and annual review: [Intent Review](https://support-dev.discord.com/hc/en-us/articles/5324827539479-Message-Content-Intent-Review-Policy). Separately, Discord still requires **app verification past 100 servers**: [App Verification](https://support-dev.discord.com/hc/en-us/articles/23926564536471-How-Do-I-Get-My-App-Verified).
+- **Recommended fix:** document both. Avoid `MESSAGE_CONTENT`, `MANAGE_ROLES`, and `MANAGE_WEBHOOKS` by making direct `@aims` mentions or commands primary; direct app mentions expose content without the privileged intent: [Message Content alternatives](https://docs.discord.com/developers/gateway/you-might-not-need-a-privileged-intent).
+
+#### 10. **MAJOR — shared app is right by default; its selected privilege model is not**
+
+- **Claim attacked:** one shared token is low risk and shared versus BYO is binary.
+- **Evidence:** Discord describes bot tokens as passwords used for Gateway and most REST calls: [OAuth2 and permissions](https://docs.discord.com/developers/platform/oauth2-and-permissions#bot-users). One token avoids N owner secrets but compromise reaches every guild. This plan copies it to Vercel, Railway, and proof environments while requesting powerful permissions.
+- **Recommended fix:** retain shared-app v1, but use one identity and least permissions; isolate production/proof applications; vault/rotate tokens; alert on guild/role/webhook changes; and document incident-wide revocation. Keep BYO as an advanced authenticity option, not default.
+
+#### 11. **MAJOR — `$0/month` is possible, not a production availability budget**
+
+- **Claim attacked:** a sub-100 MB Railway worker fits the $1 credit and is reliably always-on for $0.
+- **Evidence:** Railway Free is real, but RAM is $10/GB-month and CPU $20/vCPU-month: [Railway pricing](https://railway.com/pricing). At 100 MB, memory alone is about $0.98/month, leaving almost nothing for CPU/egress; workloads stop when limits/credits exhaust: [Railway FAQ](https://docs.railway.com/pricing/faqs). Fly is $1.94 now and $2.19 from 2026-10-01: [Fly pricing](https://fly.io/pricing), [update](https://fly.io/pricing-update/). Cloudflare’s free allowance is real, but outbound sockets do not hibernate: [DO pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/), [WebSockets](https://developers.cloudflare.com/durable-objects/best-practices/websockets/). “Vercel cannot hold WebSockets” is outdated; Fluid Functions now can, but close at max duration: [Vercel WebSockets](https://vercel.com/docs/functions/websockets).
+- **Recommended fix:** budget Railway Hobby ($5) or Fly ($2.19 plus storage/traffic) for production; label Railway Free best-effort development. Measure RSS/CPU for a billing cycle, set hard limits/downtime alerts, and make Resume/session-start handling robust. Keep a separate gateway; duration-limited Vercel is not a better Discord listener.
+
+#### 12. **MAJOR — the E2E proof can pass while the product is broken**
+
+- **Claim attacked:** `discord-proof.sh` proves two-way Discord.
+- **Evidence:** the required path injects a synthetic event directly into Vercel, bypassing Discord, Gateway intents/Identify/heartbeat/resume, Railway, and real mention parsing. The live path is optional and exits zero when skipped; only a human covers end-to-end. Searching five messages for a common string can match stale output.
+- **Recommended fix:** label the synthetic test a contract test. Add a mandatory deployed E2E using a unique nonce from a separate non-bot actor, real Gateway delivery, exactly one owner wake, one correlated reply, and exact reply/message-reference assertion. Fail when worker health or live delivery fails.
+
+#### 13. **MAJOR — ranking and human-step counts are wrong for the cash-first goal**
+
+- **Claim attacked:** Discord is unambiguously rank 1; Telegram and Slack each take one click.
+- **Evidence:** Telegram supports private `start` and group `startgroup` links carrying the claim, with privacy mode limiting group inputs: [Telegram deep links](https://core.telegram.org/bots/features#deep-linking). Discord requires server authorization, channel confirmation, and a gateway. Slack `app_mention` only arrives in conversations the app has joined, so an extra invite may be required: [Slack `app_mention`](https://docs.slack.dev/reference/events/app_mention).
+- **Recommended fix:** for the literal stated goal, rank **Telegram shared bot first**, Discord second for richer guild/group workflows, Slack after it. If Discord ships first for product-market reasons, say that instead of calling it cheapest/fewest-step. Separate transports from pairing/auth primitives (claims, device flow, MCP OAuth, signed webhooks).
+
+#### 14. **MAJOR — current wake auth is not Standard Webhooks compatibility**
+
+- **Claim attacked:** aims can adopt OpenAI/Claude-compatible Standard Webhooks as a trivial additive header.
+- **Evidence:** `deliverOwnerWebhook` sends a reusable `X-Aims-Secret` with no body signature, timestamp, delivery ID, replay window, or retry idempotency. Header renaming is not the Standard Webhooks contract.
+- **Recommended fix:** implement and fixture-test exact canonical raw-body signing (prefer standard libraries), unique ID, timestamp window, stable retry ID, per-page secret rotation, and replay rejection. Do not claim SDK compatibility until official verifiers accept an aims fixture.
+
+#### 15. **MINOR — WhatsApp pricing is stale, though rejection remains sound**
+
+- **Claim attacked:** WhatsApp uses conversation-based pricing.
+- **Evidence:** Meta replaced it with **per delivered template message** pricing on 2025-07-01; non-template service messages and utility templates in an open window are free: [official update](https://developers.facebook.com/docs/whatsapp/pricing/updates-to-pricing/).
+- **Recommended fix:** update the cost wording. Keep WhatsApp below official free bot channels because business/phone onboarding, opt-in, templates, and policy overhead still lose.
+
+#### 16. **MINOR — Photon is identified correctly, but “illegal” overstates the evidence**
+
+- **Claim attacked:** Photon identity is uncertain and any use is categorically illegal.
+- **Evidence:** Photon’s docs call the product Spectrum and describe Free/Pro shared-pool versus Business dedicated iMessage: [routing](https://photon.codes/docs/spectrum-ts/providers/imessage/connection-and-routing); [pricing](https://photon.codes/pricing) supports $0/10 users, $25/100, and $250/line. Apple says iMessage is intended for family/friends, not commercial activity, and misuse may cause limitations: [Messages & Privacy](https://www.apple.com/legal/privacy/data/en/messages/). That is platform policy, not a legal holding.
+- **Recommended fix:** say “unsupported consumer-iMessage path with suspension, continuity, and compliance risk; not production-approved.” The no-ship verdict is fair. A quarantined opt-in 10-user experiment is possible only with explicit acceptance of account/line loss; it still does not outrank Telegram/Discord.
+
+#### 17. **MINOR — `bird` is right; “Sweetistics is its SaaS” is unproven**
+
+- **Claim attacked:** bird is `@steipete/bird` and Sweetistics is confidently its hosted SaaS.
+- **Evidence:** current [`@steipete/bird`](https://www.npmjs.com/package/@steipete/bird) explicitly uses undocumented X GraphQL and cookies. Historical v0.1 notes mention a Sweetistics engine, but the current package README is GraphQL-only. Sweetistics describes a separate analytics product with API access on a **€49/month** Pro tier whose purchasing is disabled; it documents no bird mention/DM webhook or “hosted bird” relationship: [Sweetistics pricing](https://sweetistics.com/pricing). X requires official API use and approval for AI replies: [X guidelines](https://x-preview.mintlify.app/developer-guidelines).
+- **Recommended fix:** call it a same-author adjacent product and historical optional transport, with current relationship unverified; correct `$49` to `€49`. Keep the rejection of cookie replay. Official X prices are volatile; X says its console is authoritative: [X API pricing](https://x-preview.mintlify.app/x-api/getting-started/pricing).
+
+#### 18. **MINOR — “ANY bot” omits several official surfaces**
+
+- **Claim attacked:** ranks 1–11 cover the meaningful universe.
+- **Evidence:** omitted options include Google Chat HTTP `@mention` events (public distribution needs Marketplace review: [Google Chat](https://developers.google.com/workspace/chat/interaction-events)); signed GitHub App webhooks/replies ([GitHub](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/using-webhooks-with-github-apps)); tagged opt-in Bluesky bots ([Bluesky](https://docs.bsky.app/docs/starter-templates/bots)); Matrix Application Services ([Matrix](https://spec.matrix.org/latest/application-service-api/)); and Microsoft Teams consent/store friction ([Teams](https://learn.microsoft.com/en-us/microsoftteams/manage-consent-app-permissions)).
+- **Recommended fix:** add an omitted-channels appendix ranked on the same dimensions. GitHub/Bluesky matter for agents; Google Chat/Teams for groups; Matrix for bridge-native identities but not one-click arbitrary homeservers.
 
 ### Resolution
 
-_(empty — fold red-team findings here)_
+_Red-team pass completed by a different model; first agent owns resolution._
