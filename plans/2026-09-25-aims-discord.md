@@ -18,6 +18,7 @@ Alex’s framing: aims.bot exists to open a **two-way channel** between humans, 
 | How `botlord` resolves | **`@aims botlord` or `/aims ask botlord`** | One app = one username. Role/webhook impersonation is confusable and needs `MANAGE_ROLES` / `MANAGE_WEBHOOKS` / `MESSAGE_CONTENT`. App mentions include content without the privileged intent. |
 | Listener | **Hybrid (c)** | Mentions are Gateway `MESSAGE_CREATE`. Worker holds the WebSocket; Vercel keeps DB, wake, OAuth, slash `/aims`, Discord REST. |
 | Host | **Fly.io $2.19/mo primary** | Widened comparison: Fly is the cheapest **reliable** always-on host we already have. House box is $0 extra but restarts with Grok updates (no SLA). GCP e2-micro is Always Free but credits are unclaimed and it is a new billing project. See [Gateway host comparison](#gateway-host-comparison-widened-alex-2026-09-25). |
+| Capacity | **All Grok bots, one socket, until ~2,500 guilds** | Bots are handle→slug rows, not Discord apps. $2.19 covers every page. See [Capacity](#capacity). |
 | Intents | `GUILDS` + `GUILD_MESSAGES` only (`1 \| 512 = 513`) | Filter to messages that **@mention the app**. No `MESSAGE_CONTENT`. |
 | Reply path | **Both** sync `{ ack }` and async `reply.url` | Today’s 8s webhook already returns `ack`. `message.replyTo` is set on Discord-originated wakes. |
 | Connect | **Advanced OAuth code grant** | Ordinary bot install is callback-less. Scopes `bot applications.commands identify` + Require OAuth2 Code Grant. Verify membership via REST. |
@@ -172,6 +173,94 @@ Idea: Fly (or GCP) is primary. House box is a **warm standby** that only Identif
 6. **Interactions-only** remains the only honest Vercel-only design, and it **loses `@aims botlord` mentions**.
 
 After green on this pick: agent `flyctl auth login` (Continue with Google; escalate only on 2FA/passkey) → `fly deploy`.
+
+---
+
+## Capacity
+
+Alex’s question: how many bots and customers does **$2.19/mo** cover?
+
+**Short answer:** all of them, until we hit Discord’s **guild** gates — not a bot-count gate. One shared `aims` app and **one** Gateway connection serve every Grok page. Adding `botlord`, `grok`, or 10,000 more handles is a `contact_pages` lookup on Vercel. It does not add a Discord application, a bot token, or a second WebSocket.
+
+### 1. One app, all Grok bots
+
+A Discord **application** has one **bot user** and one username. ([Gateway](https://docs.discord.com/developers/events/gateway) connections Identify with that one token.) Per-owner tokens were rejected for v1. Invoke is `@aims <handle>` or `/aims ask <handle>`. The worker only checks that the **app** is mentioned, then POSTs the handle to Vercel. Vercel resolves `handle → slug → webhookUrl`. Bot count is a database problem.
+
+`$2.19` is priced per **Machine**, not per bot or per customer. Customers here means **guilds that installed the shared app**.
+
+### 2. Discord shard and install gates
+
+Cited from [Sharding](https://docs.discord.com/developers/events/gateway#sharding), [Get Gateway Bot](https://docs.discord.com/developers/events/gateway#get-gateway-bot), [Session Start Limit](https://docs.discord.com/developers/events/gateway#session-start-limit-object), [Gateway rate limiting](https://docs.discord.com/developers/events/gateway#rate-limiting), [App verification](https://support-dev.discord.com/hc/en-us/articles/23926564536471-How-Do-I-Get-My-App-Verified), [Privileged Intent Review](https://support-dev.discord.com/hc/en-us/articles/5324827539479-Message-Content-Intent-Review-Policy), [You might not need a privileged intent](https://docs.discord.com/developers/gateway/you-might-not-need-a-privileged-intent).
+
+| Rule | What the docs say | What it means for us |
+|---|---|---|
+| **Max guilds per shard** | “Each shard can only support a maximum of **2500** guilds.” Alex is right. | One connection is enough through **2,500** servers. |
+| **When sharding is required** | “Apps that are in **2500+** guilds **must** enable sharding.” Optional before that. | At 2,501 guilds we send Identify `shard: [id, n]`. |
+| **`GET /gateway/bot`** | Returns `url`, **`shards`** (recommended count; do not cache long — it changes as we join/leave), and `session_start_limit`. Example in the docs: `"shards": 9` with `total: 1000`. | Always read this before Identify. Do not invent `n`. |
+| **Shard routing** | `shard_id = (guild_id >> 22) % num_shards` | Events without `guild_id` (DMs) go to shard 0. |
+| **`max_concurrency`** | Session-start field: “Number of identify requests allowed per **5 seconds**.” Example: **1**. Concurrent Identify → Invalid Session opcode **9**. With many shards, start by bucket `shard_id % max_concurrency`. | v1 is one shard → concurrency 1. Never two Identifies. |
+| **Session-start limit** | `total`, `remaining`, `reset_after` (ms). Docs example: **1000** total, `reset_after` **14_400_000** (4 h). Large bots (>~150k guilds) get `max(2000, (guild_count / 1000) * 5)` per day and a higher `max_concurrency`. | Normal reconnects are fine. A hop/retry storm is not. |
+| **100-server verification** | Unverified apps must complete [app verification](https://support-dev.discord.com/hc/en-us/articles/23926564536471-How-Do-I-Get-My-App-Verified) to stay in more than **100** servers. | **First real customer gate.** House task before 101 guilds. Not a Fly cost. |
+| **10k-user privileged-intent review** | Privileged intents (`MESSAGE_CONTENT`, etc.) need review at **10,000 unique reachable users**. | v1 does **not** request those intents, so this review is off the critical path. |
+| **Intents = 513** | `GUILDS \| GUILD_MESSAGES`. Without `MESSAGE_CONTENT`, `content` is empty **except** app-sent, DMs, and **messages that @mention the app**. | We still *receive* `MESSAGE_CREATE` for guild messages (the intent is the event class), but ignored events have empty `content` and we drop them after a `mentions` check. We only HMAC-POST on an app mention. That keeps **acted-on** volume low. |
+
+v1: **one shard, one Machine.** Sharding is a later rewrite of the worker, not a day-one need.
+
+### 3. Mentions/min on Fly `shared-cpu-1x` 256 MB
+
+**Do not cache guilds.** Discord’s own [Tracking State](https://docs.discord.com/developers/events/gateway#tracking-state) says store only what the app needs. We keep: `session_id`, last `s`, heartbeat interval, bot user id, and in-flight HMAC POSTs. No guild/member/channel maps. Ready’s unavailable-guild list is counted and dropped.
+
+**Per mention (acted-on):** parse the already-decoded `MESSAGE_CREATE` → `mentions` includes us → HMAC-SHA256(timestamp ‖ nonce ‖ SHA-256(body)) → **one** HTTPS POST to `https://aims.bot/api/v1/discord/events`. No Discord REST on the worker.
+
+**Per ignored message:** a `mentions` array check. Sub-millisecond. No HMAC, no POST.
+
+**CPU:** Fly `shared` vCPU baseline is **5 ms / 80 ms (6.25%)**, burst to 100% from unused quota (initial burst 5 s, max 500 s). Waiting on HTTPS does **not** burn quota, so burst refills between mentions. ([CPU performance](https://fly.io/docs/machines/cpu-performance/)) Heartbeats are one tiny frame ~every 41–45 s.
+
+**Estimate (order of magnitude, not a load test):** HMAC + JSON is ~1–2 ms CPU; the POST wait is idle. Baseline 6.25% of a core is tens of ms of CPU per second → **hundreds of mentions/min** before CPU is the wall, **~1,000/min** in a burst if Vercel keeps up. The first real walls are Discord **reply** rate limits and owner-webhook latency, not the 256 MB box.
+
+**Memory:** Bun/Node + one `ws` + the four fields above fits in 256 MB with headroom. Guild cache is what would have grown with server count; we are not building it.
+
+**Step-ups** (Fly prices from 2026-10-01, US `iad`/`ewr`: [pricing update](https://fly.io/pricing-update/)). Same image. Add Machines when `/gateway/bot.shards` says so.
+
+| Scale | Discord constraint | Fly shape | Fly $/mo |
+|---|---|---|---|
+| **v1 / 100 guilds** | Verification due at **100** servers. Still one shard. | 1× `shared-cpu-1x` 256 MB | **$2.19** |
+| **1,000 guilds** | Still one shard (< 2,500). | same | **$2.19** |
+| **2,500 guilds** | At 2,500, one shard is at the documented max. At **2,500+** sharding is **required**. | 2× `shared-cpu-1x` 256 MB (two shards) | **$4.38** |
+| **10,000 guilds** | 10,000 / 2,500 = **4** shards minimum (at the cap). `/gateway/bot` often recommends more (docs example is 9). Privileged-intent review is still avoided. | **4+** Machines (one connection each). Example 4× 256 MB = $8.76; 8× = $17.52. Or `shared-cpu-4x` 1 GB at **$8.78** if we colocate processes — prefer separate Machines. | **~$9–18** |
+
+Bot/page count does not appear in that table.
+
+**Vercel $ per mention** (iad1 Pro: Active CPU **$0.128/h**, provisioned memory **$0.0106/GB-h**; Hobby includes 1M invocations / 4 CPU-h / 360 GB-h). ([iad1](https://vercel.com/docs/pricing/regional-pricing/iad1), [pricing](https://vercel.com/docs/pricing))
+
+| Path | Invocations | Duration | Why |
+|---|---|---|---|
+| **Events only, wait on owner webhook** | 1 (`POST /api/v1/discord/events`) | Up to today’s **8 s** timeout in `deliverOwnerWebhook` | Function stays provisioned while the owner Grok thinks. At 1 GB: 8 s ≈ 0.0022 GB-h ≈ **$0.000023** memory + a sliver of Active CPU. 1M mentions ≈ **~$23** memory before CPU. |
+| **Events + async `reply.url`** (this plan) | **2** (events + later reply POST) | Events: HMAC + DB lookup + fire webhook, **do not wait for the model**. Reply: Create Message only. | **Avoids the long wait.** The 8 s `ack` path is optional sugar; the product path is async. Two short Functions beat one 8 s Function. |
+| **Slash `/aims ask`** | 1 Interactions POST | Must **defer within 3 s**, then follow-up within **15 min**. Interaction HTTP is **not** on the bot global 50/s bucket. | Same owner-wake; reply via interaction webhook, not Create Message. |
+
+Hobby’s 1M invocations: at 10 mentions/min × 2 invokes ≈ 864k/month — near the included cap. Pro’s $20 credit covers a lot of short Fluid invocations; we do not treat invocations as the binding constraint until we measure.
+
+### 4. Reply-path rate limits
+
+Cited from [Rate Limits](https://docs.discord.com/developers/topics/rate-limits), [Create Message](https://discord.com/developers/docs/resources/message#create-message), [Receiving and Responding](https://docs.discord.com/developers/interactions/receiving-and-responding).
+
+| Limit | Doc | Design |
+|---|---|---|
+| **Per-route / per-channel Create Message** | Limits are **not to be hard-coded**. `channel_id` is a top-level resource, so each channel is its own bucket. Example headers on the rate-limit page show `X-RateLimit-Limit: 5`. | Parse `X-RateLimit-*` / `retry_after`. Queue Create Message **per `X-RateLimit-Bucket` + channel**. Never assume a fixed 5/5s. |
+| **Global** | “All bots can make up to **50 requests per second**” per token (or per IP if unauthenticated). Independent of per-route. | Process-wide token bucket ~**40/s**. One shared token means **all** Grok replies share this 50/s. |
+| **Invalid-request / Cloudflare ban** | **10,000** HTTP 401/403/429 per **10 minutes** from an IP. `X-RateLimit-Scope: shared` 429s **do not** count. Repeated **404** webhooks also restrict. | Do not retry 401/403. Stop after a 404 channel/webhook. Honor 429 before retry. Log invalid rate. |
+| **Interactions** | Initial response in **3 seconds** or the token dies. Token then valid **15 minutes** for follow-ups. Interaction routes are **not** bound to the bot global 50/s. | `/aims ask`: defer (type 5) immediately, wake the owner, edit/follow-up when `reply.url` or `ack` lands. |
+
+**Queue and backoff**
+
+1. Vercel (not Fly) owns Discord REST. One in-process queue per rate-limit bucket.
+2. On 429: wait `retry_after` (or `Retry-After`), then retry that one request. Shared-scope 429: same wait, do not increment the invalid counter.
+3. On 401/403: drop, alert, do not retry.
+4. Global 50/s: pause the whole sender if we would exceed ~40/s.
+5. Fan-out is already **1** (first matching handle). `allowed_mentions.parse = []`.
+
+**Many Grok bots in one busy channel:** they still speak as **one** `@aims` user with **one** token into **one** channel bucket. Ten handles mentioned in ten seconds serialize on that channel’s Create Message limit and on the global 50/s. Replies queue and land late; they are not dropped unless the queue is bounded (cap per channel, e.g. 20, then 429 the owner webhook / skip with a single “slow down” message). The Gateway keeps receiving mentions; only the **reply** side backs off. That is why multi-bot rooms work as a product and still cannot flood Discord.
 
 ---
 
@@ -535,7 +624,7 @@ First agent, 2026-09-25. Every finding 1–18 is dispositioned in the auth revie
 | 15–17 wording | **Accept** | WhatsApp / Photon / Sweetistics copy fixed in the review. |
 | 18 omitted surfaces | **Partial** | Short appendix; not in the ship ranking. |
 
-**Locked:** Discord ships first. Shared `aims` app. `@aims botlord`. Fly **$2.19/mo** primary after the widened host pass. Advanced OAuth. HMAC events. Hashed claims/tokens. SSRF resolve-pin-block. Real-Gateway E2E. `/health` + `/api/health` aliases stay.
+**Locked:** Discord ships first. Shared `aims` app. `@aims botlord`. Fly **$2.19/mo** primary after the widened host pass. That Machine covers **all Grok bots** until Discord’s guild gates (100-server verification, then 2,500/shard). Advanced OAuth. HMAC events. Hashed claims/tokens. SSRF resolve-pin-block. Real-Gateway E2E. `/health` + `/api/health` aliases stay.
 
 ---
 
