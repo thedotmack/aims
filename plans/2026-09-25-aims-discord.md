@@ -23,6 +23,8 @@ Alex’s framing: aims.bot exists to open a **two-way channel** between humans, 
 
 The rejected one-way incoming-webhook plan is dead. Incoming webhooks cannot receive `@mentions`.
 
+**Connect UX (locked to the auth review):** a Grok bot calls the aims API, gets a **claim + Discord install URL**, and the human does **one** Discord Authorize click. Details: [§ Bot auth review](#bot-auth-review-adversarial) and [`plans/2026-09-25-bot-auth-review.md`](./2026-09-25-bot-auth-review.md).
+
 ---
 
 ## Discord realities (honest)
@@ -187,6 +189,14 @@ CREATE TABLE IF NOT EXISTS discord_bindings (
 );
 CREATE INDEX IF NOT EXISTS idx_discord_bind_lookup
   ON discord_bindings (guild_id, channel_id);
+
+CREATE TABLE IF NOT EXISTS discord_claims (
+  code TEXT PRIMARY KEY,                 -- 'AIMS-7K2P'
+  page_id TEXT NOT NULL REFERENCES contact_pages(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
 `contact_messages` ALTERs:
@@ -275,26 +285,44 @@ Content-Type: application/json
 
 Vercel returns `{ "ok": true, "wakes": 1 }` or `{ "ok": true, "ignored": "no_mention" }`. Never echo secrets.
 
-### Owner connect (hand)
+### Owner / bot connect (claim — self-serve)
+
+Grok-style “connect me up with aims” (bot automates; human does one Discord click):
 
 ```
-GET /api/v1/pages/:slug/discord/install?token=own_…
-→ { "url": "https://discord.com/oauth2/authorize?…" }
-```
+POST /api/v1/pages
+{ "name": "botlord", "webhookUrl": "https://grok.example/aims" }
+→ { ownerToken, page }
 
-OAuth callback `GET /api/v1/discord/oauth/callback?code&guild_id&state` → HTML/JSON channel picker.
-
-```
-POST /api/v1/pages/:slug/discord
+POST /api/v1/pages/:slug/connect
 X-Owner-Token: own_…
-{ "guildId": "111", "channelId": "222", "handle": "botlord" }
+{ "channels": ["discord"] }
 ```
-
-Creates role + channel webhook, writes `discord_bindings`. Returns public bind (no webhook URL):
 
 ```json
 {
   "success": true,
+  "claim": "AIMS-7K2P",
+  "expiresAt": "2026-09-25T22:00:00.000Z",
+  "discord": {
+    "installUrl": "https://discord.com/oauth2/authorize?client_id=…&scope=bot%20applications.commands&permissions=…&redirect_uri=https%3A%2F%2Faims.bot%2Fapi%2Fv1%2Fdiscord%2Foauth%2Fcallback&response_type=code&state=<signed claim>"
+  }
+}
+```
+
+OAuth callback `GET /api/v1/discord/oauth/callback?code&guild_id&state`:
+
+- Verify signed claim (single-use, 30 min).
+- Exchange code (if needed) / trust `guild_id` from Discord’s bot install redirect ([OAuth2](https://discord.com/developers/docs/topics/oauth2)).
+- Bind `guild_id` + **`system_channel_id`** (or first text channel the bot can `SEND_MESSAGES` in). Handle = slugged page name.
+- Create mentionable role + channel webhook.
+- `POST` owner webhook:
+
+```json
+{
+  "event": "connect.ready",
+  "version": 1,
+  "page": { "slug": "abc123", "name": "botlord" },
   "discord": {
     "connected": true,
     "guildId": "111",
@@ -306,11 +334,28 @@ Creates role + channel webhook, writes `discord_bindings`. Returns public bind (
 }
 ```
 
-`DELETE` same path + owner token unbinds (leave the Discord role/webhook or delete them — delete if we created them).
+Human-facing success page: “`@botlord` is live. Wrong channel? Type `/aims here` there.”
 
-### Slash `/aims here [handle]`
+Manual / rebind (bot or edit UI, **no** second OAuth if the shared bot is already in the guild):
 
-HTTP interaction on Vercel. Same bind as `POST …/discord`, using `guild_id` + `channel_id` from the interaction. Handle defaults to the page name slugged; if `state`/link is missing, require the owner to have completed OAuth for that guild first (binding pending) **or** pass a one-time code from the edit screen.
+```
+POST /api/v1/pages/:slug/discord
+X-Owner-Token: own_…
+{ "guildId": "111", "channelId": "222", "handle": "botlord" }
+```
+
+`GET /api/v1/claims/AIMS-7K2P` → `{ status: "pending"|"bound"|"expired", discord? }` (no secrets).  
+`DELETE /api/v1/pages/:slug/discord` + owner token unbinds (delete role/webhook we created).
+
+Edit-screen **Add to Discord** is the same `installUrl` (claim minted server-side).
+
+### Slash commands
+
+HTTP interactions on Vercel ([Receiving and Responding](https://discord.com/developers/docs/interactions/receiving-and-responding)):
+
+- `/aims here [handle]` — move/create binding for **this** channel. Works after the bot is in the guild. Handle defaults to the page already bound to this guild, else the claim’s page.
+- `/aims claim AIMS-7K2P` — backup if the human has the code but used a vanilla invite (no `state`). Same bind as the OAuth callback.
+- `/aims ask [handle] [text]` — fallback invoke (not the mention path).
 
 ### Public contact
 
@@ -318,17 +363,32 @@ HTTP interaction on Vercel. Same bind as `POST …/discord`, using `guild_id` + 
 
 ---
 
-## Owner connect flow (few clicks)
+## Owner connect flow (locked)
 
-1. Owner (Alex or a bot with `ownerToken`) opens `/p/:slug/edit` (or `GET …/discord/install`).
-2. Clicks **Add to Discord** → Discord OAuth (`bot` + `applications.commands`).
-3. Picks the server → authorize.
-4. Redirect back to aims: list channels the bot can see (`GET /guilds/{id}/channels`, bot token). Owner picks the channel and confirms handle (default = page name, `[a-z0-9_]{2,32}`).
-5. aims creates mentionable role + channel webhook, saves the binding, shows “`@botlord` is live in #channel”.
+Matches rank-1 in [`plans/2026-09-25-bot-auth-review.md`](./2026-09-25-bot-auth-review.md).
 
-A Grok **bot** that cannot click OAuth: a human installs the shared bot on the server **once**; the bot then `POST /api/v1/pages/:slug/discord` with guild/channel/handle.
+1. **Bot (automated):** `POST /api/v1/pages` then `POST /api/v1/pages/:slug/connect { channels: ["discord"] }`. Shows the human `discord.installUrl` (and claim `AIMS-7K2P` as backup).
+2. **Human (unavoidable, 1 click):** open the link → pick server → Authorize. Discord will not add a bot without this ([OAuth2 bot scope](https://discord.com/developers/docs/topics/oauth2)).
+3. **aims (automated):** bind `guild_id` + default channel, create role + reply webhook, `connect.ready` wake.
+4. **Human (optional):** `/aims here` if the default channel is wrong.
 
 Permissions bits (install): `VIEW_CHANNEL`, `SEND_MESSAGES`, `SEND_MESSAGES_IN_THREADS`, `EMBED_LINKS`, `READ_MESSAGE_HISTORY` (proof + reply context), `MANAGE_ROLES`, `MANAGE_WEBHOOKS`, `USE_APPLICATION_COMMANDS` (via scope). Document the integer in code from Discord’s calculator; do not guess in the `/do`.
+
+---
+
+## Bot auth review (adversarial)
+
+Full review (Discord, Slack, Telegram, WhatsApp, iMessage, MCP OAuth 2.1 / RFC 7591 / CIMD, OpenAI/Claude/Grok signed webhooks, RFC 8628 device code, magic-link claims, email/SMS A2P 10DLC), ranked flows, and empty red-team slots:
+
+**[`plans/2026-09-25-bot-auth-review.md`](./2026-09-25-bot-auth-review.md)**
+
+### Red-team findings
+
+_(empty — second, different-model agent attacks the review next)_
+
+### Resolution
+
+_(empty — fold red-team findings here)_
 
 ---
 
@@ -336,7 +396,7 @@ Permissions bits (install): `VIEW_CHANNEL`, `SEND_MESSAGES`, `SEND_MESSAGES_IN_T
 
 ### Phase 1 — schema + wake reuse
 
-**What:** `discord_bindings` + message ALTERs in `ensureContactTables()`. Extend `ownerWebhookPayload` with optional `discord` + `reply` (only when source is Discord). `createReplyToken()`. Loop-guard helpers.
+**What:** `discord_bindings` + `discord_claims` + message ALTERs in `ensureContactTables()`. Extend `ownerWebhookPayload` with optional `discord` + `reply` (only when source is Discord). `connect.ready` payload. `createReplyToken()` / `createClaim()`. Loop-guard helpers.
 
 **Copy from:** `lib/db.ts` ALTER pattern; `ownerWebhookPayload` / `deliverOwnerWebhook` in `lib/contact-pages.ts`.
 
@@ -350,8 +410,10 @@ Permissions bits (install): `VIEW_CHANNEL`, `SEND_MESSAGES`, `SEND_MESSAGES_IN_T
 
 - `app/api/v1/discord/events/route.ts` — HMAC, mention resolve, persist, `deliverOwnerWebhook`, post ack to Discord.
 - `app/api/v1/pages/[slug]/messages/[id]/reply/route.ts` — async reply.
-- `app/api/v1/pages/[slug]/discord/route.ts` + `install` + oauth callback.
-- `app/api/v1/discord/interactions/route.ts` — PING + `/aims here` + `/aims ask`.
+- `app/api/v1/pages/[slug]/connect/route.ts` — mint claim + Discord `installUrl`.
+- `app/api/v1/pages/[slug]/discord/route.ts` + oauth callback (claim in `state`, default-channel bind).
+- `app/api/v1/claims/[code]/route.ts` — poll `pending|bound|expired`.
+- `app/api/v1/discord/interactions/route.ts` — PING + `/aims here` + `/aims claim` + `/aims ask`.
 - `lib/discord.ts` — REST helpers (create message, execute webhook, create role, create webhook, list channels). Redact URLs. `allowed_mentions` policy.
 
 Set Vercel **Interactions Endpoint URL** to `https://aims.bot/api/v1/discord/interactions`.
@@ -408,7 +470,7 @@ Script must `set +x` around secret use; redact URLs in all `echo`.
 1. Curl `/api/v1/health`, `/api/health`, `/health` — 200, `product=linktree`, `db=connected`.
 2. `POST /api/v1/inbox` → owner stand-in (returns `ack: inbox-received`).
 3. `POST /api/v1/pages` with that inbox as `webhookUrl`, name `botlord`.
-4. Bind Discord via owner API (`POST …/discord`) **or** a proof-only admin bind if OAuth was already done on the proof guild. If bind needs a live guild, the house token’s bot must already be in that server (see Needs).
+4. Bind Discord via owner API (`POST …/discord`) **or** `POST …/connect` + signed events (proof guild already has the bot). If bind needs a live guild, the house token’s bot must already be in that server (see Needs).
 5. Simulate inbound: `POST /api/v1/discord/events` with a signed fake `MESSAGE_CREATE` that `@mention`s the binding (role id or bot id + content `hello from discord-proof`). This proves Vercel wake **without** the worker.
 6. Assert inbox payload is `contact.message`, `discord.handle=botlord`, `reply.url` present.
 7. Inbox already returned `ack: inbox-received` on the wake — Vercel should have posted that string to Discord.
