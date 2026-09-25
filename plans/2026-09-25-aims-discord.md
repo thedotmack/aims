@@ -119,7 +119,7 @@ Do not ship this hop.
 
 ### 2. Monthly cost on our plan
 
-**Could not confirm the `aims` project team from this token.** `get_auth_user` shows the personal account is **Hobby** (`billing.plan: hobby`). Team IDs on the account (`use-the-other-team-claude`, `claude-mem-oss`, `claude-mem`) returned **403**. Failed invoices totaling **$324** (Alex; card retries Sep 25–26) are consistent with a **Pro team** — Hobby has no invoices. Show both. Hobby is **non-commercial** ([Fair Use](https://vercel.com/docs/limits/fair-use-guidelines), [Hobby plan](https://vercel.com/docs/plans/hobby)). aims.bot as a product is commercial → Pro is the honest Vercel tier even without a Gateway.
+**Treat Vercel as a stable host** (Alex can pay; payment hold is about credits, not risk). Could not confirm the `aims` project team from this token: `get_auth_user` shows the personal account is **Hobby** (`billing.plan: hobby`); team IDs returned **403**. Show Hobby and Pro math anyway. Hobby is **non-commercial** ([Fair Use](https://vercel.com/docs/limits/fair-use-guidelines), [Hobby plan](https://vercel.com/docs/plans/hobby)); aims.bot as a product is commercial, so Pro is the honest Vercel tier even without a Gateway.
 
 Hours/month used below: **730**. Function rates **iad1** ([iad1 pricing](https://vercel.com/docs/pricing/regional-pricing/iad1)): Fluid Active CPU **$0.128/h**, Provisioned Memory **$0.0106/GB-h**. Sandbox iad1 ([Sandbox pricing](https://vercel.com/docs/sandbox/pricing)): Active CPU **$0.128/h**, Provisioned Memory **$0.0212/GB-h**. Min sandbox is 1 vCPU / 2 GB.
 
@@ -131,13 +131,7 @@ Hours/month used below: **730**. Function rates **iad1** ([iad1 pricing](https:/
 | **Fly gateway** (recommended) | n/a | **$2.19/mo** (`shared-cpu-1x` 256 MB from 2026-10-01). Does not add Vercel usage. |
 | **Pro platform itself** | n/a | **$20/mo** seat + **$20 credit** ([Pro plan](https://vercel.com/docs/plans/pro)). Already owed if aims is on a billed team. |
 
-### 3. Failed-payment risk
-
-Official Pro billing FAQ ([What happens when I cannot pay?](https://vercel.com/docs/plans/pro/billing)): when overdue you **cannot create projects, add team members, or redeploy**. For subscription renewals, if payment is not successful **within 14 days, all deployments on the account are paused**. No extensions.
-
-Alex’s **3 failed invoices / $324** (not readable from this agent’s Vercel/Gmail token) already sit on that path. Putting the mention listener on Vercel **couples `@aims` delivery to the same card that is already failing**. A Fly worker keeps heartbeating if Vercel deploys are paused (owner wakes would still fail, but the socket and Fly `/health` stay diagnosable). That is an argument **against** concentrating the listener on Vercel, and **for** fixing the card regardless.
-
-### 4. Hybrid vs interactions-only
+### 3. Hybrid vs interactions-only
 
 **Mentions require the Gateway.** Discord Interactions (slash, message context-menu) are HTTP POSTs to an Interactions Endpoint, Ed25519-verified, 3s first response. They are **not** `@mentions`. ([Receiving and Responding](https://discord.com/developers/docs/interactions/receiving-and-responding); this plan’s Phase 0.)
 
@@ -154,7 +148,6 @@ Alex’s **3 failed invoices / $324** (not readable from this agent’s Vercel/G
 1. **Ship hybrid B:** Fly holds **one** Gateway connection 24/7; Vercel does OAuth, Interactions, HMAC events, hardened wakes, health aliases.
 2. **Do not** put the Discord Gateway on Fluid, Sandbox, Workflows, Queues, or cron-restarted Functions.
 3. **Interactions-only (A) is the only honest Vercel-only option.** Use it only if Alex explicitly drops `@aims botlord` mentions for v1. That is a product cut, not a hosting win.
-4. Fix the Vercel card. Do not add more always-on compute to that bill.
 
 ---
 
@@ -680,9 +673,6 @@ True minimum. For each: what, where it goes, whether an agent can do it.
 
 6. **One real human Gateway message** for ship proof (skip if interactions-only).
    - **Human types** `@aims botlord <unique nonce>` in the proof channel from a **non-bot** account. Script then verifies the wake and the Discord API reply. Agent cannot substitute a synthetic event for this step.
-
-7. **Fix the Vercel card** on the billed team (3 failed invoices / $324, retries Sep 25–26).
-   - **Human.** Overdue Pro accounts cannot redeploy; after 14 days Vercel **pauses all deployments** ([Pro billing FAQ](https://vercel.com/docs/plans/pro/billing)). Independent of Fly.
 
 **Not needed from humans:** creating per-Grok Discord apps; `MESSAGE_CONTENT` portal toggle or verification form; Railway production account; paying for Render / CF Workers Paid; putting a proof webhook on Vercel; a Vercel Sandbox or Fluid “always-on” Gateway.
 
