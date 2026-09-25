@@ -1,7 +1,7 @@
 # Bot auth review (adversarial)
 
 Date: 2026-09-25
-Status: **awaiting Alex green + red-team pass**. A second, different-model agent will attack these conclusions. `### Red-team findings` and `### Resolution` are left empty on purpose.
+Status: **awaiting Alex green + red-team pass**. A second, different-model agent will attack these conclusions — including **§11 Photon** and **§12 Bird**. `### Red-team findings` and `### Resolution` are left empty on purpose.
 Parent plan: [`plans/2026-09-25-aims-discord.md`](./2026-09-25-aims-discord.md)
 
 ## Goal
@@ -173,13 +173,15 @@ Requires an Apple-approved **MSP**. Not consumer iMessage. Live-agent escalation
 **(b) Automate after MSP webhook exists:** reply `POST /message`.  
 **(c)/(d):** Policy-heavy, MSP fees, not a Grok toy channel. **v1 no.**
 
-**Unofficial — BlueBubbles / Mac relay, Sendblue, LoopMessage**
+**Unofficial — BlueBubbles / Mac relay, Sendblue, LoopMessage, and Photon Spectrum cloud lines**
 
-These relay consumer iMessage through a Mac/phone or a vendor’s Apple IDs. Apple does **not** publish a consumer iMessage API. Vendor ToS and Apple’s ToS both allow suspension for automation/spam. aims.bot must **not** ship or recommend these as a product path. Deep-links (`imessage:`, `sms:`) on the Linktree stay as **human tap-to-open**, not a bot channel.
+These relay consumer iMessage through a Mac/phone or a vendor’s Apple IDs / managed lines. Apple does **not** publish a consumer iMessage API. Vendor ToS and Apple’s ToS both allow suspension for automation/spam. aims.bot must **not** ship or recommend these as a product path. Deep-links (`imessage:`, `sms:`) on the Linktree stay as **human tap-to-open**, not a bot channel.
 
-**(a)** Mac always-on + Apple ID login (BlueBubbles) or vendor signup + API key (Sendblue/Loop).  
-**(b)** HTTP send/receive once the relay exists.  
-**(c)** Token theft = hijack someone’s iMessage; impersonation is the product; ToS nuke.  
+Photon (photon.codes) is the named candidate Alex asked about — full write-up in **§11**. Same hard-no as the rest for **consumer iMessage**. Official business path stays Messages for Business + MSP (Bird can be that MSP later; see **§12**).
+
+**(a)** Mac always-on + Apple ID login (BlueBubbles / Photon `@spectrum-ts/imessage-local`) or vendor signup + API key (Sendblue / Loop / Photon cloud).  
+**(b)** HTTP send/receive once the relay exists. Photon cloud is truly two-way (HMAC webhooks).  
+**(c)** Token theft = hijack someone’s iMessage; impersonation is the product; Apple “family and friends, not commercial” + ToS nuke.  
 **(d)** Account bans, no SLA. **Hard no.**
 
 ---
@@ -285,7 +287,193 @@ aims-native (no new vendor). Same claim as §cross-cutting.
 **(a)** Console or API brand → wait → campaign → wait → number. Many humans.  
 **(b)** Send/receive after approval.  
 **(c)** 10DLC exists because of spam; STOP/HELP required; loop via SMS is expensive (good).  
-**(d)** Vetting delays, carrier filters, $ brand/campaign fees + per SMS. **v1 no.**
+**(d)** Vetting delays, carrier filters, $ brand/campaign fees + per SMS. **v1 no.** Bird (§12) is a later aggregator for this row, not a way around 10DLC.
+
+---
+
+## 11. Photon (Spectrum) — iMessage tooling
+
+**Confirmed product (high confidence — this is the one Alex means).**  
+**Photon / Spectrum** at [photon.codes](https://photon.codes). Agent messaging infrastructure whose flagship is a **managed consumer-iMessage API**, plus SMS/RCS fallback, WhatsApp Business, Telegram, SIP voice on those lines, and a local Mac Messages-db adapter. Product name in docs is **Spectrum**; company is Photon (`photon-hq` on GitHub).
+
+| Source | URL |
+|---|---|
+| Home | [photon.codes](https://photon.codes) |
+| Pricing | [photon.codes/pricing](https://photon.codes/pricing) |
+| Docs | [photon.codes/docs](https://photon.codes/docs) (index also at [docs.photon.codes/docs/llms.txt](https://docs.photon.codes/docs/llms.txt)) |
+| iMessage provider | [docs: cloud vs local](https://photon.codes/docs/spectrum-ts/providers/imessage) |
+| Webhooks | [docs: HMAC webhooks](https://photon.codes/docs/spectrum-ts/webhooks) |
+| Management API | [docs: API](https://photon.codes/docs/api-reference) — `https://spectrum.photon.codes` |
+| Dashboard / ToS | [app.photon.codes](https://app.photon.codes) / [Terms](https://app.photon.codes/terms-of-service) (effective 2026-07-13 / 2026-08-12) |
+
+**Confidence:** **high (~90%)**. Alex said “iMessage tooling.” photon.codes is the only well-known **Photon** whose product *is* iMessage tooling for agents. If he meant something else, these are the collisions:
+
+| Candidate | What it is | iMessage? |
+|---|---|---|
+| **Photon / Spectrum (`photon.codes`)** | Agent messaging + managed iMessage lines | **Yes — pick this** |
+| Photon Engine (`photonengine.com`) | Game netcode (PUN / Fusion) | No |
+| VMware Photon OS | Container Linux distro | No |
+| Intel / optics “Photon” | Hardware / research, not a chat API | No |
+| Random Photon lighting / camera / crypto products | Unrelated | No |
+
+Ask Alex only if he did **not** mean “the iMessage agent API.” Otherwise lock this.
+
+**Channels unlocked**
+
+| Channel | How | Notes |
+|---|---|---|
+| **iMessage (consumer)** | Cloud: `@spectrum-ts/imessage` on managed shared or dedicated lines. Local: `@spectrum-ts/imessage-local` reads `~/Library/Messages/chat.db` on a signed-in Mac. | DMs, groups (Business+), reactions, effects, attachments, polls / iOS 26 features. **Not** Apple Messages for Business. **Not** an official Apple bot API. |
+| **SMS / RCS** | Fallback on the same lines | Included on Free/Pro/Business. TCPA / A2P still apply (their ToS). |
+| **WhatsApp Business** | Official Cloud API provider | Marketing site + Business/Enterprise tiers. Same Meta humans as §4. |
+| **Telegram** | Bot API via Fusor webhooks | Included even on Free. Does not beat `t.me/aimsbot?start=CLAIM`. |
+| **SIP voice** | On iMessage lines | Business+. Not a group @mention channel. |
+| **Discord / Slack** | Marketing mentions; docs say “built for later” / `definePlatform` custom providers | **Not** a reason to buy Photon. We already plan first-party Discord + Slack. |
+
+**Two-way?** **Yes.** Inbound + outbound. Two receive modes: long-lived `app.messages` stream, or HTTP `POST` via `app.webhook()` (native HMAC-SHA256 over `v0::` + 5-minute replay window, or Fusor protobuf with the provider’s own signature). Handler is fire-and-forget after the HTTP ack; dedupe on `message.id`. Management API can CRUD webhook URLs once `projectId` + `projectSecret` exist.
+
+**Automated connecting (clicks vs API)**
+
+Cloud iMessage is **not** “one Authorize click.”
+
+1. **Human (once, house):** create a Photon dashboard account, create a project, copy `PROJECT_ID` / `PROJECT_SECRET`. No public “create account” API — dashboard / CLI device-flow / OAuth 2.1 for *Photon users*, not for aims owners.
+2. **Bot after that:** management API (Basic `projectId:projectSecret`) can issue iMessage tokens, toggle platforms, register webhooks. Runtime send/receive is SDK or webhook.
+3. **Each Grok owner “connect me up”:** Free/Pro use **managed shared numbers** — Photon assigns each of *their* users a fresh number they have never been texted from. Connect UX is “text this number,” not an OAuth install. Business ($250/line/mo) is one dedicated number everyone texts. Local path: a Mac always on, Messages signed in, Full Disk Access.
+4. **Cannot** mint an Apple-blessed iMessage identity over an API. Cannot skip dashboard signup. Cannot make `@botlord` appear as a consumer iMessage handle without a phone line Photon controls.
+
+Compare Discord: 1 human Authorize. Photon: account + project + (shared number assignment or $250 line) + the other human texting that number.
+
+**(a) Fewest human clicks:** Photon signup → create project → give aims the secret → give the other human a phone number to text. Several humans. Not self-serve for a stranger bot.  
+**(b) Bot can automate:** after secrets exist — tokens, webhooks, send/reply. **Cannot** create the Photon org, cannot create an Apple ID, cannot legally stand up consumer iMessage.
+
+**Pricing (checked 2026-09-25, [photon.codes/pricing](https://photon.codes/pricing))**
+
+Cash is tight. Photon’s free tier is real, then it jumps.
+
+| Plan | Money | Caps |
+|---|---|---|
+| **Open source / local** | $0 + your Mac | Your iCloud / phone as the agent number. Always-on box. Same unofficial risk as BlueBubbles. |
+| **Free** | **$0** | Managed **shared** numbers. iMessage + SMS/RCS + Telegram. **10 users.** “Unlimited daily messages with Auto Scale” on the card; comparison table also shows daily-message footnotes — treat 10 users as the hard cap. |
+| **Pro** | **$25/mo** | Shared numbers. **100 users.** Same channel set. |
+| **Business** | **$250 / line / mo** | **Dedicated** iMessage line. Unlimited users (Auto Scale). Groups, cold outreach up to **50 new contacts/day**, WhatsApp, phone. |
+| **Enterprise** | Custom | Own the numbers, SLA. |
+
+No published per-iMessage fee on Free/Pro (bundled). SMS/RCS “included” still sits under their TCPA/A2P ToS — do not assume carrier-free bulk SMS. WhatsApp on Business/Enterprise is **custom**, not a published $0.005.
+
+**Abuse / ToS (Apple + Photon)**
+
+Apple, [Messages & Privacy](https://www.apple.com/legal/privacy/data/en/messages/) (updated 2025-12-12): *“iMessage is intended for communicating with family and friends, and is not for conducting commercial activities or disseminating unwanted messages. iMessage misuse may result in service limitations.”*
+
+Official commercial path is **Apple Messages for Business** + an approved MSP ([Apple FAQ](https://register.apple.com/resources/messages/messaging-documentation/faq)): registered business, one commercial account, no group chat with the business, say “Apple Messages” not “iMessage.” Photon cloud lines are **consumer iMessage**, not M4B.
+
+Photon [ToS](https://app.photon.codes/terms-of-service): you are solely responsible for TCPA, FCC, CAN-SPAM, CTIA, **A2P/10DLC**; affirmative opt-in; STOP/UNSUBSCRIBE; no spam; they may suspend immediately; **you indemnify them** for carrier fines; liability cap is fees paid in 12 months or **$100**. They do **not** claim Apple authorized commercial consumer-iMessage bots. Business tier literally sells **cold outreach** (50 new contacts/day) — that is the opposite of Apple’s “family and friends” sentence.
+
+Local Mac path: Full Disk Access to `chat.db` = the agent *is* that Apple ID. Ban = that person’s iMessage dies.
+
+**(c) table**
+
+| Risk | Mitigation if we ever touched this (we should not) |
+|---|---|
+| Spoofing inbound | HMAC webhook secret; reject skew > 5 min. |
+| Token theft | `projectSecret` is full control. Rotate via CLI. Never public JSON. |
+| Spam / 10DLC | Photon’s problem and **ours** (indemnify). STOP/HELP. |
+| Impersonation | Shared-pool numbers are not `@botlord`. Dedicated line is a rented phone, not a Discord role. |
+| Replay | `message.id` + HMAC window. |
+| Loops | Same hop/cooldown. iMessage groups make amplification worse. |
+| **Apple policy** | **No mitigation that keeps consumer iMessage.** Use M4B or do not ship. |
+
+**(d) Where it breaks / verdict vs building it ourselves**
+
+Photon does **not** beat building Discord (or Telegram, or Slack) ourselves. Those have official bot APIs, $0 channel cost, and a one-click/tap connect. Photon does **not** beat building official iMessage ourselves either — the official product is M4B + MSP, which Photon is not.
+
+What Photon *does* buy is unofficial consumer-iMessage plus a TS SDK. That is the same class as Sendblue / LoopMessage, with a nicer free tier (10 users, $0) and a worse Apple-policy story if we productize it. **Do not ship. Do not recommend as the aims iMessage path.** Revisit only if Apple blesses a consumer bot API or we later pick an MSP for Messages for Business (Bird can be that, §12).
+
+---
+
+## 12. Bird (formerly MessageBird)
+
+**Confirmed product (high confidence — this is the one Alex means).**  
+**Bird** at [bird.com](https://bird.com), the CPaaS formerly **MessageBird**. Multichannel messaging API (email, SMS, WhatsApp, RCS, voice, social, Apple **Business** Chat). Docs: [docs.bird.com](https://docs.bird.com). Pricing index: [bird.com/pricing](https://bird.com/pricing). Not consumer iMessage; not Photon.
+
+**Confidence:** **high (~95%)**. “Bird, formerly MessageBird, multichannel messaging API” matches bird.com exactly. Collision worth naming: **Bird** the email client / other “Bird” apps — none are the CPaaS. If Alex meant a different Bird, he would not have said MessageBird.
+
+**Channels unlocked** (Channels API inbound list, [message status and interactions](https://docs.bird.com/api/channels-api/message-status-and-interactions))
+
+| Channel | Two-way inbound event | Official? |
+|---|---|---|
+| **SMS / MMS** | `sms.inbound` | Yes (carriers + **A2P 10DLC** in the US) |
+| **WhatsApp** | `whatsapp.inbound` / `whatsapp.received` | Yes (Meta Cloud API behind Bird) |
+| **Email** | `email.inbound` | Yes |
+| **RCS** | interactions (read/click/unsubscribe) | Yes (Google / carrier RCS) |
+| **LINE, Instagram, Facebook, Viber, LinkedIn, TikTok, Telegram** | `.inbound` per platform | Yes, each network’s rules |
+| **Apple Business Chat** | `apple business chat` inbound | Yes — **Messages for Business**, not consumer iMessage |
+| **Voice / push** | product pages; not the group-mention path | Yes |
+| **Consumer iMessage** | — | **No** |
+
+**Two-way?** **Yes**, when you subscribe. Bird POSTs signed JSON. Current Notifications API follows **Standard Webhooks** (`webhook-id`, `webhook-timestamp`, `webhook-signature`, `whsec_` secret, 5-minute skew, at-least-once, ~27.5h retries) — [webhooks](https://docs.bird.com/api/notifications-api/api-reference/webhook-subscriptions). Older Channels subscriptions also support a Twilio-shaped template and a `signingKey` you set. Inbound is optional: “only needed if you need to receive inbound messages (2-way).” Outbound without a webhook is one-way.
+
+**Automated connecting (clicks vs API)**
+
+Bird is **API-friendly after a workspace exists**. It is **not** “connect me up with aims” in one click.
+
+1. **Human (once, house):** create a Bird workspace. Test API key is instant. Production unlocks after a **payment method** + **verify a sender** ([US SMS pricing page](https://bird.com/en-us/products/sms/pricing/us)).
+2. **Email:** verify a domain (DNS). Free plan, **no card**, 1,000 emails/mo ([email pricing](https://bird.com/pricing/email)).
+3. **SMS US:** rent a number (API) + **10DLC Brand + Campaign** (TCR). Humans/docs/legal entity. Same wall as Twilio §10.
+4. **WhatsApp:** connect a number / WABA. Meta business verification, display-name review, **templates**, **24h service window** — Bird does not waive Meta. Bot can submit templates; Meta still approves.
+5. **Apple Business Chat:** Apple business registration + MSP relationship + Apple review. Days to weeks. Same as §5 official.
+6. **Webhooks:** **bot can** `POST /v1/webhooks` or `bird webhooks create` once it has a key with `webhooks:write`. No extra human click to attach the URL.
+
+A Grok bot **cannot** finish Meta or 10DLC or Apple review. After those exist, the bot can send, subscribe to inbound, and reply. Number rent is API (`/pricing/numbers`).
+
+**(a) Fewest humans:** workspace + (domain **or** 10DLC **or** Meta **or** Apple). Many.  
+**(b) Bot automates:** keys, numbers, webhooks, send/receive **after** the channel is verified. Cannot skip verification.
+
+**Pricing (checked 2026-09-25; cash tight)**
+
+Bird’s pitch: no platform fee, no per-seat, pay for use. That is **not** free SMS/WhatsApp.
+
+| Item | Published rate | Source |
+|---|---|---|
+| **Email Free** | **$0**, 1,000 emails/mo, **no card**, no time limit. Sandbox does not count. | [bird.com/pricing/email](https://bird.com/pricing/email) |
+| Email Startup | from **$15/mo** (50k) / **$30/mo** (100k) | same |
+| Email Growth | from **$80/mo** | same |
+| Dedicated IP | **$24.95/mo** (Growth+) | same |
+| **SMS US** long code / toll-free | **$0.0035 / segment** outbound; short code $0.0070. **Carrier fees extra** (e.g. AT&T $0.0035 in + out). | [bird.com/pricing/sms](https://bird.com/pricing/sms), [fees](https://bird.com/en-us/pricing/sms/fees) |
+| **US number rental** | Local **$1/mo**, toll-free **$2/mo** | [bird.com/pricing/numbers](https://bird.com/pricing/numbers) |
+| **10DLC** | Brand **$4.50**; campaign submission **$15**; monthly campaign **~$10** typical (low-volume **$1.50**, some use-cases $30) | [SMS fees](https://bird.com/en-us/pricing/sms/fees) |
+| **WhatsApp US** (Bird + Meta combined, per delivered) | Marketing **$0.030**; Utility / Auth **$0.0084**; Service **$0.0084** from **2026-10-01** (1,000 free service msgs / business number / month) | [bird.com/pricing/whatsapp](https://bird.com/pricing/whatsapp) |
+| RCS / other | Marketing pages have quoted RCS from **$0.005/msg** + passthrough; treat as indicative and re-check the live country table before buying | [bird.com/pricing](https://bird.com/pricing) / marketing-v2 |
+
+No monthly **platform** minimum if you only use email Free. First **SMS** number is $1/mo + 10DLC fees + per segment. First **WhatsApp** production path is Meta + Bird processing + category rates. Flows (if we used their automation) have been listed around **$0.05 / invocation** on older marketing pages — do not use Flows for v1.
+
+**Abuse / ToS (WhatsApp / Meta / A2P)**
+
+Bird is a pipe. **Meta and the carriers still rule.**
+
+- **WhatsApp:** opt-in, quality rating, messaging limits, **approved templates** outside the 24h window, display-name review, unverified WABA caps. Bird’s `whatsapp.received` does not let us cold-text the world.
+- **SMS US A2P 10DLC:** Brand + Campaign at TCR; STOP/HELP; campaign rejection; carrier filters. Bird publishes the fees; we still fill the forms and eat the fines (same as Twilio).
+- **Apple Business Chat:** Apple Service Terms + MSP + live-agent rules from §5. Still not `@botlord` in a friends’ iMessage group.
+- **Telegram / social:** each network’s bot policy. Telegram via Bird is **worse** than a shared `@aimsbot` deep link we host ourselves (extra vendor, extra $).
+
+Spoofing: verify Standard Webhooks (or Channels `signingKey`). Token theft: workspace key = send-as-us on every connected channel — encrypt, rotate. Replay: `webhook-id`. Loops: hop cap; SMS/WhatsApp loops are **expensive**, which is a natural brake. Spam: the whole reason 10DLC and Meta templates exist.
+
+**(c) table**
+
+| Risk | Mitigation |
+|---|---|
+| Spoofing | Standard Webhooks unwrap; reject skew > 5 min. |
+| Token theft | Least-privilege keys (`webhooks:write` ≠ blast-all-channels if we can split). Never public. |
+| Spam / 10DLC / Meta | Do not send without Brand+Campaign / WABA. Honor STOP and WhatsApp opt-in. |
+| Impersonation | Alphanumeric / WhatsApp display name are reviewed; still not a Discord role. |
+| Replay | `webhook-id` idempotency. |
+| Loops | Hop ≤ 3; never auto-reply to our own sender IDs. |
+
+**(d) Where it breaks / verdict vs building it ourselves**
+
+Bird does **not** beat building **Discord, Telegram, or Slack** ourselves. Those are $0, official, and closer to “one click.” Bird does **not** unlock consumer iMessage.
+
+Bird **can** beat building **WhatsApp + SMS + RCS + email + M4B** as four separate vendors later: one webhook style (Standard Webhooks, same as OpenAI/Claude), one number API, published PAYG. That is an aggregator decision for **rank 7–10**, not a reason to skip Discord. Cash-tight v1: use Bird’s **email Free** only if we want inbound email without Postmark; do **not** rent SMS/WhatsApp until a real demand shows up.
+
+**Do not** put Bird in front of Discord. **Do** keep it on the short list as the CPaaS if/when we leave the $0 channels.
 
 ---
 
@@ -299,11 +487,13 @@ aims-native (no new vendor). Same claim as §cross-cutting.
 | 4 | aims claim / magic-link / RFC 8628 device code | 1 click or type code | Pairing layer for all of the above |
 | 5 | MCP OAuth 2.1 + CIMD (DCR fallback) | 1 consent screen | Agent/IDE connect, not Discord mentions |
 | 6 | Signed Standard Webhooks (OpenAI/Claude-compatible headers on aims wakes) | 0 if `webhookUrl` already set | Additive on existing bot2bot |
-| 7 | Email inbound | DNS once | Later |
-| 8 | WhatsApp Cloud API | Meta verify + phone + 24h/templates | Not v1 |
-| 9 | SMS A2P 10DLC | Brand + campaign + number | Not v1 |
-| 10 | Apple Messages for Business + MSP | Business + MSP + Apple review | Not v1 |
-| — | Unofficial iMessage (BlueBubbles / Sendblue / LoopMessage) | — | **Do not ship** |
+| 7 | Email inbound (Postmark/Resend **or later Bird Free** — 1k/mo, $0, no card) | DNS once | Later |
+| 8 | WhatsApp Cloud API (**self or Bird** as aggregator — Meta rules unchanged) | Meta verify + phone + 24h/templates | Not v1 |
+| 9 | SMS / RCS A2P 10DLC (**Twilio or Bird** — US number ~$1/mo + brand/campaign + ~$0.0035/segment + carrier fees) | Brand + campaign + number | Not v1 |
+| 10 | Apple Messages for Business + MSP (**Bird can be the MSP**; still not consumer iMessage) | Business + MSP + Apple review | Not v1 |
+| — | **Bird** as the Discord/Telegram/Slack layer | Workspace + sender verify | **Reject** — does not beat building those |
+| — | **Photon Spectrum** as the Discord/Telegram/Slack layer | Photon account + project | **Reject** — first-party APIs already win |
+| — | Unofficial iMessage (**Photon cloud/local**, BlueBubbles, Sendblue, LoopMessage) | Mac or vendor line | **Do not ship** |
 | — | Per-owner Discord/Slack/Telegram app tokens as the default | Portal + intents per bot | Reject for v1 |
 
 ### Rank-1 Discord self-serve (locked)
@@ -335,7 +525,7 @@ Everything else is the Grok bot.
 
 ### Red-team findings
 
-_(empty — second agent fills this)_
+_(empty — second, different-model agent fills this. In scope: ranks 1–10, the Discord self-serve lock, **§11 Photon** (product identity, Apple consumer-iMessage ToS, $0/10-user vs $25/$250, “does not beat building Discord”), and **§12 Bird** (MessageBird confirmation, two-way Standard Webhooks, Meta/A2P humans, PAYG vs building Discord, later-aggregator-only).)_
 
 ### Resolution
 
