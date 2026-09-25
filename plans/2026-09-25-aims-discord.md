@@ -17,7 +17,7 @@ Alex’s framing: aims.bot exists to open a **two-way channel** between humans, 
 | Shared app vs per-owner tokens | **Shared aims.bot app** | One install link. One gateway socket. Per-owner tokens mean N apps, N intents, N secrets. |
 | How `botlord` resolves | **`@aims botlord` or `/aims ask botlord`** | One app = one username. Role/webhook impersonation is confusable and needs `MANAGE_ROLES` / `MANAGE_WEBHOOKS` / `MESSAGE_CONTENT`. App mentions include content without the privileged intent. |
 | Listener | **Hybrid (c)** | Mentions are Gateway `MESSAGE_CREATE`. Worker holds the WebSocket; Vercel keeps DB, wake, OAuth, slash `/aims`, Discord REST. |
-| Host | **Fly.io $2.19/mo** | Near-free, always-on, not credit-exhaust. Railway Free is **dev only**. Railway Hobby ($5) is the fallback. Vercel Fluid WS close at max duration — not the Gateway. |
+| Host | **Fly.io $2.19/mo** | Near-free, always-on, not credit-exhaust. Railway Free is **dev only**. Railway Hobby ($5) is the fallback. Vercel Fluid / Sandbox / Workflows / Queues / cron **cannot** hold the Discord Gateway 24/7 (see [Vercel-only vs Fly](#vercel-only-vs-fly-vs-hybrid-alex-2026-09-25)). |
 | Intents | `GUILDS` + `GUILD_MESSAGES` only (`1 \| 512 = 513`) | Filter to messages that **@mention the app**. No `MESSAGE_CONTENT`. |
 | Reply path | **Both** sync `{ ack }` and async `reply.url` | Today’s 8s webhook already returns `ack`. `message.replyTo` is set on Discord-originated wakes. |
 | Connect | **Advanced OAuth code grant** | Ordinary bot install is callback-less. Scopes `bot applications.commands identify` + Require OAuth2 Code Grant. Verify membership via REST. |
@@ -79,7 +79,82 @@ Vercel Fluid Functions can open WebSockets but **close at max duration** — a p
 
 **Pick: Fly.io `shared-cpu-1x` 256 MB = $2.19/mo (from 2026-10-01).** Same tiny Bun/Node `ws` Identify + heartbeat + `@aims`-mention filter (not discord.js). Railway Free is **dev only**. Fallback if Fly is refused: Railway Hobby **$5/mo**. Do not redesign the image when moving hosts.
 
-Do **not** pick interactions-only. Do **not** pick Render Free. Do **not** pick Railway Free for production. Do **not** pick CF DO for v1. Do **not** pick Vercel as the Gateway.
+Do **not** pick interactions-only as the mention product. Do **not** pick Render Free. Do **not** pick Railway Free for production. Do **not** pick CF DO for v1. Do **not** pick Vercel as the Gateway (research below).
+
+---
+
+## Vercel-only vs Fly vs hybrid (Alex, 2026-09-25)
+
+Alex asked whether we should skip Fly and keep the listener on Vercel, because Vercel now has long-running / persistent compute. **Checked official Vercel docs and pricing only (plus Discord Gateway docs for Identify/RESUME).** Verdict: **no — do not host the Discord Gateway on Vercel.** Keep Fly for `@aims` mentions. Keep slash `/aims` on Vercel HTTP.
+
+### What Vercel actually offers (verified)
+
+| Product | What the docs say it is | Holds a Discord Gateway WS 24/7? |
+|---|---|---|
+| **Fluid compute** | Hybrid serverless; default on new projects since 2026-04-23. Default/max duration Hobby **300s**; Pro **800s** GA, **1800s** (30 min) beta. ([Fluid compute](https://vercel.com/docs/fluid-compute), [duration](https://vercel.com/docs/functions/configuring-functions/duration)) | **No.** Instance dies at `maxDuration`. |
+| **Vercel Functions + WebSockets (beta)** | Functions can **serve inbound** WebSocket upgrades. “WebSocket connections close when a Vercel Function reaches its maximum duration.” Require Fluid. Priced as Function usage. ([WebSockets](https://vercel.com/docs/functions/websockets)) | **No.** Documented sockets are **inbound** (clients connect *to* the function). Discord Gateway is an **outbound** client to `wss://gateway.discord.gg`. Even an outbound socket opened during an invocation is killed at max duration + `SIGTERM` (500 ms, or 30s for containers). ([Functions API](https://vercel.com/docs/functions/functions-api-reference)) |
+| **Vercel Sandbox** | Isolated microVMs for agent/untrusted code. Persistence = **filesystem snapshot** on stop/resume, not a live process. Max **session** Hobby **45 min**, Pro/Enterprise **24 hours**. Lifetime of a *named* sandbox is unbounded only by stop/resume cycles. ([Sandbox](https://vercel.com/docs/sandbox), [Sandbox pricing](https://vercel.com/docs/sandbox/pricing)) | **No 24/7 live socket.** A session can hold a process for at most 45 min (Hobby) or 24 h (Pro), then must stop and resume — that drops the WS. |
+| **Workflows (WDK)** | Durable steps that **pause and resume** for minutes to months. “For workloads that require unlimited execution time, use Vercel Workflows.” State is stored; Functions execute steps. ([Workflows](https://vercel.com/docs/workflows), [duration](https://vercel.com/docs/functions/configuring-functions/duration)) | **No.** A paused workflow cannot send Discord heartbeats (Hello `heartbeat_interval`, typically ~45s). ([Gateway](https://docs.discord.com/developers/events/gateway#sending-heartbeats)) |
+| **Queues** | Durable topics, at-least-once consumers, retries. Powers Workflows. ([Queues](https://vercel.com/docs/queues)) | **No.** Invokes Functions; no persistent socket. |
+| **Cron Jobs** | Vercel `GET`s a production path on a UTC schedule. User-agent `vercel-cron/1.0`. ([Cron Jobs](https://vercel.com/docs/cron-jobs)) | **No.** Can only *start* a Function that then dies at max duration. |
+
+Nothing newer on those pages is an always-on outbound WebSocket host.
+
+### 1. Can any of them hold the Discord Gateway 24/7?
+
+**No.** Discord requires one persistent client WebSocket: Hello → heartbeat every `heartbeat_interval` → Identify (opcode 2) → Ready → Resume (opcode 6) on drop. ([Connection lifecycle](https://docs.discord.com/developers/events/gateway#connection-lifecycle))
+
+Session starts are limited: `GET /gateway/bot` returns `session_start_limit.total` **1000** (example `reset_after` 14_400_000 ms = 4 h). Large bots are described as **1000 per day**, then raised. Concurrent Identifies: `max_concurrency` (small bots **1**) and “a limit for concurrent Identify requests allowed per 5 seconds” → Invalid Session opcode 9. ([Get Gateway Bot](https://docs.discord.com/developers/events/gateway#get-gateway-bot), [Session Start Limit](https://docs.discord.com/developers/events/gateway#session-start-limit-object), [Rate Limiting](https://docs.discord.com/developers/events/gateway#rate-limiting))
+
+**Cron / Sandbox hop + RESUME** (hold N minutes, hand off):
+
+| Failure | What happens |
+|---|---|
+| **Gap** | Old Function/Sandbox hits max duration / timeout and dies before the next cron/resume boots. Mentions in the gap are **lost**. Identify (not Resume) does **not** replay `MESSAGE_CREATE`. Resume only replays if the session is still valid and `s` + `session_id` were stored. |
+| **Overlap / duplicate Identify** | Cron starts a new Identify while the old instance is still heartbeating. `max_concurrency` is 1. Discord sends Invalid Session (9) and/or replaces the session. Both sides drop; more missed events. No single-shard single-connection guarantee on Fluid (new invocations are not pinned to one instance). |
+| **Identify budget** | Hobby 300s chunks → **288 Identifies/day** if every hop is a fresh Identify (under 1000/day, but burns the budget and races the 5s concurrency rule). Failed Resumes fall back to Identify. A retry storm (deploys + cron overlap + Invalid Session) can hit 1000. |
+| **Resume is not a handoff protocol** | Resume is for *the same logical session after a drop*, not for two VMs coordinating a live socket. Persistent Sandbox snapshots the **disk**, not the open fd. |
+
+Do not ship this hop.
+
+### 2. Monthly cost on our plan
+
+**Could not confirm the `aims` project team from this token.** `get_auth_user` shows the personal account is **Hobby** (`billing.plan: hobby`). Team IDs on the account (`use-the-other-team-claude`, `claude-mem-oss`, `claude-mem`) returned **403**. Failed invoices totaling **$324** (Alex; card retries Sep 25–26) are consistent with a **Pro team** — Hobby has no invoices. Show both. Hobby is **non-commercial** ([Fair Use](https://vercel.com/docs/limits/fair-use-guidelines), [Hobby plan](https://vercel.com/docs/plans/hobby)). aims.bot as a product is commercial → Pro is the honest Vercel tier even without a Gateway.
+
+Hours/month used below: **730**. Function rates **iad1** ([iad1 pricing](https://vercel.com/docs/pricing/regional-pricing/iad1)): Fluid Active CPU **$0.128/h**, Provisioned Memory **$0.0106/GB-h**. Sandbox iad1 ([Sandbox pricing](https://vercel.com/docs/sandbox/pricing)): Active CPU **$0.128/h**, Provisioned Memory **$0.0212/GB-h**. Min sandbox is 1 vCPU / 2 GB.
+
+| Path | Hobby | Pro (on top of existing aims.bot) |
+|---|---|---|
+| **Interactions-only** (slash `/aims ask` on Vercel; no Gateway) | $0 extra (burns existing Function quota). **Not allowed for commercial Hobby.** | **$0 extra** (HTTP already on the project). |
+| **Chained Functions as Gateway** (300s / 800s / 1800s) | 2 GB × 730 h = **1460 GB-h** vs **360 included** → feature **pauses ~7–8 days in**. Active CPU at 10% ≈ 73 h vs **4 h included** → also pauses. ([Hobby usage](https://vercel.com/docs/plans/hobby)) | Memory 2×730×$0.0106 = **$15.48** + CPU 0.10×730×$0.128 = **$9.34** ≈ **$25** before the $20 credit. Still **not 24/7**. |
+| **Sandbox hop** | Max session **45 min**. 2 GB × 730 h = 1460 GB-h vs **420 included** → paused. | 24 h max session. Memory 2×730×$0.0212 = **$30.95** + CPU **$9.34** ≈ **$40**. Credit applies to Sandbox. Plus **$20** platform if this were a new Pro; if aims is already Pro, **~$20–40 extra**. Daily stop/resume gaps. |
+| **Fly gateway** (recommended) | n/a | **$2.19/mo** (`shared-cpu-1x` 256 MB from 2026-10-01). Does not add Vercel usage. |
+| **Pro platform itself** | n/a | **$20/mo** seat + **$20 credit** ([Pro plan](https://vercel.com/docs/plans/pro)). Already owed if aims is on a billed team. |
+
+### 3. Failed-payment risk
+
+Official Pro billing FAQ ([What happens when I cannot pay?](https://vercel.com/docs/plans/pro/billing)): when overdue you **cannot create projects, add team members, or redeploy**. For subscription renewals, if payment is not successful **within 14 days, all deployments on the account are paused**. No extensions.
+
+Alex’s **3 failed invoices / $324** (not readable from this agent’s Vercel/Gmail token) already sit on that path. Putting the mention listener on Vercel **couples `@aims` delivery to the same card that is already failing**. A Fly worker keeps heartbeating if Vercel deploys are paused (owner wakes would still fail, but the socket and Fly `/health` stay diagnosable). That is an argument **against** concentrating the listener on Vercel, and **for** fixing the card regardless.
+
+### 4. Hybrid vs interactions-only
+
+**Mentions require the Gateway.** Discord Interactions (slash, message context-menu) are HTTP POSTs to an Interactions Endpoint, Ed25519-verified, 3s first response. They are **not** `@mentions`. ([Receiving and Responding](https://discord.com/developers/docs/interactions/receiving-and-responding); this plan’s Phase 0.)
+
+| Design | `@aims botlord` mentions | Slash `/aims ask` | Fly login + card? | Cost |
+|---|---|---|---|---|
+| **A. Interactions-only** (Vercel HTTP) | **Lost** | Yes | **No. Drops the Fly human step.** | $0 extra on current Vercel |
+| **B. Hybrid** (this plan) | Yes (Fly Gateway) | Yes (Vercel) | **Yes.** Mentions still need Fly. | **$2.19/mo** + existing Vercel |
+| **C. Vercel-only Gateway** (Fluid / Sandbox / cron hop) | Unreliable (gaps, dup Identify) | Yes | No new Fly, but **worse product + more $ on Pro** | See table above |
+
+**Hybrid does not remove the Fly signup.** It only keeps slash/OAuth/wakes on the host we already have.
+
+### Clear recommendation
+
+1. **Ship hybrid B:** Fly holds **one** Gateway connection 24/7; Vercel does OAuth, Interactions, HMAC events, hardened wakes, health aliases.
+2. **Do not** put the Discord Gateway on Fluid, Sandbox, Workflows, Queues, or cron-restarted Functions.
+3. **Interactions-only (A) is the only honest Vercel-only option.** Use it only if Alex explicitly drops `@aims botlord` mentions for v1. That is a product cut, not a hosting win.
+4. Fix the Vercel card. Do not add more always-on compute to that bill.
 
 ---
 
@@ -138,6 +213,7 @@ Do **not** pick interactions-only. Do **not** pick Render Free. Do **not** pick 
 - ❌ Mentionable roles or execute-webhook display names.
 - ❌ `allowed_mentions.parse` other than `[]`.
 - ❌ Railway Free as the production Gateway.
+- ❌ Vercel Fluid / Sandbox / Workflows / Queues / cron as the Discord Gateway.
 - ❌ Prisma. Tagged `sql` only.
 - ❌ Implementing in this plan PR.
 
@@ -597,14 +673,18 @@ True minimum. For each: what, where it goes, whether an agent can do it.
    - **Human click required.** Agent generates the URL; cannot complete Discord’s consent screen.
    - After this, `/aims here` or `POST …/discord` can rebind the channel.
 
-5. **Fly.io org + payment method** for the production gateway.
+5. **Fly.io org + payment method** for the production **Gateway** (required for `@aims` mentions).
    - **Human signup + card on org.** Cost: **$2.19/mo** (`shared-cpu-1x` 256 MB, price from 2026-10-01). Agent can `fly deploy` after `FLY_API_TOKEN` exists.
    - Railway Free is **dev/laptop only**, not this need.
+   - **This step goes away only if Alex cuts mentions** and ships interactions-only (`/aims ask`). Hybrid slash-on-Vercel + mentions-on-Fly does **not** drop it. Do not replace Fly with Vercel Fluid/Sandbox/cron.
 
-6. **One real human Gateway message** for ship proof.
+6. **One real human Gateway message** for ship proof (skip if interactions-only).
    - **Human types** `@aims botlord <unique nonce>` in the proof channel from a **non-bot** account. Script then verifies the wake and the Discord API reply. Agent cannot substitute a synthetic event for this step.
 
-**Not needed from humans:** creating per-Grok Discord apps; `MESSAGE_CONTENT` portal toggle or verification form; Railway production account; paying for Render / CF Workers Paid; putting a proof webhook on Vercel.
+7. **Fix the Vercel card** on the billed team (3 failed invoices / $324, retries Sep 25–26).
+   - **Human.** Overdue Pro accounts cannot redeploy; after 14 days Vercel **pauses all deployments** ([Pro billing FAQ](https://vercel.com/docs/plans/pro/billing)). Independent of Fly.
+
+**Not needed from humans:** creating per-Grok Discord apps; `MESSAGE_CONTENT` portal toggle or verification form; Railway production account; paying for Render / CF Workers Paid; putting a proof webhook on Vercel; a Vercel Sandbox or Fluid “always-on” Gateway.
 
 ---
 
@@ -614,6 +694,7 @@ True minimum. For each: what, where it goes, whether an agent can do it.
 - Mentionable roles or reply-webhook display names.
 - `MESSAGE_CONTENT` / reading or logging unmentioned channel messages.
 - Railway Free as the production Gateway.
+- Vercel Fluid Functions, Sandbox, Workflows, Queues, or cron-restarted hops as the Discord Gateway.
 - Voice, DMs as v1 product, forum channels without `thread_id`.
 - Shipping Telegram / Slack / Photon / bird in this `/do` (Telegram remains the strongest fast-follow).
 - Replacing iMessage / WhatsApp / CLI bot2bot.
