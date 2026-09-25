@@ -537,7 +537,7 @@ Unavoidable humans named:
 2. **(House, once)** Create shared Discord app + **Require OAuth2 Code Grant** + paste secrets. No MESSAGE_CONTENT.
 3. **(Optional)** `/aims here` if the default channel is wrong.
 
-**Not a human need:** Fly.io. Alex already has the account. After green the agent runs `flyctl auth login` in its signed-in browser (Continue with Google if that's the account) and deploys the **$2.19/mo** gateway. Escalate only on 2FA or a passkey.
+**Not a human need:** Fly.io. Alex already has the account. After green the agent runs `flyctl auth login` in its signed-in browser (Continue with Google if that's the account) and deploys the **$2.19/mo** gateway. Escalate only on 2FA or a passkey. Widened host pass still picks Fly; the house box is $0 extra but not the sole primary.
 
 Everything else is the Grok bot.
 
@@ -671,7 +671,7 @@ First agent, 2026-09-25. Every finding below. Plan phases in [`plans/2026-09-25-
 | 8 | MAJOR — “one click” undercounts | **Accept** | Honest steps: open link, pick server, Authorize (2FA/CAPTCHA possible), optional `/aims here`. Verify installer has `MANAGE_GUILD` when the code grant gives us the user. Least permissions (no role/webhook manage). Auto-bind default channel only if the bot can `SEND_MESSAGES` there. |
 | 9 | MAJOR — 100-server gate still exists | **Accept** | Document **both** 10k-user privileged-intent review **and** verification past 100 servers. v1 avoids `MESSAGE_CONTENT` so the 10k review is not on the critical path. 100-server verification is a later house task if we grow. |
 | 10 | MAJOR — shared app vs privilege blast | **Partial accept** | **Accept** shared app + least permissions + vault/rotate + incident-wide revoke. **Partial** on separate prod vs proof applications: do it if Alex will click twice in the portal; otherwise one app and never put the prod token in CI. BYO remains advanced, not default. |
-| 11 | MAJOR — $0 is not production | **Accept** | **Production gateway: Fly.io `shared-cpu-1x` 256 MB = $2.19/mo** (price from 2026-10-01; $1.94 until then). Always-on, not credit-exhaust-and-die. Alex already has Fly; after green the agent runs `flyctl auth login` (Continue with Google; escalate only on 2FA/passkey) then `fly deploy`. Railway Free = **dev/laptop only**. Railway Hobby ($5) is the fallback if Fly is refused. Vercel Fluid WebSockets exist but close at max duration — **not** the Gateway host. |
+| 11 | MAJOR — $0 is not production | **Accept** | **Production gateway: Fly.io `shared-cpu-1x` 256 MB = $2.19/mo** after a widened host pass (house box, GCP e2-micro, Oracle Always Free, Railway, Render, Hetzner, Vercel). Always-on, not credit-exhaust-and-die. Alex already has Fly; after green the agent runs `flyctl auth login` (Continue with Google; escalate only on 2FA/passkey) then `fly deploy`. House box is $0 extra but restarts with Grok updates — not the sole primary. Railway Free = **dev/laptop only**. Vercel Fluid WebSockets exist but close at max duration — **not** the Gateway host. |
 | 12 | MAJOR — E2E proof can pass false | **Accept** | `discord-proof.sh` **fails** unless a **real human** (non-bot) message with a unique nonce travels the **real Gateway** and a correlated reply is visible via Discord REST. HMAC-signed synthetic injection is a **supplementary contract test** only (`--contract` / separate exit). No `WORKER_E2E_SKIPPED` exit 0. |
 | 13 | MAJOR — ranking / human-step counts | **Partial accept** | On raw cheapness/fewest taps, **Telegram wins**. Ranking table now says so. **Ship order is Discord first** — Alex: group channels and multi-bot rooms are the product. Telegram is the strongest #2 / fast-follow. Slack may need a channel invite; counts updated. Pairing primitives stay below transports. |
 | 14 | MAJOR — not actually Standard Webhooks | **Accept** | Owner wakes implement real Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature` over raw body) **in addition to** today’s `X-Aims-Secret`. Fixture-tested against a standard library. Header rename alone is forbidden. Additive; existing bots keep working. |
@@ -684,7 +684,7 @@ First agent, 2026-09-25. Every finding below. Plan phases in [`plans/2026-09-25-
 
 - Discord **ships first** (Alex). Telegram is the cheapest fast-follow.
 - Shared `aims` app. Identity `@aims <handle>` / `/aims ask`. No roles, no reply webhooks.
-- Gateway on **Fly at $2.19/mo**. Railway Free is not production.
+- Gateway on **Fly at $2.19/mo** (widened host pass; house box is not the sole primary). Railway Free is not production.
 - Advanced OAuth code grant + membership verify. HMAC worker events. Hashed claims/tokens. SSRF resolve-pin-block. Real Gateway E2E.
 
 #### Omitted official surfaces (finding 18)
