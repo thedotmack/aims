@@ -7,6 +7,7 @@ const ICONS: Record<string, string> = {
   imessage: '💬',
   whatsapp: '🟢',
   telegram: '✈️',
+  discord: '🎮',
   cli: '⌘',
 };
 

@@ -54,6 +54,14 @@ describe('contact deep links', () => {
     expect(options.find((o) => o.id === 'cli')?.available).toBe(true);
   });
 
+  it('adds a Discord row when a binding href is present', () => {
+    const options = buildContactOptions(samplePage(), {
+      discord: { href: 'https://discord.com/channels/111/222' },
+    });
+    expect(options.find((o) => o.id === 'discord')?.label).toBe('Discord');
+    expect(options.find((o) => o.id === 'discord')?.kind).toBe('deeplink');
+  });
+
   it('marks CLI unavailable when webhook is missing', () => {
     const options = buildContactOptions(samplePage({ webhookUrl: null }));
     expect(options.find((o) => o.id === 'cli')?.available).toBe(false);
