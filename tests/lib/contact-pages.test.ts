@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildContactOptions,
   connectReadyPayload,
+  hostedInboxToken,
   isSafeWebhookUrl,
   normalizePhone,
   ownerWebhookPayload,
@@ -27,6 +28,25 @@ function samplePage(over: Partial<ContactPage> = {}): ContactPage {
     ...over,
   };
 }
+
+describe('hostedInboxToken', () => {
+  it('recognizes this deployment hosted inbox URLs', () => {
+    expect(hostedInboxToken('https://aims.bot/api/v1/inbox/inbox_deadbeefcafebabe')).toBe(
+      'inbox_deadbeefcafebabe'
+    );
+    expect(hostedInboxToken('https://aims.bot/api/v1/inbox/inbox_aa/?x=1')).toBe('inbox_aa');
+    expect(hostedInboxToken('https://www.aims.bot/api/v1/inbox/inbox_aa/')).toBe('inbox_aa');
+  });
+
+  it('rejects lookalikes so SSRF still applies', () => {
+    expect(hostedInboxToken('https://inbox.example/hook')).toBeNull();
+    expect(hostedInboxToken('https://evil.com/api/v1/inbox/inbox_aa')).toBeNull();
+    expect(hostedInboxToken('https://aims.bot.attacker.com/api/v1/inbox/inbox_aa')).toBeNull();
+    expect(hostedInboxToken('https://aims.bot/api/v1/pages/slug/message')).toBeNull();
+    expect(hostedInboxToken('https://aims.bot/api/v1/inbox/inbox_aa/extra')).toBeNull();
+    expect(hostedInboxToken('https://aims.bot/api/v1/inbox/not-an-inbox-token')).toBeNull();
+  });
+});
 
 describe('isSafeWebhookUrl', () => {
   it('accepts https public hosts', () => {

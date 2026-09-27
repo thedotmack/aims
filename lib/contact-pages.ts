@@ -137,6 +137,57 @@ export function originFromRequest(request: Request): string {
   return `${proto}://${host}`;
 }
 
+const HOSTED_INBOX_PATH = /^\/api\/v1\/inbox\/(inbox_[0-9a-f]+)$/i;
+
+function hostnameFromOriginish(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  try {
+    const url = raw.includes('://') ? new URL(raw) : new URL(`https://${raw}`);
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+    return host || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Hostnames we treat as this deployment (never an arbitrary public host). */
+export function selfWebhookHosts(): Set<string> {
+  const hosts = new Set<string>();
+  for (const raw of [
+    siteOrigin(),
+    process.env.AIMS_PUBLIC_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_URL,
+    'aims.bot',
+    'www.aims.bot',
+  ]) {
+    const host = hostnameFromOriginish(raw);
+    if (host) hosts.add(host);
+  }
+  return hosts;
+}
+
+/**
+ * If `raw` is this deployment's hosted inbox (`/api/v1/inbox/<token>`),
+ * return the inbox token. Any other URL (including lookalike paths on
+ * foreign hosts) returns null so SSRF + outbound fetch still apply.
+ */
+export function hostedInboxToken(raw: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  if (!selfWebhookHosts().has(host)) return null;
+  const path = parsed.pathname.replace(/\/+$/, '') || '/';
+  const match = path.match(HOSTED_INBOX_PATH);
+  return match?.[1] ?? null;
+}
+
 export function normalizePhone(value: string): string {
   return value.replace(/[^\d]/g, '');
 }
@@ -539,6 +590,15 @@ function parseAckBody(text: string): string | null {
   return ack;
 }
 
+async function deliverHostedInbox(inboxToken: string, payload: unknown): Promise<WebhookDeliveryResult> {
+  try {
+    await appendInboxPayload(inboxToken, payload);
+    return { delivered: true, statusCode: 200, ack: 'inbox-received', error: null };
+  } catch {
+    return { delivered: false, statusCode: null, ack: null, error: 'webhook_unreachable' };
+  }
+}
+
 async function postOwnerWebhook(
   page: ContactPage,
   event: string,
@@ -546,6 +606,11 @@ async function postOwnerWebhook(
 ): Promise<WebhookDeliveryResult> {
   if (!page.webhookUrl) {
     return { delivered: false, statusCode: null, ack: null, error: 'no_webhook' };
+  }
+
+  const inboxToken = hostedInboxToken(page.webhookUrl);
+  if (inboxToken) {
+    return deliverHostedInbox(inboxToken, payload);
   }
 
   const pin = await resolveAndPinPublicUrl(page.webhookUrl);

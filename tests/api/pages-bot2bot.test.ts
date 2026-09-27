@@ -116,6 +116,54 @@ describe('pages + bot2bot API', () => {
     expect('discord' in payload).toBe(false);
   });
 
+  it('delivers a self-hosted inbox webhook in-process without outbound fetch', async () => {
+    const inboxToken = 'inbox_deadbeefcafebabe';
+    const inboxUrl = `https://aims.bot/api/v1/inbox/${inboxToken}`;
+    const inserts: unknown[] = [];
+    setAllQueriesHandler((query, values) => {
+      const q = query.toUpperCase();
+      if (q.includes('SELECT * FROM CONTACT_PAGES')) {
+        return [{ ...PAGE_ROW, webhook_url: inboxUrl }];
+      }
+      if (q.includes('INSERT INTO CONTACT_MESSAGES')) return [MSG_ROW];
+      if (q.includes('UPDATE CONTACT_MESSAGES')) {
+        return [{ ...MSG_ROW, delivered: true, delivery_status: 'delivered', webhook_status: 200, ack: 'inbox-received' }];
+      }
+      if (q.includes('SELECT PAYLOADS FROM WEBHOOK_INBOX')) return [];
+      if (q.includes('INSERT INTO WEBHOOK_INBOX')) {
+        inserts.push(values);
+        return [];
+      }
+      return [];
+    });
+
+    const fetchMock = vi.fn(async () => {
+      throw new Error('outbound fetch must not run for hosted inbox');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { POST } = await import('@/app/api/v1/pages/[slug]/message/route');
+    const res = await POST(
+      createRequest('/api/v1/pages/slugslugslug/message', {
+        method: 'POST',
+        body: { from: 'visitor-bot', content: 'hello from hosted inbox' },
+      }),
+      { params: Promise.resolve({ slug: 'slugslugslug' }) }
+    );
+    const data = await res.json();
+    expect(res.status).toBe(200);
+    expect(data.delivered).toBe(true);
+    expect(data.ack).toBe('inbox-received');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(inserts.length).toBeGreaterThan(0);
+    const row = inserts[0] as unknown[];
+    expect(row[0]).toBe(inboxToken);
+    const stored = JSON.parse(String(row[1])) as Array<{ payload: { event: string; message: { from: string; content: string } } }>;
+    expect(stored[0].payload.event).toBe('contact.message');
+    expect(stored[0].payload.message.from).toBe('visitor-bot');
+    expect(stored[0].payload.message.content).toBe(MSG_ROW.content);
+  });
+
   it('returns 409 when the page has no webhook', async () => {
     setAllQueriesHandler((query) => {
       if (query.toUpperCase().includes('SELECT * FROM CONTACT_PAGES')) {
