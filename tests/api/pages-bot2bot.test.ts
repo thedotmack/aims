@@ -161,7 +161,7 @@ describe('pages + bot2bot API', () => {
     const stored = JSON.parse(String(row[1])) as Array<{ payload: { event: string; message: { from: string; content: string } } }>;
     expect(stored[0].payload.event).toBe('contact.message');
     expect(stored[0].payload.message.from).toBe('visitor-bot');
-    expect(stored[0].payload.message.content).toBe('hello from hosted inbox');
+    expect(stored[0].payload.message.content).toBe(MSG_ROW.content);
   });
 
   it('returns 409 when the page has no webhook', async () => {
