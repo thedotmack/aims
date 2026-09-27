@@ -478,9 +478,9 @@ export interface OwnerWakeExtras {
 }
 
 export function ownerWebhookPayload(page: ContactPage, message: ContactMessage, extras?: OwnerWakeExtras) {
-  const payload: Record<string, unknown> = {
-    event: 'contact.message',
-    version: 1,
+  return {
+    event: 'contact.message' as const,
+    version: 1 as const,
     page: { slug: page.slug, name: page.name },
     message: {
       id: message.id,
@@ -489,25 +489,24 @@ export function ownerWebhookPayload(page: ContactPage, message: ContactMessage, 
       replyTo: extras?.reply?.url ?? message.replyTo,
       createdAt: message.createdAt,
     },
+    ...(extras?.discord ? {
+      discord: {
+        guildId: extras.discord.guildId,
+        channelId: extras.discord.channelId,
+        threadId: extras.discord.threadId,
+        sourceMessageId: extras.discord.sourceMessageId,
+        handle: extras.discord.handle,
+        hop: extras.discord.hop,
+      },
+    } : {}),
+    ...(extras?.reply ? {
+      reply: {
+        url: extras.reply.url,
+        token: extras.reply.token,
+        expiresAt: extras.reply.expiresAt,
+      },
+    } : {}),
   };
-  if (extras?.discord) {
-    payload.discord = {
-      guildId: extras.discord.guildId,
-      channelId: extras.discord.channelId,
-      threadId: extras.discord.threadId,
-      sourceMessageId: extras.discord.sourceMessageId,
-      handle: extras.discord.handle,
-      hop: extras.discord.hop,
-    };
-  }
-  if (extras?.reply) {
-    payload.reply = {
-      url: extras.reply.url,
-      token: extras.reply.token,
-      expiresAt: extras.reply.expiresAt,
-    };
-  }
-  return payload;
 }
 
 export function connectReadyPayload(

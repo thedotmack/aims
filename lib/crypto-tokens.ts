@@ -33,8 +33,8 @@ export function mintDisplayClaimCode(): string {
   let n = bytes.readBigUInt64BE(0);
   let body = '';
   for (let i = 0; i < 10; i++) {
-    body += CROCKFORD[Number(n % 32n)];
-    n /= 32n;
+    body += CROCKFORD[Number(n % BigInt(32))];
+    n /= BigInt(32);
   }
   return `AIMS-${body}`;
 }

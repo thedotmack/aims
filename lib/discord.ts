@@ -12,12 +12,12 @@ import { LIMITS, checkRateLimitAsync } from './ratelimit';
  * Sum documented here so we do not invent bits.
  */
 export const DISCORD_BOT_PERMISSIONS = (
-  (1n << 10n) |
-  (1n << 11n) |
-  (1n << 14n) |
-  (1n << 16n) |
-  (1n << 31n) |
-  (1n << 38n)
+  (BigInt(1) << BigInt(10)) |
+  (BigInt(1) << BigInt(11)) |
+  (BigInt(1) << BigInt(14)) |
+  (BigInt(1) << BigInt(16)) |
+  (BigInt(1) << BigInt(31)) |
+  (BigInt(1) << BigInt(38))
 ).toString();
 
 export const DISCORD_SCOPES = 'bot applications.commands identify';
@@ -203,7 +203,7 @@ export async function discordGetUserGuilds(userAccessToken: string): Promise<Arr
 export function userHasManageGuild(permissions?: string): boolean {
   if (!permissions) return false;
   try {
-    return (BigInt(permissions) & (1n << 5n)) !== 0n;
+    return (BigInt(permissions) & (BigInt(1) << BigInt(5))) !== BigInt(0);
   } catch {
     return false;
   }

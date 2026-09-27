@@ -220,5 +220,5 @@ export async function pinnedFetch(
     ...init,
     redirect: 'error',
     dispatcher: agent,
-  } as Parameters<typeof undiciFetch>[1]) as Promise<Response>;
+  } as Parameters<typeof undiciFetch>[1]) as unknown as Promise<Response>;
 }

@@ -94,7 +94,6 @@ export async function POST(
     });
 
     return Response.json({
-      success: true,
       ...publicPageJson(page),
       discord: {
         guildId: binding.guildId,
