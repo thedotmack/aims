@@ -29,7 +29,8 @@
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "resend": "^6.9.2"
+    "resend": "^6.9.2",
+    "undici": "^7.30.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
@@ -42,6 +43,7 @@
     "@vitejs/plugin-react": "^5.1.4",
     "axe-core": "^4.11.1",
     "jsdom": "^28.1.0",
+    "standardwebhooks": "^1.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"

@@ -215,6 +215,12 @@ export const LIMITS = {
   WEBHOOK_INGEST: { name: 'webhook-ingest', max: 60, windowMs: 60_000 },
   CONTACT_CREATE: { name: 'contact-create', max: 20, windowMs: 3600_000 },
   CONTACT_MESSAGE: { name: 'contact-message', max: 40, windowMs: 60_000 },
+  DISCORD_WAKE: { name: 'discord-wake', max: 20, windowMs: 60_000 },
+  DISCORD_WAKE_AUTHOR: { name: 'discord-wake-author', max: 5, windowMs: 60_000 },
+  DISCORD_WAKE_GUILD: { name: 'discord-wake-guild', max: 50, windowMs: 60_000 },
+  DISCORD_CLAIM_CREATE: { name: 'discord-claim-create', max: 10, windowMs: 3600_000 },
+  DISCORD_CLAIM_REDEEM_IP: { name: 'discord-claim-redeem-ip', max: 5, windowMs: 600_000 },
+  DISCORD_CLAIM_REDEEM_GLOBAL: { name: 'discord-claim-redeem-global', max: 20, windowMs: 60_000 },
 } as const;
 
 /**

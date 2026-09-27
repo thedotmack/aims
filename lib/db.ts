@@ -360,6 +360,60 @@ export async function ensureContactTables() {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'api'`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS hop INT NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS discord_guild_id TEXT`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS discord_channel_id TEXT`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS discord_thread_id TEXT`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS discord_source_message_id TEXT`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS discord_reply_message_id TEXT`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS reply_token_hash TEXT`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS reply_expires_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS reply_count INT NOT NULL DEFAULT 0`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS discord_bindings (
+      id TEXT PRIMARY KEY,
+      page_id TEXT NOT NULL REFERENCES contact_pages(id) ON DELETE CASCADE,
+      guild_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      mention_handle TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (guild_id, mention_handle),
+      UNIQUE (guild_id, channel_id, page_id)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_discord_bind_lookup ON discord_bindings (guild_id, channel_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_discord_bind_page ON discord_bindings (page_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS discord_claims (
+      id TEXT PRIMARY KEY,
+      code_hash TEXT NOT NULL UNIQUE,
+      secret_hash TEXT NOT NULL UNIQUE,
+      page_id TEXT NOT NULL REFERENCES contact_pages(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      consumed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS discord_event_nonces (
+      nonce TEXT PRIMARY KEY,
+      message_id TEXT UNIQUE,
+      seen_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_discord_nonces_seen ON discord_event_nonces (seen_at)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS discord_cooldowns (
+      pair_key TEXT PRIMARY KEY,
+      seen_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
 }
 
 // Chat operations

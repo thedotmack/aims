@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPageBySlug, timingSafeEqual } from '@/lib/contact-pages';
+import { getPageBySlug, verifyOwnerToken } from '@/lib/contact-pages';
 import EditPageClient from './EditPageClient';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +21,7 @@ export default async function EditPage({
   const { token } = await searchParams;
   const page = await getPageBySlug(slug).catch(() => null);
   if (!page) notFound();
-  const isOwner = token ? timingSafeEqual(page.ownerToken, token) : false;
+  const isOwner = token ? verifyOwnerToken(page, token) : false;
 
   return (
     <EditPageClient

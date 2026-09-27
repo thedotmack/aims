@@ -1,4 +1,17 @@
 import { vi } from 'vitest';
+import { _setSsrfLookup } from '../lib/ssrf';
+
+_setSsrfLookup(async (hostname) => {
+  if (
+    hostname === '127.0.0.1' ||
+    hostname === 'localhost' ||
+    hostname.endsWith('.internal') ||
+    hostname === 'metadata.google.internal'
+  ) {
+    return ['127.0.0.1'];
+  }
+  return ['8.8.8.8'];
+});
 
 // Query handler type
 type QueryHandler = (query: string, values: unknown[]) => unknown[] | Promise<unknown[]>;
