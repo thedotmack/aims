@@ -658,15 +658,43 @@ export async function getInbox(inboxToken: string): Promise<{ token: string; pay
   return { token: String(rows[0].token), payloads };
 }
 
-export function extractOwnerToken(request: Request, body?: Record<string, unknown>): string | null {
+export function extractOwnerTokenHeaderOnly(request: Request): string | null {
   const header = request.headers.get('x-owner-token') || request.headers.get('authorization');
-  if (header) {
-    const raw = header.startsWith('Bearer ') ? header.slice(7) : header;
-    if (raw) return raw;
-  }
+  if (!header) return null;
+  const raw = header.startsWith('Bearer ') ? header.slice(7) : header;
+  return raw || null;
+}
+
+export function extractOwnerToken(request: Request, body?: Record<string, unknown>): string | null {
+  const header = extractOwnerTokenHeaderOnly(request);
+  if (header) return header;
   const url = new URL(request.url);
   const query = url.searchParams.get('token') || url.searchParams.get('ownerToken');
   if (query) return query;
   if (body && typeof body.ownerToken === 'string') return body.ownerToken;
   return null;
+}
+
+export async function getContactMessageById(id: string): Promise<ContactMessage | null> {
+  await ensureContactTables();
+  const rows = await sql`SELECT * FROM contact_messages WHERE id = ${id} LIMIT 1`;
+  return rows[0] ? rowToMessage(rows[0] as Record<string, unknown>) : null;
+}
+
+export async function incrementReplyCount(id: string): Promise<number> {
+  const rows = await sql`
+    UPDATE contact_messages
+    SET reply_count = COALESCE(reply_count, 0) + 1
+    WHERE id = ${id}
+    RETURNING reply_count
+  `;
+  return Number((rows[0] as { reply_count?: number } | undefined)?.reply_count ?? 0);
+}
+
+export async function setDiscordReplyMessageId(id: string, discordMessageId: string): Promise<void> {
+  await sql`
+    UPDATE contact_messages
+    SET discord_reply_message_id = ${discordMessageId}
+    WHERE id = ${id}
+  `;
 }
