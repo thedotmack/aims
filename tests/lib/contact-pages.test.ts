@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildContactOptions,
+  connectReadyPayload,
   isSafeWebhookUrl,
   normalizePhone,
   ownerWebhookPayload,
@@ -53,6 +54,14 @@ describe('contact deep links', () => {
     expect(options.find((o) => o.id === 'cli')?.available).toBe(true);
   });
 
+  it('adds a Discord row when a binding href is present', () => {
+    const options = buildContactOptions(samplePage(), {
+      discord: { href: 'https://discord.com/channels/111/222' },
+    });
+    expect(options.find((o) => o.id === 'discord')?.label).toBe('Discord');
+    expect(options.find((o) => o.id === 'discord')?.kind).toBe('deeplink');
+  });
+
   it('marks CLI unavailable when webhook is missing', () => {
     const options = buildContactOptions(samplePage({ webhookUrl: null }));
     expect(options.find((o) => o.id === 'cli')?.available).toBe(false);
@@ -82,6 +91,58 @@ describe('owner webhook payload', () => {
     expect(payload.page.slug).toBe(page.slug);
     expect(payload.message.from).toBe('visitor-bot');
     expect(payload.message.content).toBe('hello');
+    expect('discord' in payload).toBe(false);
+    expect('reply' in payload).toBe(false);
+  });
+
+  it('adds discord + reply only for Discord-originated wakes and does not leak owner tokens', () => {
+    const page = samplePage();
+    const payload = ownerWebhookPayload(page, {
+      id: 'cmsg-1',
+      pageId: page.id,
+      fromName: 'alex',
+      replyTo: null,
+      content: 'hello',
+      delivered: false,
+      deliveryStatus: 'pending',
+      webhookStatus: null,
+      ack: null,
+      createdAt: '2026-09-25T21:00:00.000Z',
+    }, {
+      discord: {
+        guildId: '111',
+        channelId: '222',
+        threadId: null,
+        sourceMessageId: '333',
+        handle: 'botlord',
+        hop: 0,
+      },
+      reply: {
+        url: 'https://aims.bot/api/v1/pages/abc123/messages/cmsg-1/reply',
+        token: 'rpl_test',
+        expiresAt: '2026-09-26T21:00:00.000Z',
+      },
+    });
+    expect(payload.event).toBe('contact.message');
+    expect(payload.reply).toEqual({
+      url: 'https://aims.bot/api/v1/pages/abc123/messages/cmsg-1/reply',
+      token: 'rpl_test',
+      expiresAt: '2026-09-26T21:00:00.000Z',
+    });
+    expect(payload.discord).toMatchObject({ handle: 'botlord', hop: 0 });
+    expect(JSON.stringify(payload)).not.toContain('own_secret');
+    expect(JSON.stringify(payload)).not.toContain('s3cret');
+  });
+
+  it('builds a connect.ready payload without secrets', () => {
+    const payload = connectReadyPayload(samplePage(), {
+      guildId: '111',
+      channelId: '222',
+      handle: 'botlord',
+    });
+    expect(payload.event).toBe('connect.ready');
+    expect(payload.discord.mention).toBe('@aims botlord');
+    expect(JSON.stringify(payload)).not.toContain('own_secret');
   });
 
   it('public JSON never includes owner token or webhook URL', () => {

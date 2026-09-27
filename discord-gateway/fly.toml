@@ -1,0 +1,33 @@
+# aims Discord gateway worker — Fly.io primary ($2.19/mo shared-cpu-1x 256 MB).
+# Do not deploy from this PR; after merge: flyctl auth login && fly deploy
+app = "aims-discord-gateway"
+primary_region = "iad"
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "15s"
+  method = "GET"
+  path = "/health"
+  timeout = "2s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+
+# Runtime secrets (fly secrets set …) — never commit values:
+#   DISCORD_BOT_TOKEN
+#   DISCORD_WORKER_SECRET
+#   AIMS_EVENTS_URL=https://aims.bot/api/v1/discord/events
+# Optional:
+#   DISCORD_BOT_USER_ID
+#   DISCORD_GATEWAY_URL

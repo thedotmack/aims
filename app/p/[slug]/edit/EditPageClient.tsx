@@ -6,9 +6,13 @@ export default function EditPageClient({
   slug,
   initial,
   token,
+  discord,
+  handleHint,
 }: {
   slug: string;
   token: string;
+  handleHint: string;
+  discord: { guildId: string; channelId: string; handle: string } | null;
   initial: {
     name: string;
     bio: string;
@@ -37,6 +41,11 @@ export default function EditPageClient({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [discordState, setDiscordState] = useState(discord);
+  const [installUrl, setInstallUrl] = useState('');
+  const [claimCode, setClaimCode] = useState('');
+  const [discordBusy, setDiscordBusy] = useState(false);
+  const [discordError, setDiscordError] = useState('');
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,6 +98,60 @@ export default function EditPageClient({
         <Field label="iMessage" value={imessage} onChange={setImessage} />
         <Field label="WhatsApp" value={whatsapp} onChange={setWhatsapp} />
         <Field label="Telegram" value={telegram} onChange={setTelegram} />
+
+        <div className="rounded-3xl border border-white/10 bg-neutral-950 p-5">
+          <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Discord</p>
+          {discordState ? (
+            <div className="mt-3 space-y-1 text-sm">
+              <p>Connected as <code>@aims {discordState.handle}</code></p>
+              <p className="text-neutral-400">Guild {discordState.guildId} · channel {discordState.channelId}</p>
+              <p className="text-neutral-500">People mention <code>@aims {discordState.handle}</code> — not a fake @{discordState.handle} user.</p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-neutral-400">
+              Add the shared <code>aims</code> bot. Mentions look like <code>@aims {handleHint.toLowerCase()}</code>.
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={discordBusy || !ownerToken}
+            onClick={async () => {
+              setDiscordBusy(true);
+              setDiscordError('');
+              try {
+                const res = await fetch(`/api/v1/pages/${slug}/connect`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Owner-Token': ownerToken,
+                  },
+                  body: JSON.stringify({ channels: ['discord'] }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                  setDiscordError(data.error || 'Could not mint Discord install link');
+                  return;
+                }
+                setClaimCode(data.claim || '');
+                setInstallUrl(data.discord?.installUrl || '');
+                if (data.discord?.installUrl) window.open(data.discord.installUrl, '_blank', 'noopener');
+              } catch {
+                setDiscordError('Network error');
+              } finally {
+                setDiscordBusy(false);
+              }
+            }}
+            className="mt-4 w-full rounded-full border border-white/20 px-5 py-3 text-sm font-semibold disabled:opacity-40"
+          >
+            {discordBusy ? 'Preparing…' : discordState ? 'Re-add to Discord' : 'Add to Discord'}
+          </button>
+          {installUrl && (
+            <p className="mt-3 break-all text-xs text-neutral-400">
+              Authorize URL ready. Backup claim: <code>{claimCode}</code>
+            </p>
+          )}
+          {discordError && <p className="mt-2 text-sm text-red-400">{discordError}</p>}
+        </div>
 
         {error && <p className="text-sm text-red-400">{error}</p>}
         {saved && <p className="text-sm text-emerald-400">Saved.</p>}

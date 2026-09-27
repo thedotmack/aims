@@ -1,0 +1,8 @@
+# Dev-only. Railway Free is not the production gateway (see plans/2026-09-25-aims-discord.md).
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+restartPolicyType = "ON_FAILURE"

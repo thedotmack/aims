@@ -109,6 +109,11 @@ describe('pages + bot2bot API', () => {
     const payload = JSON.parse(String(init.body));
     expect(payload.event).toBe('contact.message');
     expect(payload.message.from).toBe('visitor-bot');
+    expect(init.headers['X-Aims-Event']).toBe('contact.message');
+    expect(init.headers['webhook-id']).toBeTruthy();
+    expect(init.headers['webhook-timestamp']).toBeTruthy();
+    expect(init.headers['webhook-signature']).toMatch(/^v1,/);
+    expect('discord' in payload).toBe(false);
   });
 
   it('returns 409 when the page has no webhook', async () => {

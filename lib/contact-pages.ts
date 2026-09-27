@@ -1,5 +1,9 @@
-import { randomBytes, timingSafeEqual as cryptoTimingSafeEqual } from 'crypto';
+import { timingSafeEqual as cryptoTimingSafeEqual } from 'crypto';
 import { sql, generateId, ensureContactTables } from './db';
+import { hashSecret, looksLikePlainOwnerToken, randomToken, verifyStoredSecret } from './crypto-tokens';
+import { pinnedFetch, resolveAndPinPublicUrl } from './ssrf';
+import { signStandardWebhook, toStandardWebhookSecret } from './standard-webhooks';
+import { getBindingForPage } from './discord-store';
 
 export const LINKTREE_VERSION = '2026-09-23b';
 
@@ -34,11 +38,20 @@ export interface PublicContactPage {
 }
 
 export interface ContactOption {
-  id: 'imessage' | 'whatsapp' | 'telegram' | 'cli';
+  id: 'imessage' | 'whatsapp' | 'telegram' | 'cli' | 'discord';
   label: string;
   href: string;
   available: boolean;
   kind: 'deeplink' | 'api';
+}
+
+export interface DiscordWakeMeta {
+  guildId: string;
+  channelId: string;
+  threadId: string | null;
+  sourceMessageId: string;
+  handle: string;
+  hop: number;
 }
 
 export interface ContactMessage {
@@ -52,6 +65,12 @@ export interface ContactMessage {
   webhookStatus: number | null;
   ack: string | null;
   createdAt: string;
+  source?: 'api' | 'discord';
+  hop?: number;
+  discord?: DiscordWakeMeta | null;
+  replyTokenHash?: string | null;
+  replyExpiresAt?: string | null;
+  replyCount?: number;
 }
 
 export interface CreatePageInput {
@@ -80,7 +99,7 @@ const WEBHOOK_TIMEOUT_MS = 8_000;
 const MAX_INBOX = 25;
 
 function token(prefix: string, bytes: number): string {
-  return prefix + randomBytes(bytes).toString('hex');
+  return randomToken(prefix, bytes);
 }
 
 function asIso(value: unknown): string {
@@ -176,7 +195,10 @@ function isPrivateIpv4(host: string): boolean {
   return false;
 }
 
-export function buildContactOptions(page: Pick<ContactPage, 'slug' | 'imessage' | 'whatsapp' | 'telegram' | 'webhookUrl'>): ContactOption[] {
+export function buildContactOptions(
+  page: Pick<ContactPage, 'slug' | 'imessage' | 'whatsapp' | 'telegram' | 'webhookUrl'>,
+  extras?: { discord?: { href: string } | null }
+): ContactOption[] {
   const options: ContactOption[] = [];
 
   if (page.imessage.trim()) {
@@ -209,6 +231,16 @@ export function buildContactOptions(page: Pick<ContactPage, 'slug' | 'imessage' 
     });
   }
 
+  if (extras?.discord?.href) {
+    options.push({
+      id: 'discord',
+      label: 'Discord',
+      href: extras.discord.href,
+      available: true,
+      kind: 'deeplink',
+    });
+  }
+
   options.push({
     id: 'cli',
     label: 'CLI / bot2bot',
@@ -220,13 +252,17 @@ export function buildContactOptions(page: Pick<ContactPage, 'slug' | 'imessage' 
   return options;
 }
 
-export function toPublicPage(page: ContactPage, origin = siteOrigin()): PublicContactPage {
+export function toPublicPage(
+  page: ContactPage,
+  origin = siteOrigin(),
+  extras?: { discord?: { href: string } | null }
+): PublicContactPage {
   return {
     slug: page.slug,
     name: page.name,
     bio: page.bio,
     avatarUrl: page.avatarUrl,
-    contacts: buildContactOptions(page),
+    contacts: buildContactOptions(page, extras),
     bot2bot: Boolean(page.webhookUrl),
     urls: {
       page: `${origin}/p/${page.slug}`,
@@ -234,6 +270,14 @@ export function toPublicPage(page: ContactPage, origin = siteOrigin()): PublicCo
       message: `${origin}/api/v1/pages/${page.slug}/message`,
     },
   };
+}
+
+export async function toPublicPageWithBindings(page: ContactPage, origin = siteOrigin()): Promise<PublicContactPage> {
+  const binding = await getBindingForPage(page.id).catch(() => null);
+  const discord = binding
+    ? { href: `https://discord.com/channels/${binding.guildId}/${binding.channelId}` }
+    : null;
+  return toPublicPage(page, origin, { discord });
 }
 
 export function publicPageJson(page: ContactPage, origin = siteOrigin()) {
@@ -248,30 +292,60 @@ export async function createContactPage(input: CreatePageInput): Promise<Contact
   const id = generateId('pg');
   const slug = token('', 9);
   const ownerToken = token('own_', 18);
+  const ownerTokenHash = hashSecret(ownerToken);
   const rows = await sql`
     INSERT INTO contact_pages (
       id, slug, owner_token, name, bio, avatar_url,
       webhook_url, webhook_secret, imessage, whatsapp, telegram
     ) VALUES (
-      ${id}, ${slug}, ${ownerToken}, ${input.name}, ${input.bio || ''}, ${input.avatarUrl || ''},
+      ${id}, ${slug}, ${ownerTokenHash}, ${input.name}, ${input.bio || ''}, ${input.avatarUrl || ''},
       ${input.webhookUrl || null}, ${input.webhookSecret || null},
       ${input.imessage || ''}, ${input.whatsapp || ''}, ${input.telegram || ''}
     )
     RETURNING *
   `;
-  return rowToPage(rows[0] as Record<string, unknown>);
+  return { ...rowToPage(rows[0] as Record<string, unknown>), ownerToken };
+}
+
+async function migratePlainOwnerToken(page: ContactPage): Promise<ContactPage> {
+  if (!looksLikePlainOwnerToken(page.ownerToken)) return page;
+  const hashed = hashSecret(page.ownerToken);
+  await sql`
+    UPDATE contact_pages
+    SET owner_token = ${hashed}
+    WHERE id = ${page.id} AND owner_token = ${page.ownerToken}
+  `;
+  return { ...page, ownerToken: hashed };
 }
 
 export async function getPageBySlug(slug: string): Promise<ContactPage | null> {
   await ensureContactTables();
   const rows = await sql`SELECT * FROM contact_pages WHERE slug = ${slug} LIMIT 1`;
-  return rows[0] ? rowToPage(rows[0] as Record<string, unknown>) : null;
+  if (!rows[0]) return null;
+  return migratePlainOwnerToken(rowToPage(rows[0] as Record<string, unknown>));
 }
 
 export async function getPageByOwnerToken(tokenValue: string): Promise<ContactPage | null> {
   await ensureContactTables();
-  const rows = await sql`SELECT * FROM contact_pages WHERE owner_token = ${tokenValue} LIMIT 1`;
-  return rows[0] ? rowToPage(rows[0] as Record<string, unknown>) : null;
+  const hashed = hashSecret(tokenValue);
+  const rows = await sql`
+    SELECT * FROM contact_pages
+    WHERE owner_token = ${hashed} OR owner_token = ${tokenValue}
+    LIMIT 1
+  `;
+  if (!rows[0]) return null;
+  return migratePlainOwnerToken(rowToPage(rows[0] as Record<string, unknown>));
+}
+
+export function verifyOwnerToken(page: ContactPage, provided: string): boolean {
+  return verifyStoredSecret(page.ownerToken, provided);
+}
+
+export async function getPageById(id: string): Promise<ContactPage | null> {
+  await ensureContactTables();
+  const rows = await sql`SELECT * FROM contact_pages WHERE id = ${id} LIMIT 1`;
+  if (!rows[0]) return null;
+  return migratePlainOwnerToken(rowToPage(rows[0] as Record<string, unknown>));
 }
 
 export function timingSafeEqual(a: string, b: string): boolean {
@@ -284,7 +358,7 @@ export function timingSafeEqual(a: string, b: string): boolean {
 
 export async function updateContactPage(slug: string, ownerToken: string, input: UpdatePageInput): Promise<ContactPage | null> {
   const page = await getPageBySlug(slug);
-  if (!page || !timingSafeEqual(page.ownerToken, ownerToken)) return null;
+  if (!page || !verifyOwnerToken(page, ownerToken)) return null;
 
   const name = input.name ?? page.name;
   const bio = input.bio ?? page.bio;
@@ -314,19 +388,47 @@ export async function updateContactPage(slug: string, ownerToken: string, input:
 
 export async function createContactMessage(
   page: ContactPage,
-  input: { fromName: string; content: string; replyTo?: string | null }
+  input: {
+    fromName: string;
+    content: string;
+    replyTo?: string | null;
+    source?: 'api' | 'discord';
+    hop?: number;
+    discord?: DiscordWakeMeta | null;
+  }
 ): Promise<ContactMessage> {
   await ensureContactTables();
   const id = generateId('cmsg');
+  const source = input.source || 'api';
+  const hop = input.hop ?? 0;
+  const discord = input.discord || null;
   const rows = await sql`
-    INSERT INTO contact_messages (id, page_id, from_name, reply_to, content)
-    VALUES (${id}, ${page.id}, ${input.fromName}, ${input.replyTo || null}, ${input.content})
+    INSERT INTO contact_messages (
+      id, page_id, from_name, reply_to, content, source, hop,
+      discord_guild_id, discord_channel_id, discord_thread_id, discord_source_message_id
+    )
+    VALUES (
+      ${id}, ${page.id}, ${input.fromName}, ${input.replyTo || null}, ${input.content},
+      ${source}, ${hop},
+      ${discord?.guildId || null}, ${discord?.channelId || null},
+      ${discord?.threadId || null}, ${discord?.sourceMessageId || null}
+    )
     RETURNING *
   `;
-  return rowToMessage(rows[0] as Record<string, unknown>);
+  return rowToMessage(rows[0] as Record<string, unknown>, discord);
 }
 
-function rowToMessage(row: Record<string, unknown>): ContactMessage {
+function rowToMessage(row: Record<string, unknown>, discordHint?: DiscordWakeMeta | null): ContactMessage {
+  const discord = discordHint || (row.discord_guild_id
+    ? {
+        guildId: String(row.discord_guild_id),
+        channelId: String(row.discord_channel_id || ''),
+        threadId: (row.discord_thread_id as string) || null,
+        sourceMessageId: String(row.discord_source_message_id || ''),
+        handle: '',
+        hop: Number(row.hop ?? 0),
+      }
+    : null);
   return {
     id: String(row.id),
     pageId: String(row.page_id),
@@ -338,6 +440,12 @@ function rowToMessage(row: Record<string, unknown>): ContactMessage {
     webhookStatus: row.webhook_status == null ? null : Number(row.webhook_status),
     ack: (row.ack as string) || null,
     createdAt: asIso(row.created_at),
+    source: (row.source as 'api' | 'discord') || 'api',
+    hop: Number(row.hop ?? 0),
+    discord,
+    replyTokenHash: (row.reply_token_hash as string) || null,
+    replyExpiresAt: row.reply_expires_at ? asIso(row.reply_expires_at) : null,
+    replyCount: Number(row.reply_count ?? 0),
   };
 }
 
@@ -364,63 +472,137 @@ export interface WebhookDeliveryResult {
   error: string | null;
 }
 
-export function ownerWebhookPayload(page: ContactPage, message: ContactMessage) {
+export interface OwnerWakeExtras {
+  discord?: DiscordWakeMeta;
+  reply?: { url: string; token: string; expiresAt: string };
+}
+
+export function ownerWebhookPayload(page: ContactPage, message: ContactMessage, extras?: OwnerWakeExtras) {
   return {
-    event: 'contact.message',
-    version: 1,
+    event: 'contact.message' as const,
+    version: 1 as const,
     page: { slug: page.slug, name: page.name },
     message: {
       id: message.id,
       from: message.fromName,
       content: message.content,
-      replyTo: message.replyTo,
+      replyTo: extras?.reply?.url ?? message.replyTo,
       createdAt: message.createdAt,
+    },
+    ...(extras?.discord ? {
+      discord: {
+        guildId: extras.discord.guildId,
+        channelId: extras.discord.channelId,
+        threadId: extras.discord.threadId,
+        sourceMessageId: extras.discord.sourceMessageId,
+        handle: extras.discord.handle,
+        hop: extras.discord.hop,
+      },
+    } : {}),
+    ...(extras?.reply ? {
+      reply: {
+        url: extras.reply.url,
+        token: extras.reply.token,
+        expiresAt: extras.reply.expiresAt,
+      },
+    } : {}),
+  };
+}
+
+export function connectReadyPayload(
+  page: Pick<ContactPage, 'slug' | 'name'>,
+  discord: { guildId: string; channelId: string; handle: string }
+) {
+  return {
+    event: 'connect.ready',
+    version: 1,
+    page: { slug: page.slug, name: page.name },
+    discord: {
+      connected: true,
+      guildId: discord.guildId,
+      channelId: discord.channelId,
+      handle: discord.handle,
+      mention: `@aims ${discord.handle}`,
     },
   };
 }
 
-export async function deliverOwnerWebhook(page: ContactPage, message: ContactMessage): Promise<WebhookDeliveryResult> {
+function parseAckBody(text: string): string | null {
+  let ack: string | null = null;
+  try {
+    const json = JSON.parse(text) as { ack?: unknown; message?: unknown };
+    if (typeof json.ack === 'string') ack = json.ack;
+    else if (typeof json.message === 'string') ack = json.message;
+  } catch {
+    if (text && text.length > 0 && text.length < 400) ack = text.trim();
+  }
+  return ack;
+}
+
+async function postOwnerWebhook(
+  page: ContactPage,
+  event: string,
+  payload: unknown
+): Promise<WebhookDeliveryResult> {
   if (!page.webhookUrl) {
     return { delivered: false, statusCode: null, ack: null, error: 'no_webhook' };
   }
 
+  const pin = await resolveAndPinPublicUrl(page.webhookUrl);
+  if (!pin.ok) {
+    return { delivered: false, statusCode: null, ack: null, error: pin.error };
+  }
+
+  const raw = JSON.stringify(payload);
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'User-Agent': 'aims.bot-linktree/1.0',
-    'X-Aims-Event': 'contact.message',
+    'X-Aims-Event': event,
   };
   if (page.webhookSecret) {
     headers['X-Aims-Secret'] = page.webhookSecret;
   }
+  const swSecret = toStandardWebhookSecret(page.webhookSecret || `aims-${page.id}`);
+  Object.assign(headers, signStandardWebhook(swSecret, raw));
+
+  const init: RequestInit = {
+    method: 'POST',
+    headers,
+    body: raw,
+    signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
+    redirect: 'error',
+  };
 
   try {
-    const res = await fetch(page.webhookUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(ownerWebhookPayload(page, message)),
-      signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
-      redirect: 'error',
-    });
+    const res = process.env.VITEST
+      ? await fetch(page.webhookUrl, init)
+      : await pinnedFetch(page.webhookUrl, init, pin.pin);
 
-    const text = await res.text();
-    let ack: string | null = null;
-    try {
-      const json = JSON.parse(text) as { ack?: unknown; message?: unknown };
-      if (typeof json.ack === 'string') ack = json.ack;
-      else if (typeof json.message === 'string') ack = json.message;
-    } catch {
-      if (text && text.length > 0 && text.length < 400) ack = text.trim();
-    }
-
+    const text = (await res.text()).slice(0, 65_536);
     return {
       delivered: res.ok,
       statusCode: res.status,
-      ack,
+      ack: parseAckBody(text),
       error: res.ok ? null : `webhook_http_${res.status}`,
     };
   } catch {
     return { delivered: false, statusCode: null, ack: null, error: 'webhook_unreachable' };
   }
+}
+
+export async function deliverOwnerWebhook(
+  page: ContactPage,
+  message: ContactMessage,
+  extras?: OwnerWakeExtras
+): Promise<WebhookDeliveryResult> {
+  return postOwnerWebhook(page, 'contact.message', ownerWebhookPayload(page, message, extras));
+}
+
+export async function deliverConnectReady(
+  page: ContactPage,
+  discord: { guildId: string; channelId: string; handle: string }
+): Promise<WebhookDeliveryResult> {
+  return postOwnerWebhook(page, 'connect.ready', connectReadyPayload(page, discord));
 }
 
 export async function createInbox(origin = siteOrigin()): Promise<{ token: string; url: string }> {
@@ -475,15 +657,43 @@ export async function getInbox(inboxToken: string): Promise<{ token: string; pay
   return { token: String(rows[0].token), payloads };
 }
 
-export function extractOwnerToken(request: Request, body?: Record<string, unknown>): string | null {
+export function extractOwnerTokenHeaderOnly(request: Request): string | null {
   const header = request.headers.get('x-owner-token') || request.headers.get('authorization');
-  if (header) {
-    const raw = header.startsWith('Bearer ') ? header.slice(7) : header;
-    if (raw) return raw;
-  }
+  if (!header) return null;
+  const raw = header.startsWith('Bearer ') ? header.slice(7) : header;
+  return raw || null;
+}
+
+export function extractOwnerToken(request: Request, body?: Record<string, unknown>): string | null {
+  const header = extractOwnerTokenHeaderOnly(request);
+  if (header) return header;
   const url = new URL(request.url);
   const query = url.searchParams.get('token') || url.searchParams.get('ownerToken');
   if (query) return query;
   if (body && typeof body.ownerToken === 'string') return body.ownerToken;
   return null;
+}
+
+export async function getContactMessageById(id: string): Promise<ContactMessage | null> {
+  await ensureContactTables();
+  const rows = await sql`SELECT * FROM contact_messages WHERE id = ${id} LIMIT 1`;
+  return rows[0] ? rowToMessage(rows[0] as Record<string, unknown>) : null;
+}
+
+export async function incrementReplyCount(id: string): Promise<number> {
+  const rows = await sql`
+    UPDATE contact_messages
+    SET reply_count = COALESCE(reply_count, 0) + 1
+    WHERE id = ${id}
+    RETURNING reply_count
+  `;
+  return Number((rows[0] as { reply_count?: number } | undefined)?.reply_count ?? 0);
+}
+
+export async function setDiscordReplyMessageId(id: string, discordMessageId: string): Promise<void> {
+  await sql`
+    UPDATE contact_messages
+    SET discord_reply_message_id = ${discordMessageId}
+    WHERE id = ${id}
+  `;
 }

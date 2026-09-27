@@ -20,6 +20,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Unit & Integration Tests
         run: npx vitest run
+      - name: Discord offline proof
+        run: bash scripts/discord-offline-proof.sh
       - name: Solana Devnet Tests (optional)
         if: env.SOLANA_RPC_URL != ''
         run: npx vitest run tests/integration/solana-real.test.ts

@@ -8,8 +8,8 @@ import {
   isSafeWebhookUrl,
   originFromRequest,
   publicPageJson,
-  timingSafeEqual,
   updateContactPage,
+  verifyOwnerToken,
 } from '@/lib/contact-pages';
 
 export async function GET(
@@ -29,7 +29,7 @@ export async function GET(
 
     const origin = originFromRequest(request);
     const ownerToken = extractOwnerToken(request);
-    const isOwner = ownerToken ? timingSafeEqual(page.ownerToken, ownerToken) : false;
+    const isOwner = ownerToken ? verifyOwnerToken(page, ownerToken) : false;
 
     return Response.json({
       ...publicPageJson(page, origin),

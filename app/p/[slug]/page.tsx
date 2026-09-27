@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPageBySlug, toPublicPage } from '@/lib/contact-pages';
+import { getPageBySlug, toPublicPageWithBindings } from '@/lib/contact-pages';
 import LinktreeClient from './LinktreeClient';
 
 export const dynamic = 'force-dynamic';
@@ -20,5 +20,5 @@ export default async function PrivateLinktreePage({ params }: { params: Promise<
   const { slug } = await params;
   const page = await getPageBySlug(slug).catch(() => null);
   if (!page) notFound();
-  return <LinktreeClient page={toPublicPage(page)} />;
+  return <LinktreeClient page={await toPublicPageWithBindings(page)} />;
 }

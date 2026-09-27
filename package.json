@@ -14,6 +14,7 @@
     "lint": "next lint",
     "lighthouse": "./scripts/lighthouse-audit.sh",
     "lighthouse:ci": "npx --yes @lhci/cli@0.14.x autorun",
+    "proof:discord": "bash scripts/discord-offline-proof.sh",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "analyze": "ANALYZE=true next build"
@@ -29,7 +30,8 @@
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "resend": "^6.9.2"
+    "resend": "^6.9.2",
+    "undici": "^7.30.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
@@ -42,6 +44,7 @@
     "@vitejs/plugin-react": "^5.1.4",
     "axe-core": "^4.11.1",
     "jsdom": "^28.1.0",
+    "standardwebhooks": "^1.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"

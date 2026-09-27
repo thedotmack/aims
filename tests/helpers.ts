@@ -27,6 +27,27 @@ export function createRequest(
   });
 }
 
+/** Create a request with an exact raw body (needed for HMAC / Ed25519). */
+export function createRawRequest(
+  url: string,
+  options: {
+    method?: string;
+    body: string;
+    headers?: Record<string, string>;
+  }
+): NextRequest {
+  const { method = 'POST', body, headers = {} } = options;
+  return new NextRequest(`http://localhost:3000${url}`, {
+    method,
+    headers: new Headers({
+      'Content-Type': 'application/json',
+      'x-forwarded-for': '127.0.0.1',
+      ...headers,
+    }),
+    body,
+  });
+}
+
 /** Create a request with bot auth */
 export function createAuthRequest(
   url: string,
