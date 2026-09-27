@@ -1,0 +1,12 @@
+{
+  "name": "aims-discord-gateway",
+  "private": true,
+  "type": "module",
+  "description": "Fly.io Discord gateway worker for aims.bot. Dumb HMAC forwarder; no Discord REST.",
+  "scripts": {
+    "start": "node src/index.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
